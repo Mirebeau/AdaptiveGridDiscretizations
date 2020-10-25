@@ -86,7 +86,6 @@ def block_expand(arr,shape_i,renumber_ad=False,**kwargs):
 	 - **kwargs : passed to np.pad
 	Output : 
 	 - padded and reshaped array
-	 - original shape
 	"""
 	ndim = len(shape_i)
 	if ndim==0: return arr # Empty block
