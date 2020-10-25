@@ -18,26 +18,23 @@ intensive (at least in three dimensions with the fourth order scheme).
 
 import numpy as np
 import cupy as cp
+import os
 
-from .VoronoiDecomposition import VoronoiDecomposition
+from ... import AutomaticDifferentiation as ad
 from ... import FiniteDifferences as fd
+from ... import LinearParallel as lp
 from ... import Metrics
 from . import cupy_module_helper
 from .cupy_module_helper import SetModuleConstant
-
-
+from .VoronoiDecomposition import VoronoiDecomposition
 
 class HookeWave:
-
-	def __init__(self,shape,shape_i=None,shape_j=None,periodic=None,order=2):
-			#hooke,metric,damping,q,p):
-		"""
-		Decompose the hooke tensor using Voronoi's reduction. 
-		Reshape the results, and q0,p0, for GPU efficient matrix vector products.
-		"""
-
+	"""
+	Warning : accessing this object's properties has a significant memory and 
+	computational cost, because all data is converted to a kernel friendly format.
+	"""
+	def __init__(self,shape,shape_i=None,shape_j=None,periodic=False,order=2):
 		self._float_t = np.float32
-	#	self._int_t = np.int32
 		self._offsetpack_t = np.int32
 
 		self._shape = shape
@@ -53,14 +50,15 @@ class HookeWave:
 		assert shape_j is None # TODO. Another layer. Presumably (2,)*self.vdim
 		self._shape_j = shape_j
 
-		shape_o = fd.round_up_ratio(shape,shape_i)
+		shape_o = tuple(fd.round_up_ratio(shape,shape_i))
 		self._shape_o = shape_o
 		self._size_o = np.prod(shape_o)
 
+		if periodic in (True,False): periodic=(periodic,)*self.vdim
 		assert periodic is None or len(periodic)==self.vdim
 		self._periodic = periodic
 
-		if self.order not in (2,4):
+		if order not in (2,4):
 			raise ValueError("Only second and fourth order scheme supported")
 		self._order = order
 
@@ -71,10 +69,10 @@ class HookeWave:
 		self._metric = None
 		self._dtQ = None
 		self._dtP = None
-		self._gridScales = None
+		self._gridScale = None
 		self._q = None
 		self._p = None
-		self._tmp = self.expand(cp.zeros(self.shape,dtype=self.float_t),padding=np.nan)
+		self._tmp = self.block_expand(cp.zeros(self.shape,dtype=self.float_t))
 		self._nocheck = False
 
 		# Generate the cuda module
@@ -83,8 +81,9 @@ class HookeWave:
 			'Scalar':self.float_t,
 			'ndim_macro':self.vdim,
 			'fourth_order_macro':self.order==4,
+			'periodic_macro':any(periodic),
+			'periodic_axes':periodic,
 		}
-		if periodic is not None: traits['periodic'] = periodic
 
 		cuda_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),"cuda")
 		date_modified = cupy_module_helper.getmtime_max(cuda_path)
@@ -98,45 +97,63 @@ class HookeWave:
 		source="\n".join(source)
 		module = cupy_module_helper.GetModule(source,cuoptions)
 		self._module = module
-		self._UpdateQ = module.get_function("UpdateQ")
-		self._UpdateP = module.get_function("UpdateP")
+		self._AdvanceQ = module.get_function("AdvanceQ")
+		self._AdvanceP = module.get_function("AdvanceP")
 
-	# Traits
-	@getter
+	# Tra<its
+	@property	
 	def float_t(self):  return self._float_t
-#	@getter
-#	def int_t(self):    return self._int_t
-	@getter
+	@property	
 	def offsetpack_t(self): return self._offsetpack_t
-	@getter
+	@property	
 	def order(self):    return self._order
-	@getter
+	@property	
 	def periodic(self): return self._periodic
-	@getter
+	@property	
 	def shape(self):    return self._shape
-	@getter
+	@property	
 	def shape_o(self):  return self._shape_o
-	@getter
+	@property	
 	def shape_i(self):  return self._shape_i
-	@getter
+	@property	
 	def shape_j(self):  return self._shape_j
-	@getter
-	def vdim(self):     return len(self.shape_i)
-	@getter
+	@property	
+	def vdim(self):     return len(self.shape)
+	@property
+	def symdim(self): 
+		vdim = self.vdim
+		return (vdim*(vdim+1))//2
+	@property
+	def decompdim(self):
+		symdim = self.symdim
+		return (symdim*(symdim+1))//2
+	@property	
 	def size_o(self):   return self._size_o
-	@getter
+	@property	
 	def size_i(self):   return self._size_i
+	@property
+	def offsetnbits(self):
+		if self.vdim==2: return 10
+		elif self.vdim==3: return 5
+		else: raise ValueError("Unsupported dimension")
+	@property
+	def voigt2lower(self):
+		if self.vdim==2:   return (0,2,1)
+		elif self.vdim==3: return (0,5,1,4,3,2)
+		else: raise ValueError("Unsupported dimension")	
+	
 
 
-	def block_expand(self,value,**kwargs):
+	def block_expand(self,value,constant_values=np.nan,**kwargs):
 		"""
 		Reshapes the array so as to factor shape_i. Also moves the geometry axis before
 		shape_i, following the convention of HookeWave.h
 		"""
-		value = fd.block_expand(value,self.shape_i,**kwargs)
-		if value.ndim == 2*self.vdim: return value
-		elif value.ndim == 2*self.vdim+1: return np.moveaxis(value,0,self.vdim)
+		value = fd.block_expand(value,self.shape_i,constant_values=constant_values,**kwargs)
+		if value.ndim == 2*self.vdim: pass
+		elif value.ndim == 2*self.vdim+1: value = np.moveaxis(value,0,self.vdim)
 		else: raise ValueError("Unsupported geometry depth")
+		return cp.ascontiguousarray(value)
 	def block_squeeze(self,value):
 		"""Inverse operation to block_expand"""
 		if value.ndim==2*self.vdim: pass
@@ -145,7 +162,25 @@ class HookeWave:
 		return fd.block_squeeze(value,self.shape)
 
 	# PDE parameters
-	@setter
+	@property
+	def weights(self): return self.block_squeeze(self._weights)
+	@property	
+	def offsets(self):
+		offsets2 = self.block_squeeze(self._offsets)
+		# Uncompress
+		offsets = cp.zeros((self.symdim,)+offsets2.shape,dtype=np.int8)
+		order = self.voigt2lower
+		nbits = self.offsetnbits
+		for i,o in enumerate(order):
+			offsets[o]=((offsets2//2**(i*nbits))% 2**nbits) - 2**(nbits-1)
+		return offsets
+
+	@property	
+	def hooke(self):
+		weights,offsets = self.weights,self.offsets
+		return (weights * lp.outer_self(offsets)).sum(axis=2)
+
+	@hooke.setter
 	def hooke(self,value): self.set_hooke(value)
 		
 	def set_hooke(self,hooke,div_hooke=None):
@@ -160,108 +195,148 @@ class HookeWave:
 			elif self.vdim==3: # Reshape as 3x3x6
 				hk = ad.asarray([
 					[hooke[0],hooke[5],hooke[4]],
-					[hooke[0],hooke[5],hooke[4]],
-					[hooke[0],hooke[5],hooke[4]],
+					[hooke[5],hooke[1],hooke[3]],
+					[hooke[4],hooke[3],hooke[2]],
 					])
 			else: raise ValueError("Unsupported dimension")
-			offsets = cp.eye(vdim,dtype=self.float_t)
+			offsets = cp.eye(self.vdim,2+self.vdim,2,dtype=np.int32)
 			# TODO : use one-sided finite differences instead on boundary
-			div_hooke = sum([fd.DiffCentered(hk[i],offsets[i],gridScale=self.gridScales[i],
+			div_hooke = sum([fd.DiffCentered(hk[i],offsets[i],gridScale=self.gridScale,
 				padding = None if self.periodic[i] else np.nan) for i in range(self.vdim)])
 			hk = None
 			div_hooke[np.isnan(div_hooke)]=0 # Should not be too bad thanks to damping
 
 		# Solve for the first order term, and save it. (self.vdim,self.symdim)+self.shape
-		firstorder = np.moveaxis(0,1,lp.solve_AV(hooke,np.moveaxis(div_hooke,1,0)))
+		firstorder = np.moveaxis(lp.solve_AV(np.expand_dims(hooke,axis=2),
+			np.moveaxis(div_hooke,1,0)),0,1)
 		div_hooke = None
 		firstorder = np.reshape(firstorder,(-1,)+self.shape)
-		self._firstorder = fd.block_expand(firstorder,padding=np.nan)
+		self._firstorder = self.block_expand(firstorder)
 		firstorder = None
 
 		# Decompose the Hooke tensors using Voronoi's first reduction.
 		weights,offsets = VoronoiDecomposition(hooke,offset_t=np.int8)
-		self._weights = fd.block_expand(weights,padding=np.nan)
+		self._weights = self.block_expand(weights)
 		weights = None
 		
 		# Reorder the offset components, compress as integer
-		offsets2 = cp.zeros(weights.shape,dtype=self.offsetpack_t)
-		if self.vdim==2:   nbits=10; order = (0,2,1) # Voigt to lower triangular ordering
-		elif self.vdim==3: nbits=5;  order = (0,5,1,4,3,2)
-		else: raise ValueError("Unsupported dimension")
-
+		offsets2 = cp.zeros(offsets.shape[1:],dtype=self.offsetpack_t)
+		order = self.voigt2lower
+		nbits = self.offsetnbits
 		for i,o in enumerate(order):
-			offsets2 += (offsets[o]+2**(nbits-1)) * 2**(nbits*i)
-		self._offsets = offsets2
+			offsets2 += (offsets[o].astype(int)+2**(nbits-1)) * 2**(nbits*i)
+		self._offsets = self.block_expand(offsets2,constant_values=0)
 
-
-	@setter
+	@property
+	def metric(self):
+		metric = self.block_squeeze(self._metric)
+		return Metrics.misc.expand_symmetric_matrix(metric)
+	
+	@metric.setter
 	def metric(self,value):
 		value = fd.as_field(value,self.shape,depth=2)
 		value = Metrics.misc.flatten_symmetric_matrix(value)
-		self._metric = self.block_expand(value,padding=np.nan)
-	@setter
+		self._metric = self.block_expand(value)
+
+	@property
+	def damping(self): return self.block_squeeze(self._damping)
+
+	@damping.setter
 	def damping(self,value):
 		value = fd.as_field(value,self.shape,depth=0)
-		self._damping = self.block_expand(value,padding=np.nan)
+		self._damping = self.block_expand(value)
 
-	@setter
+	@property
+	def dtQ(self): return self._dtQ
+
+	@dtQ.setter
 	def dtQ(self,value):
 		assert np.ndim(value)==0
 		self.SetCst('dtQ',value,self.float_t)
 		self._dtQ = value
 
-	@setter
+	@property
+	def dtP(self): return self._dtP
+
+	@dtP.setter
 	def dtP(self,value):
 		assert np.ndim(value)==0
 		self.SetCst('dtP',value,self.float_t)
 		self._dtP = value
 
-	@setter
+	@property
+	def dt(self):
+		if self.dtQ==self.dtP: return self.dtQ
+		else: raise ValueError("Distnct time steps dtP,dtQ")
+	
+	@dt.setter
 	def dt(self,value): 
 		self.dtQ = value
 		self.dtP = value
 
-	@setter
+	"""	# For now a single grid scale is used
+	@property
+	def gridScales(self): return self._gridScales
+	
+	@gridScales.setter
 	def gridScales(self,value):
 		assert np.ndim(value)==1 and len(value)==self.vdim
 		self.SetCst('idx',1./cp.asarray(value),float_t)
 		self._gridScales = gridScales
 
-	@setter
+	@property
+	def gridScale(self):
+		gridScales = self.gridScales
+		h = gridScales[0]
+		if all(h==gs for gs in gridScales): return h
+		else: raise ValueError("Axis dependent grid scales")
+	
+	@gridScale.setter
 	def gridScale(self,value): self.gridScales = (value,)*self.vdim
+	"""
+	
+	@property
+	def gridScale(self): return self._gridScale
+
+	@gridScale.setter
+	def gridScale(self,value):
+		assert np.ndim(value)==0
+		self.SetCst('idx',1/value,self.float_t)
+		self._gridScale = value
 	
 	def SetCst(self,name,value,dtype):
 		SetModuleConstant(self._module,name,value,dtype)
 
 	# Unknowns
-	@setter
-	def q(self,value): 
-		value = fd.as_field(value,self.shape,depth=1)
-		self._q = self.block_expand(value,padding=np.nan)
-	@setter
-	def p(self,value): 
-		value = fd.as_field(value,self.shape,depth=1)
-		self._p = self.block_expand(value,padding=np.nan)
-
-	@getter
+	@property	
 	def q(self): return self.block_squeeze(self._q)
-	@getter
+	@property	
 	def p(self): return self.block_squeeze(self._p)
 
-	# Symplectic scheme
-	def AdvanceQ(self):
-		self.check()
-		self._UpdateQ(self.shape_o,self.shape_i,(
-			self._weights,self._offsets,self._firstorder,self._damping,
-			self._q,self._p,self._tmp))
-		self._q,self._tmp = self._tmp,self._q
+	@q.setter
+	def q(self,value): 
+		value = fd.as_field(value,self.shape,depth=1)
+		self._q = self.block_expand(value)
+	@p.setter
+	def p(self,value): 
+		value = fd.as_field(value,self.shape,depth=1)
+		self._p = self.block_expand(value)
 
+
+	# Symplectic scheme
 	def AdvanceP(self):
 		self.check()
-		self._UpdateP((self.size_o,),(self.size_i,),(
-			self._metric,self._damping,
+		self._AdvanceP(self.shape_o,self.shape_i,(
+			self._weights,self._offsets,self._firstorder,self._damping,
 			self._q,self._p,self._tmp))
 		self._p,self._tmp = self._tmp,self._p
+
+	def AdvanceQ(self):
+		self.check()
+		self._AdvanceQ((self.size_o,),(self.size_i,),(
+			self._metric,self._damping,
+			self._q,self._p,self._tmp))
+		self._q,self._tmp = self._tmp,self._q
 
 	def check(self):
 		""" 
@@ -272,12 +347,12 @@ class HookeWave:
 		for arg in (self._weights,self._offsets,self._firstorder,self._damping,self._metric,
 			self._q,self._p,self._tmp):
 			assert arg.flags.c_contiguous
-			assert args.shape[:self.vdim]==self.shape_o
+			assert arg.shape[:self.vdim]==self.shape_o
 			assert arg.shape[-self.vdim:]==self.shape_i
-			assert arg.ndim in (self.vdim,self.vdim+1)
+			assert arg.ndim in (2*self.vdim,2*self.vdim+1)
 			assert arg.dtype == self.offsetpack_t if arg is self._offsets else self.float_t
 
-		for arg in (self._dtP,self._dtQ,self._gridScales):
+		for arg in (self._dtP,self._dtQ,self._gridScale):
 			assert arg is not None
 
 	def Advance(self,dt,niter):
@@ -296,6 +371,8 @@ class HookeWave:
 		self.dtQ = dt/2
 		self.AdvanceQ()
 		self._nocheck=False
+		self._dtQ = None
+		self._dtP = None
 
 
 

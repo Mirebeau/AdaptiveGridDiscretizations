@@ -45,11 +45,11 @@ def VoronoiDecomposition(m,offset_t=np.int32,
 
 	weights,offsets=map(cp.ascontiguousarray,(weights,offsets))
 
-	# Set up the GPU kernel
+	# Setup the GPU kernel
 	if traits is None: traits = {}
 	traits.update({
 		'ndim_macro':ndim,
-		'offsetT':offset_t,
+		'OffsetT':offset_t,
 		'Scalar':float_t,
 		'Int':np.int32,
 		'SIMPLEX_TOL_macro':tol,

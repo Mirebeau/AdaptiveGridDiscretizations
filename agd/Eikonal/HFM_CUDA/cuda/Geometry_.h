@@ -89,12 +89,12 @@ void mul_kv(const Tk k, const Tv v[ndim], Tout out[__restrict__ ndim]){
 void div_Vk(Scalar v[__restrict__ ndim], const Scalar k){
 	const Scalar l=1./k; mul_kV(l,v);}
 
-template<typename T>
-void madd_kvv(const T k, const T x[ndim], const T y[ndim], T out[__restrict__ ndim]){
+template<typename Tk, typename Tx, typename Ty, typename Tout>
+void madd_kvv(const Tk k, const Tx x[ndim], const Ty y[ndim], Tout out[__restrict__ ndim]){
 	for(Int i=0; i<ndim; ++i){out[i]=k*x[i]+y[i];}}
 
-template<typename T>
-void madd_kvV(const T k, const T x[ndim], T y[__restrict__ ndim]){
+template<typename Tk, typename Tx, typename Ty>
+void madd_kvV(const Tk k, const Tx x[ndim], Ty y[__restrict__ ndim]){
 	for(Int i=0; i<ndim; ++i){y[i]+=k*x[i];} }
 
 

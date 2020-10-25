@@ -6,10 +6,11 @@ approach with custom cuda kernels and a slightly different discretization, inten
 be less memory intensive e.g. for three dimensional fourth order test cases.
 """
 
-from agd.Eikonal.HFM_CUDA import HookeWave
+from agd.Eikonal.HFM_CUDA.HookeWave import HookeWave
 from agd import LinearParallel as lp
 from agd import FiniteDifferences as fd
 from agd.Metrics.Seismic import Hooke
+from agd.ODE.hamiltonian import QuadraticHamiltonian
 from agd import AutomaticDifferentiation as ad
 from agd import Domain
 from agd.Plotting import savefig,quiver; #savefig.dirName = 'Images/ElasticityDirichlet'
@@ -22,12 +23,27 @@ import matplotlib.pyplot as plt
 
 xp,plt,quiver,allclose = map(ad.cupy_friendly,(xp,plt,quiver,allclose))
 
-mica,ρ = Hooke.mica 
-crystal_material = (mica.extract_xz().rotate_by(0.5),ρ)
-isotropic_material = (Hooke.from_Lame(1.,1.), 1.)
 vdim = 2
+if vdim==2:
+    mica,ρ = Hooke.mica 
+    crystal_material = (mica.extract_xz().rotate_by(0.5),ρ)
+    isotropic_material = (Hooke.from_Lame(1.,1.), 1.)
+else:
+    assert False
+    
+crystal_material,isotropic_material = [ad.cupy_generic.cupy_set(e,iterables=(tuple,Hooke))
+    for e in (crystal_material,isotropic_material)]
 
-crystal_material,isotropic_material = map(ad.cupy_friendly,(crystal_material,isotropic_material))
+material = crystal_material
+
+from agd.Eikonal.HFM_CUDA.VoronoiDecomposition import VoronoiDecomposition
+hooke = material[0].hooke
+print("type of hooke ", type(hooke))
+coefs,offsets = VoronoiDecomposition(hooke,offset_t=np.int8)
+print("Decomposition")
+print(coefs)
+print(offsets)
+
 
 def CFL(dx,hooke,ρ,order=1):
     """Largest time step guaranteed to be stable for the elastic wave equation"""
@@ -48,17 +64,64 @@ def explosion(X):
     X_ad = ad.Dense.identity(constant=X,shape_free=(2,))
     return -gaussian(X_ad,0.1).gradient()
 
-hw = HookeWave(X.shape[1:])
+
+
+dom,X,dx = make_domain(1)
+
+hw = HookeWave(X.shape[1:],periodic=True)
 
 # Initial conditions
-hw.q = explosion(X)
-hw.p = np.zeros_like(X)
+q0,p0 = explosion(X),np.zeros_like(X)
+hw.q,hw.p = q0,p0
 
 # PDE marameters
-hooke,ρ = isotropic_material
+hooke,ρ = material
+hw.gridScale = dx
 hw.metric = ρ*xp.eye(vdim)
 hw.hooke = hooke.hooke
-hw.periodic = (True,)*vdim
 hw.damping=0.
 
 hw.dt = CFL(dx,hooke,ρ)
+print("shape_o",hw.shape_o,type(hw.shape_o))
+print("Self check : ",hw.check())
+
+print(hw.weights[:,0,0])
+print(hw.offsets[:,:,0,0])
+assert allclose(hw.hooke[:,:,0,0],hooke.hooke)
+assert allclose(hw._firstorder[0,0,:,0,0],0.)
+assert allclose(hw.metric[:,:,0,0],ρ*xp.eye(vdim))
+assert allclose(hw.q,q0)
+assert allclose(hw.p,p0)
+
+# --------- Reproducing the sparse matrix based implementation, for comparison --------
+from agd.ExportedCode.Notebooks_Div.ElasticEnergy import ElasticEnergy
+
+def KineticEnergy(m,ρ):
+    """Squared norm of the momentum, divided by the density, 
+    which is (twice) the kinetic energy density."""
+    return (m**2).sum(axis=0) / ρ
+
+def WaveHamiltonian(hooke,ρ,dom,order=1):
+    """Returns the Hamiltonian of the linear elastic wave equation."""
+    # Summation is implicit, and purposedly not done here (for simplify_ad)
+    h = dom.gridscale
+    Hq = lambda q: 0.5 * ElasticEnergy(q,hooke,dom,order=order) * h**2 
+    Hp = lambda p: 0.5 * KineticEnergy(p,ρ) * h**2
+    H = QuadraticHamiltonian(Hq,Hp,inv_inner=h**-2)
+    z = xp.zeros((dom.vdim,*dom.shape)) # Correctly shaped placeholder for position or impulsion
+    H.set_spmat(z) # Replaces quadratic functions with sparse matrices
+    return H
+
+WaveH = WaveHamiltonian(*material,dom)
+incomp = WaveH.incomplete_schemes()
+AdvanceQ_sp = incomp['Explicit-q']
+AdvanceP_sp = incomp['Explicit-p']
+
+# ----------------------
+hw.AdvanceQ()
+q_ker = hw.q
+q_sp = AdvanceQ_sp(q0,p0,hw.dt)
+print(norm_infinity(q_sp))
+print(norm_infinity(q_ker))
+assert allclose(q_ker,q_sp)
+
