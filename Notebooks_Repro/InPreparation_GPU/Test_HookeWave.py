@@ -63,21 +63,32 @@ def explosion(X):
     """Triggers a pressure wave in all directions, emulating an explosion"""
     X_ad = ad.Dense.identity(constant=X,shape_free=(2,))
     return -gaussian(X_ad,0.1).gradient()
+def torsion(X):
+    """Triggers a torsion wave in all directions, using a torsion-like initial momentum"""
+    e0,e1 = explosion(X) 
+    return ad.array([-e1,e0]) # Perpendicular vector
 
 
 
 dom,X,dx = make_domain(1)
 
-hw = HookeWave(X.shape[1:],periodic=True)
+fourth_order=False
+
+hw = HookeWave(X.shape[1:],periodic=True,
+    traits={
+    'compact_scheme_macro':False,
+    'fourth_order_macro':fourth_order,
+    })
 
 # Initial conditions
 q0,p0 = explosion(X),np.zeros_like(X)
+#q0,p0 = np.zeros_like(X),torsion(X)
 hw.q,hw.p = q0,p0
 
 # PDE marameters
 hooke,ρ = material
 hw.gridScale = dx
-hw.metric = ρ*xp.eye(vdim)
+hw.metric = xp.eye(vdim)/ρ
 hw.hooke = hooke.hooke
 hw.damping=0.
 
@@ -89,7 +100,7 @@ print(hw.weights[:,0,0])
 print(hw.offsets[:,:,0,0])
 assert allclose(hw.hooke[:,:,0,0],hooke.hooke)
 assert allclose(hw._firstorder[0,0,:,0,0],0.)
-assert allclose(hw.metric[:,:,0,0],ρ*xp.eye(vdim))
+assert allclose(hw.metric[:,:,0,0], xp.eye(vdim)/ρ)
 assert allclose(hw.q,q0)
 assert allclose(hw.p,p0)
 
@@ -112,16 +123,56 @@ def WaveHamiltonian(hooke,ρ,dom,order=1):
     H.set_spmat(z) # Replaces quadratic functions with sparse matrices
     return H
 
-WaveH = WaveHamiltonian(*material,dom)
+WaveH = WaveHamiltonian(*material,dom,
+    order=2 if fourth_order else 1)
 incomp = WaveH.incomplete_schemes()
 AdvanceQ_sp = incomp['Explicit-q']
 AdvanceP_sp = incomp['Explicit-p']
 
-# ----------------------
-hw.AdvanceQ()
-q_ker = hw.q
+print("Initial hamiltonian", WaveH.H(q0,p0))
+flowQ,flowP = WaveH.flow(q0,p0)
+print(np.sum(np.isnan(flowQ)))
+print(np.sum(np.isnan(flowP)))
+print(hw.dt)
+
+# --------------- Checking AdvanceQ ---------------
+print("Advancing Q")
+hw.q,hw.p = q0,p0
 q_sp = AdvanceQ_sp(q0,p0,hw.dt)
 print(norm_infinity(q_sp))
+print(np.sum(np.isnan(q_sp)))
+hw.AdvanceQ()
+q_ker = hw.q
 print(norm_infinity(q_ker))
+print(np.sum(np.isnan(q_ker)))
+print(dx**2)
+
 assert allclose(q_ker,q_sp)
+
+
+# --------------- Checking AdvanceP --------------
+print("Advancing P")
+hw.q,hw.p = q0,p0
+p_sp = AdvanceP_sp(q0,p0,hw.dt)
+hw.AdvanceP()
+p_ker = hw.p
+
+print(p_ker[:,0,0])
+print(p_sp[:,0,0])
+
+plt.figure(figsize=(12,6)); 
+plt.subplot(1,2,1)
+plt.title('p_ker'); plt.axis('equal')
+quiver(*X,*p_ker,subsampling=(2,2),scale=1000.)
+
+plt.subplot(1,2,2)
+plt.title('p_sp'); plt.axis('equal')
+quiver(*X,*p_sp,subsampling=(2,2),scale=1000.)
+plt.show()
+
+print(norm_infinity(p_sp))
+print(norm_infinity(p_ker))
+print(norm_infinity(p_sp-p_ker))
+assert allclose(p_ker,p_sp,atol=1e-4)
+
 

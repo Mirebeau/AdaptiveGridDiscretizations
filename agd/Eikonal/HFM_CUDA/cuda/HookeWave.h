@@ -37,16 +37,91 @@ namespace geom_symdim {
 const int decompdim = geom_symdim::symdim; // Voronoi decomposition of hooke tensor
 const int firstdim = ndim*symdim;
 
-__constant__ Scalar dtQ, dtP; // time steps
+__constant__ Scalar dt; // time step
 __constant__ Scalar idx; // Inverse grid scale 
 
-// Unpack the offsets of Voronoi's first reduction
+/** Bypass computations involving null weights or offsets. Should speed up computations 
+involving isotropic hooke tensors in particular.*/
+#if bypass_zeros_macro
+#define BYPASS_ZEROS(...) __VA_ARGS__
+#else 
+#define BYPASS_ZEROS(...) 
+#endif
+
+/** Replace cross differences involving the same vectors, or opposite vectors, with 
+second order finite differences. Not much effect expected.*/
+#if compact_scheme_macro
+#define COMPACT_SCHEME(...) __VA_ARGS__
+#else
+#define COMPACT_SCHEME(...) 
+#endif
+
+// ------------- Offset manipulation -------------
+
+/// Unpack the offsets of Voronoi's first reduction
 void offset_expand(OffsetPack pack, Int exp[symdim]){
 	const int nbit = ndim==2 ? 10 : 5; // Number of bits for each offset
 	const int mask = (1<<nbit)-1;
 	const int zero = 1<<(nbit-1);
 
 	for(int i=0; i<symdim; ++i){exp[i] = ((pack >> (i*nbit)) & mask) - zero;}
+}
+
+
+bool is_zero(const Int e[ndim]){
+	for(int i=0; i<ndim; ++i){if(e[i]!=0) return false;}
+	return true;
+}
+
+bool is_same(const Int e[__restrict__ ndim], const Int f[__restrict__ ndim]){
+	for(int i=0; i<ndim; ++i){if(e[i]!=f[i]) return false;}
+	return true;
+}
+
+bool is_opp(const Int e[__restrict__ ndim], const Int f[__restrict__ ndim]){
+	for(int i=0; i<ndim; ++i){if(e[i]!=-f[i]) return false;}
+	return true;
+}
+
+// -------------------- Vector field component access -------------------
+
+/// Return a given component, at a given position, of a vector field
+Scalar component(const Int comp, const Int x_t[__restrict__ ndim], 
+	const Scalar * __restrict__ q_t){
+
+	if(Grid::InRange_per(x_t,shape_tot)){
+		Int x_o[ndim],x_i[ndim];
+		for(int k=0; k<ndim; ++k){
+			const int xk = 
+			PERIODIC(periodic_axes[k] ? Grid::mod_pos(x_t[k],shape_tot[k]) :) 
+			x_t[k];
+			x_o[k] = xk / shape_i[k]; x_i[k] = xk % shape_i[k];}
+		const int 
+		n_o = Grid::Index(x_o,shape_o),
+		n_i = Grid::Index(x_i,shape_i);
+		const int n_oi = n_o*size_i;
+		const int nstart = n_oi*ndim + n_i;
+		return q_t[nstart + size_i * comp];
+	} else {
+		return 0.; // Null dirichlet boundary conditions
+	}
+}
+
+/// Like component, but includes a correction for the fourth order scheme
+Scalar component_corrected(const Int comp, const Int offset[__restrict__ ndim],
+	const Int x0_t[__restrict__ ndim], 
+	const Scalar * __restrict__ q_t){
+
+	Int x1_t[ndim];
+	add_vv(offset,x0_t,x1_t);
+
+	#if fourth_order_macro
+	Int x2_t[ndim];
+	add_vv(offset,x1_t,x2_t);
+	return (4./3.)*component(comp,x1_t,q_t) - (1./3.)*component(comp,x2_t,q_t);
+	#else
+	return component(comp,x1_t,q_t);
+	#endif
 }
 
 extern "C" {
@@ -56,9 +131,9 @@ __global__ void AdvanceP(
 	const OffsetPack * __restrict__ offsets_t, // [size_o,decompdim,size_i]
 	const Scalar * __restrict__ firstorder_t,  // [size_o,firstdim,size_i]
 	const Scalar * __restrict__ damping_t,     // [size_o,size_i]
-	const Scalar * __restrict__ q_t,      // [size_o,ndim,size_i]
-	const Scalar * __restrict__ pold_t,   // [size_o,ndim,size_i]
-	Scalar       * __restrict__ pnew_t          // [size_o,ndim,size_i]
+	const Scalar * __restrict__ q_t,           // [size_o,ndim,size_i]
+	const Scalar * __restrict__ pold_t,        // [size_o,ndim,size_i]
+	Scalar       * __restrict__ pnew_t         // [size_o,ndim,size_i]
 	){
 	// Compute position
 	Int x_o[ndim], x_i[ndim];
@@ -72,7 +147,11 @@ __global__ void AdvanceP(
 	for(int i=0; i<ndim; ++i){x_t[i] = x_i[i]+x_o[i]*shape_i[i];}
 
 	const int n_o = Grid::Index(x_o,shape_o);
-	const int n_i = Grid::Index(x_i,shape_i); 
+	const int n_i = Grid::Index(x_i,shape_i);
+
+	if(n_i==0 && n_o==0){
+		printf("x_i %i,%i, x_o %i,%i \n",x_i[0],x_i[1],x_o[0],x_o[1]);
+	} 
 	const int n_oi = n_o*size_i; 
 	int nstart;// Mutable, used for array data start
 	
@@ -98,100 +177,85 @@ __global__ void AdvanceP(
 
 	// Contribution of zero-th order term
 	Scalar pnew[ndim];
-	mul_kv(1.-dtQ*damping,pold,pnew); 
+	mul_kv(1.-dt*damping,pold,pnew); 
 
 	Scalar stress[symdim];
 	geom_symdim::fill_kV(Scalar(0),stress);
 
-	for(int decomp_i=0; decomp_i<decompdim; ++decomp_i){
+	for(int decomp=0; decomp<decompdim; ++decomp){
 
-		// Load one weight and offset
-		Scalar weight = weights[decomp_i];
+		// Load one weight and offset. Expand offset.
+		Scalar weight = weights[decomp];
+		BYPASS_ZEROS(if(weight==0) continue;)
 		Int offset[symdim]; 
-		offset_expand(offsets[decomp_i],offset);
+		offset_expand(offsets[decomp],offset);
 
-		// First and second order finite differences of the i-th component of qold
-		// along the i-th line of offset
-		Scalar diff1[ndim];
-		Scalar diff2[ndim];
-
+		Int moffset[ndim][ndim];
 		for(int i=0; i<ndim; ++i){
-			// Values of the i-th component of qold along the i-th line of offset
-			Scalar qneigh1[2];
-			#if fourth_order_macro
-			Scalar qneigh2[2];
-			#endif
-
-			Int offset_i[ndim]; // i-th line of offset 
-			for(int j=0; j<ndim; ++j){offset_i[j] = coef_m(offset,i,j);}
-
-			for(int side=0; side<=1; ++side){
-
-			#if fourth_order_macro 
-			for(int dist=1; dist<=2; ++dist){ // Fetch at distance two along offset
-				const int eps = dist*(2*side-1);
-			#else
-				const int eps = 2*side-1;
-			#endif
-
-				Scalar value; // value to be fetched. i-th component along i-th offset
-				Int y_t[ndim]; 
-				madd_kvv(eps,offset_i,x_t,y_t);
-
-				if(Grid::InRange_per(y_t,shape_tot)){
-					Int y_o[ndim],y_i[ndim];
-					for(int k=0; k<ndim; ++k){
-						const int yk = 
-						PERIODIC(periodic_axes[k] ? Grid::mod_pos(y_t[k],shape_tot[k]) :) 
-						y_t[k];
-						y_o[k] = yk / shape_i[k]; y_i[k] = yk%shape_i[k];}
-					const int 
-					ny_o = Grid::Index(y_o,shape_o),
-					ny_i = Grid::Index(y_i,shape_i);
-					const int ny_oi = ny_o*size_i;
-					value = q_t[ny_oi + ny_i + i*size_i];
-				} else { // y_t is out of range
-					value = 0; // Null dirichlet boundary conditions
-				}
-
-			#if fourth_order_macro
-				if(dist==1) {qneigh1[side] = value;}
-				else        {qneigh2[side] = value;}
-
-			} // for dist
-			#else
-			qneigh1[i] = value;
-			#endif
+			for(int j=0; j<ndim; ++j){
+				moffset[i][j] = coef_m(offset,i,j);
 			}
-
-			// Finite differences
-			#if fourth_order_macro
-			diff1[i] =  (4./3.)*(qneigh1[1] - qneigh1[0])
-					   -(1./3.)*(qneigh2[1] - qneigh2[0]);
-			diff2[i] =  (4./3.)*(qneigh1[1] + qneigh1[0])
-					   -(1./3.)*(qneigh2[1] + qneigh2[0])
-					   - 2. * q[i];
-			#else
-			diff1[i] = qneigh1[1] - qneigh1[0];
-			diff2[i] = qneigh1[1] + qneigh1[0] - 2. * q[i];
-			#endif
-
-			// Take into account the grid scales
-			diff1[i] *= idx/2.;
-			diff2[i] *= idx*idx;
 		}
 
-		// Contribution of the second order term
-		madd_kvV(-dtQ*weight,diff2,pnew);
+		// Contribution from the second order operator dvi = m_ij m_kl D_jk v_l
+		const Scalar w2 = dt*weight*idx*idx; // Rescaled weight for second order diff
+		for(int i=0; i<ndim; ++i){
+			const Int * e = moffset[i]; // e[ndim]
+			BYPASS_ZEROS(if(is_zero(e)) continue;)
+			for(int l=0; l<ndim; ++l){
+				const Int * f = moffset[l];
+				BYPASS_ZEROS(if(is_zero(f)) continue;)
+				// Evaluate the cross derivative of v_l w.r.t moffsets[i] and moffsets[l]
+				Scalar cross;
 
-		// Build the stress tensor
-		Scalar diff1sum = 0; 
-		for(int i=0; i<ndim; ++i) {diff1sum+=diff1[i];}
-		geom_symdim::madd_kvV(diff1sum*weight,offset,stress);
+				if(i==l COMPACT_SCHEME(||is_same(e,f)||is_opp(e,f))){
+					Int ne[ndim]; neg_v(e,ne);
+					cross = 
+					  component_corrected(l,e,x_t,q_t) 
+					 -2*q[l]
+					 +component_corrected(l,ne,x_t,q_t);
+					 COMPACT_SCHEME(if(is_opp(e,f)) cross*=-1;)
+				} else {
+					// Note : if e=f or e=-f, the previous more compact scheme could be used.
+					Int pp[ndim],pm[ndim],mp[ndim],mm[ndim];
+					for(int k=0; k<ndim; ++k){
+						pp[k] =  e[k] +f[k];
+						pm[k] =  e[k] -f[k];
+						mp[k] = -e[k] +f[k];
+						mm[k] = -e[k] -f[k];
+					}
+					cross = (
+					  component_corrected(l,pp,x_t,q_t) 
+					 -component_corrected(l,pm,x_t,q_t)
+					 -component_corrected(l,mp,x_t,q_t)
+					 +component_corrected(l,mm,x_t,q_t) )/4.;
+				}
+
+				pnew[i]+=w2*cross;
+			}
+		}
+
+		// Reconstruction of the stress tensor m_ij m_kl D_k v_l
+		Scalar diff1sum = 0;
+		for(int l=0; l<ndim; ++l){
+			const Int * e = moffset[l]; // e[ndim]
+			BYPASS_ZEROS(if(is_zero(e)) continue;)
+			Int ne[ndim]; neg_v(e,ne);
+
+			const Scalar diff1 = 
+			  component_corrected(l,e,x_t,q_t) 
+			 -component_corrected(l,ne,x_t,q_t);
+
+			diff1sum+=diff1;
+		}
+		const Scalar w1 = weight*idx/2;
+		geom_symdim::madd_kvV(diff1sum*w1,offset,stress);
 	}
-	
+	if(n_i==0 && n_o==0){
+		printf("pnew %f,%f\n", pnew[0],pnew[1]);
+	}
 	// Contribution of the first order term
-	for(int i=0; i<ndim; ++i){pnew[i] -= dtQ*scal_mm(firstorder + i*symdim,stress);}
+	for(int i=0; i<ndim; ++i){pnew[i] -= dt*scal_mm(firstorder + i*symdim,stress);}
 
 	nstart = n_oi*ndim + n_i;
 	for(int i=0; i<ndim; ++i){pnew_t[nstart + size_i * i] = pnew[i];}
@@ -229,12 +293,12 @@ __global__ void AdvanceQ(
 
 	// Update
 	Scalar qnew[ndim];
-	mul_kv(1-damping*dtP,qold,qnew);
+	mul_kv(1-damping*dt,qold,qnew);
 
 	Scalar mp[ndim];
 	dot_mv(metric,p,mp);
 
-	madd_kvV(dtQ,mp,qnew);
+	madd_kvV(dt,mp,qnew);
 
 	nstart = n_oi*ndim + n_i;
 	for(int i=0; i<ndim; ++i){qnew_t[nstart + size_i * i] = qnew[i];}
