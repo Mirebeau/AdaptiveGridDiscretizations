@@ -216,9 +216,15 @@ class HookeWave:
 			div_hooke[np.isnan(div_hooke)]=0 # Should not be too bad thanks to damping
 
 		# Solve for the first order term, and save it. (self.vdim,self.symdim)+self.shape
-		firstorder = np.moveaxis(lp.solve_AV(np.expand_dims(hooke,axis=2),
-			np.moveaxis(div_hooke,1,0)),0,1)
-		div_hooke = None
+		print(hooke.shape,div_hooke.shape)
+		#reshape going around a cupy bug in linalg solve
+		hooke2 = np.moveaxis(hooke.reshape((self.symdim,self.symdim,-1)),(0,1,2),(1,2,0))
+		div_hooke = np.moveaxis(div_hooke.reshape((self.vdim,self.symdim,-1)),(0,1,2),(2,1,0))
+		firstorder = np.linalg.solve(hooke2,div_hooke)
+		hooke2,div_hooke = None,None
+		firstorder = np.moveaxis(firstorder,(0,1,2),(2,1,0)).reshape((self.vdim,self.symdim)+self.shape)
+
+		# reshape for kernel
 		firstorder = np.reshape(firstorder,(-1,)+self.shape)
 		self._firstorder = self.block_expand(firstorder)
 		firstorder = None

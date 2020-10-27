@@ -9,6 +9,7 @@ from agd import LinearParallel as lp
 from agd import FiniteDifferences as fd
 from agd.Metrics.Seismic import Hooke
 from agd import AutomaticDifferentiation as ad
+from agd import Domain
 from agd.Plotting import savefig,quiver; #savefig.dirName = 'Images/ElasticityDirichlet'
 norm_infinity = ad.Optimization.norm_infinity
 
@@ -46,7 +47,7 @@ def CFL(dx,hooke,ρ,order=1):
 
 def make_domain(radius):
     """Produces the periodic domain [-radius,radius]^2, with 25 pixels per unit"""
-    aX,dx = xp.linspace(-radius,radius,50*radius,endpoint=False,retstep=True)
+    aX,dx = xp.linspace(-radius,radius,int(50*radius),endpoint=False,retstep=True)
     X=ad.array(np.meshgrid(aX,aX,aX,indexing='ij'))
     dom = Domain.MockDirichlet(X.shape[1:],dx,padding=None) #Periodic domain (wrap instead of pad)
     return dom,X,dx
@@ -61,3 +62,50 @@ def torsion(X):
     e0,e1,e2 = explosion(X) 
     return ad.array([-e1,e0,np.zeros_like(e2)]) # Some perpendicular vector
 
+dom,X,dx = make_domain(0.5)
+
+fourth_order=True
+
+hw = HookeWave(X.shape[1:],periodic=True,
+    traits={
+    'compact_scheme_macro':False,
+    'fourth_order_macro':fourth_order,
+    })
+
+
+# Initial conditions
+#q0,p0 = explosion(X),np.zeros_like(X)
+#q0,p0 = np.zeros_like(X),torsion(X)
+q0,p0 = explosion(X),torsion(X)
+hw.q,hw.p = q0,p0
+
+# PDE marameters
+hooke,ρ = material
+hw.gridScale = dx
+hw.metric = xp.eye(vdim)/ρ
+hw.hooke = hooke.hooke
+hw.damping=0.
+
+hw.dt = CFL(dx,hooke,ρ)
+print("shape_o",hw.shape_o,type(hw.shape_o))
+print("Self check : ",hw.check())
+
+print(hw.weights[:,0,0,0])
+print(hw.offsets[:,:,0,0,0])
+#print(norm_infinity(hw.hooke[:,:,0,0,0]-hooke.hooke))
+assert allclose(hw.hooke[:,:,0,0,0],hooke.hooke,atol=1e-3)
+assert allclose(hw._firstorder[0,0,0,:,0,0,0],0.)
+assert allclose(hw.metric[:,:,0,0,0], xp.eye(vdim)/ρ)
+assert allclose(hw.q,q0)
+assert allclose(hw.p,p0)
+
+hw.AdvanceQ()
+hw.AdvanceP()
+hw.dt = -hw.dt
+hw.AdvanceP()
+hw.AdvanceQ()
+
+print(norm_infinity(hw.q-q0),norm_infinity(q0))
+print(norm_infinity(hw.p-p0),norm_infinity(p0))
+assert allclose(hw.q,q0,atol=1e-4)
+assert allclose(hw.p,p0,atol=1e-4)
