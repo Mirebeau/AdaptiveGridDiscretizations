@@ -72,7 +72,7 @@ def torsion(X):
 
 dom,X,dx = make_domain(1)
 
-fourth_order=False
+fourth_order=True
 
 hw = HookeWave(X.shape[1:],periodic=True,
     traits={
@@ -170,9 +170,9 @@ plt.title('p_sp'); plt.axis('equal')
 quiver(*X,*p_sp,subsampling=(2,2),scale=1000.)
 plt.show()
 
-print(norm_infinity(p_sp))
-print(norm_infinity(p_ker))
-print(norm_infinity(p_sp-p_ker))
+print(norm_infinity("p_sp norm:",p_sp))
+print(norm_infinity("p_ker norm:",p_ker))
+print(norm_infinity("diff norm:",p_sp-p_ker))
 assert allclose(p_ker,p_sp,atol=1e-4)
 
 

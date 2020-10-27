@@ -207,12 +207,15 @@ def AlignedSum(u,offset,multiples,weights,**kwargs):
 
 # --------- Degenerate elliptic finite differences -------
 
-def Diff2(u,offset,gridScale=1.,**kwargs):
+def Diff2(u,offset,gridScale=1.,order=2,**kwargs):
 	"""
 	Approximates <offset, (d^2 u) offset> with second order accuracy.
 	Second order finite difference in the specidied direction.
 	"""
-	return AlignedSum(u,offset,(1,0,-1),np.array((1,-2,1))/gridScale**2,**kwargs)
+	if   order<=2: multiples,weights = (1,0,-1),(1.,-2.,1.)
+	elif order<=4: multiples,weights = (2,1,0,-1,-2),(-1/12.,4/3.,-15/6.,4/3.,-1/12.)
+	else: raise ValueError("Unsupported order") 
+	return AlignedSum(u,offset,multiples,np.array(weights)/gridScale**2,**kwargs)
 
 
 def DiffUpwind(u,offset,gridScale=1.,order=1,**kwargs):
@@ -221,29 +224,35 @@ def DiffUpwind(u,offset,gridScale=1.,order=1,**kwargs):
 	Upwind first order finite difference in the specified direction.
 	Note: only order=1 yields degenerate elliptic schemes.
 	"""
-	if   order==1: multiples,weights = (1,0),(1.,-1.)
-	elif order==2: multiples,weights = (2,1,0),(-0.5,2.,-1.5)
+	if   order==1: multiples,weights = (1,0),    ( 1.,-1.)
+	elif order==2: multiples,weights = (2,1,0),  (-0.5,2.,-1.5)
 	elif order==3: multiples,weights = (3,2,1,0),(1./3.,-1.5,3.,-11./6.)
 	else: raise ValueError("Unsupported order")
 	return AlignedSum(u,offset,multiples,np.array(weights)/gridScale,**kwargs)
 
 # --------- Non-Degenerate elliptic finite differences ---------
 
-def DiffCentered(u,offset,gridScale=1.,**kwargs):
+def DiffCentered(u,offset,gridScale=1.,order=2,**kwargs):
 	"""
 	Approximates <d u, offset> with second order accuracy.
 	Centered first order finite difference in the specified direction.
 	"""
-	return AlignedSum(u,offset,(1,-1),np.array((1,-1))/(2*gridScale),**kwargs)
+	if   order<=2: multiples,weights = ( 1,-1),( 1.,-1.)
+	elif order<=4: multiples,weights = ( 2, 1,-1,-2),(-1/6., 4/3.,-4/3., 1/6.)
+	else: raise ValueError("Unsupported order")
+	return AlignedSum(u,offset,multiples,np.array(weights)/(2*gridScale),**kwargs)
 
-def DiffCross(u,offset0,offset1,gridScale=1.,**kwargs):
+def DiffCross(u,offset0,offset1,gridScale=1.,order=2,**kwargs):
 	"""
 	Approximates <offsets0, (d^2 u) offset1> with second order accuracy.
 	Centered finite differences scheme, but lacking the degenerate ellipticity property.
 	"""
-	weights = np.array((1,1))/(4*gridScale**2)
-	return (AlignedSum(u,offset0+offset1,(1,-1),weights,**kwargs) 
-		- AlignedSum(u,offset0-offset1,(1,-1),weights,**kwargs) )
+	if   order<=2: multiples,weights = ( 1,-1),(1.,1.)
+	elif order<=4: multiples,weights = ( 2, 1,-1,-2),(-1/12.,4/3.,4/3.,-1/12.)
+	else: raise ValueError("Unsupported order")
+	weights = np.array(weights)/(4*gridScale**2)
+	return (AlignedSum(u,offset0+offset1,multiples,weights,**kwargs) 
+		- AlignedSum(u,offset0-offset1,multiples,weights,**kwargs) )
 
 # ------------ Composite finite differences ----------
 

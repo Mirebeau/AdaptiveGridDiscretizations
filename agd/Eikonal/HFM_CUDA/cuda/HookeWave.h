@@ -56,6 +56,12 @@ second order finite differences. Not much effect expected.*/
 #define COMPACT_SCHEME(...) 
 #endif
 
+#if fourth_order_macro
+#define FOURTH_ORDER(...) __VA_ARGS__
+#else
+#define FOURTH_ORDER(...) 
+#endif
+
 // ------------- Offset manipulation -------------
 
 /// Unpack the offsets of Voronoi's first reduction
@@ -86,43 +92,100 @@ bool is_opp(const Int e[__restrict__ ndim], const Int f[__restrict__ ndim]){
 // -------------------- Vector field component access -------------------
 
 /// Return a given component, at a given position, of a vector field
+// EXPECTS : Grid::InRange_per(x_t,shape_tot)
 Scalar component(const Int comp, const Int x_t[__restrict__ ndim], 
 	const Scalar * __restrict__ q_t){
+	Int x_o[ndim],x_i[ndim];
+	for(int k=0; k<ndim; ++k){
+		const int xk = 
+		PERIODIC(periodic_axes[k] ? Grid::mod_pos(x_t[k],shape_tot[k]) :) 
+		x_t[k];
+		x_o[k] = xk / shape_i[k]; x_i[k] = xk % shape_i[k];}
+	const int 
+	n_o = Grid::Index(x_o,shape_o),
+	n_i = Grid::Index(x_i,shape_i);
+	const int n_oi = n_o*size_i;
+	const int nstart = n_oi*ndim + n_i;
+	return q_t[nstart + size_i * comp];
+}
 
-	if(Grid::InRange_per(x_t,shape_tot)){
-		Int x_o[ndim],x_i[ndim];
-		for(int k=0; k<ndim; ++k){
-			const int xk = 
-			PERIODIC(periodic_axes[k] ? Grid::mod_pos(x_t[k],shape_tot[k]) :) 
-			x_t[k];
-			x_o[k] = xk / shape_i[k]; x_i[k] = xk % shape_i[k];}
-		const int 
-		n_o = Grid::Index(x_o,shape_o),
-		n_i = Grid::Index(x_i,shape_i);
-		const int n_oi = n_o*size_i;
-		const int nstart = n_oi*ndim + n_i;
-		return q_t[nstart + size_i * comp];
-	} else {
-		return 0.; // Null dirichlet boundary conditions
+// ------- Finite difference operators, second order and fourth order accurate. -------
+
+#if fourth_order_macro
+bool 
+#else
+void
+#endif
+components(const Int comp,
+	const Int offset[__restrict__ ndim], const Int x_t[__restrict__ ndim], 
+	const Scalar * __restrict__ q_t,
+	Scalar values[__restrict__ 2] FOURTH_ORDER(, Scalar values2[__restrict__ 2])
+	){
+	FOURTH_ORDER(bool fourth_active=true;)
+	Int y_t[ndim];
+	for(int side=0; side<=1; ++side){
+		const int eps = 2*side-1;
+		madd_kvv(eps,offset,x_t,y_t);
+		if(Grid::InRange_per(y_t,shape_tot)){values[side] = component(comp,y_t,q_t);}
+
+		#if fourth_order_macro
+		madd_kvV(eps,offset,y_t);
+		if(Grid::InRange_per(y_t,shape_tot)){values2[side]=component(comp,y_t,q_t);}
+		else{fourth_active=false;}
+		#endif
 	}
+	FOURTH_ORDER(return fourth_active;)
 }
 
-/// Like component, but includes a correction for the fourth order scheme
-Scalar component_corrected(const Int comp, const Int offset[__restrict__ ndim],
-	const Int x0_t[__restrict__ ndim], 
+Scalar diff_second(const Int comp, 
+	const Int offset[__restrict__ ndim], const Int x_t[__restrict__ ndim], 
+	const Scalar * __restrict__ q_t, const Scalar q[__restrict__ ndim]){
+	Scalar values[2]={0.,0.}; // Null Dirichlet boundary conditions
+	FOURTH_ORDER(Scalar values2[2];)
+	FOURTH_ORDER(const bool fourth_active =)
+	components(comp,offset,x_t,q_t,values FOURTH_ORDER(,values2));
+	const Scalar result = FOURTH_ORDER(fourth_active ? 
+		-(values2[1]+values2[0])/12. +(values[1]+values[0])*(4/3.) -q[comp]*(15/6.) : )
+		values[1]+values[0]-2.*q[comp];
+	return result*(idx*idx);
+}
+
+Scalar diff_cross(const Int comp, 
+	const Int offseta[__restrict__ ndim], const Int offsetb[__restrict__ ndim], 
+	const Int x_t[__restrict__ ndim], const Scalar * __restrict__ q_t){
+	Int offsetp[2],offsetm[2]; 
+	add_vv(offseta,offsetb,offsetp); 
+	sub_vv(offseta,offsetb,offsetm);
+
+	Scalar valuesp[2]={0.,0.}, valuesm[2]={0.,0.}; // Null Dirichlet boundary conditions
+	FOURTH_ORDER(Scalar valuesp2[2],valuesm2[2];)
+	FOURTH_ORDER(bool fourth_active = )
+	components(comp,offsetp,x_t,q_t,valuesp FOURTH_ORDER(,valuesp2));
+	FOURTH_ORDER(fourth_active = fourth_active && )
+	components(comp,offsetm,x_t,q_t,valuesm FOURTH_ORDER(,valuesm2));
+
+	const Scalar result = FOURTH_ORDER(fourth_active ? 
+		-(valuesp2[1]+valuesp2[0])/12. +(valuesp[1]+valuesp[0])*(4/3.)
+		+(valuesm2[1]+valuesm2[0])/12. -(valuesm[1]+valuesm[0])*(4/3.) :)	
+		(valuesp[1]+valuesp[0])-(valuesm[1]+valuesm[0]);
+	return result * ((idx*idx)/4.);
+
+}
+
+Scalar diff_centered(const Int comp, 
+	const Int offset[__restrict__ ndim], const Int x_t[__restrict__ ndim], 
 	const Scalar * __restrict__ q_t){
-
-	Int x1_t[ndim];
-	add_vv(offset,x0_t,x1_t);
-
-	#if fourth_order_macro
-	Int x2_t[ndim];
-	add_vv(offset,x1_t,x2_t);
-	return (4./3.)*component(comp,x1_t,q_t) - (1./3.)*component(comp,x2_t,q_t);
-	#else
-	return component(comp,x1_t,q_t);
-	#endif
+	Scalar values[2]={0.,0.}; // Null Dirichlet boundary conditions
+	FOURTH_ORDER(Scalar values2[2];)
+	FOURTH_ORDER(const bool fourth_active =)
+	components(comp,offset,x_t,q_t,values FOURTH_ORDER(,values2));
+	const Scalar result = FOURTH_ORDER(fourth_active ? 
+		-(values2[1]-values2[0])/6. +(values[1]-values[0])*(4/3.) : )
+		values[1]-values[0];
+	return result*(idx/2);
 }
+
+// -------- Main functions -----------
 
 extern "C" {
 
@@ -198,7 +261,6 @@ __global__ void AdvanceP(
 		}
 
 		// Contribution from the second order operator dvi = m_ij m_kl D_jk v_l
-		const Scalar w2 = dt*weight*idx*idx; // Rescaled weight for second order diff
 		for(int i=0; i<ndim; ++i){
 			const Int * e = moffset[i]; // e[ndim]
 			BYPASS_ZEROS(if(is_zero(e)) continue;)
@@ -209,29 +271,12 @@ __global__ void AdvanceP(
 				Scalar cross;
 
 				if(i==l COMPACT_SCHEME(||is_same(e,f)||is_opp(e,f))){
-					Int ne[ndim]; neg_v(e,ne);
-					cross = 
-					  component_corrected(l,e,x_t,q_t) 
-					 -2*q[l]
-					 +component_corrected(l,ne,x_t,q_t);
-					 COMPACT_SCHEME(if(is_opp(e,f)) cross*=-1;)
+					cross = diff_second(l,e,x_t,q_t,q);
+					COMPACT_SCHEME(if(is_opp(e,f)) cross*=-1;)
 				} else {
-					// Note : if e=f or e=-f, the previous more compact scheme could be used.
-					Int pp[ndim],pm[ndim],mp[ndim],mm[ndim];
-					for(int k=0; k<ndim; ++k){
-						pp[k] =  e[k] +f[k];
-						pm[k] =  e[k] -f[k];
-						mp[k] = -e[k] +f[k];
-						mm[k] = -e[k] -f[k];
-					}
-					cross = (
-					  component_corrected(l,pp,x_t,q_t) 
-					 -component_corrected(l,pm,x_t,q_t)
-					 -component_corrected(l,mp,x_t,q_t)
-					 +component_corrected(l,mm,x_t,q_t) )/4.;
+					cross = diff_cross(l,e,f,x_t,q_t);
 				}
-
-				pnew[i]+=w2*cross;
+				pnew[i]+=(dt*weight)*cross;
 			}
 		}
 
@@ -240,20 +285,13 @@ __global__ void AdvanceP(
 		for(int l=0; l<ndim; ++l){
 			const Int * e = moffset[l]; // e[ndim]
 			BYPASS_ZEROS(if(is_zero(e)) continue;)
-			Int ne[ndim]; neg_v(e,ne);
-
-			const Scalar diff1 = 
-			  component_corrected(l,e,x_t,q_t) 
-			 -component_corrected(l,ne,x_t,q_t);
-
-			diff1sum+=diff1;
+			diff1sum += diff_centered(l,e,x_t,q_t);
 		}
-		const Scalar w1 = weight*idx/2;
-		geom_symdim::madd_kvV(diff1sum*w1,offset,stress);
+		geom_symdim::madd_kvV(diff1sum*weight,offset,stress);
 	}
-	if(n_i==0 && n_o==0){
+/*	if(n_i==0 && n_o==0){
 		printf("pnew %f,%f\n", pnew[0],pnew[1]);
-	}
+	}*/
 	// Contribution of the first order term
 	for(int i=0; i<ndim; ++i){pnew[i] -= dt*scal_mm(firstorder + i*symdim,stress);}
 
