@@ -17,6 +17,7 @@ from agd.ExportedCode.Notebooks_Div.ElasticEnergy import ElasticEnergy
 import numpy as np; 
 import numpy as np; xp=np; allclose=np.allclose
 import matplotlib.pyplot as plt
+import time
 
 xp,plt,quiver,allclose = map(ad.cupy_friendly,(xp,plt,quiver,allclose))
 
@@ -83,10 +84,13 @@ hw.q,hw.p = q0,p0
 hooke,ρ = material
 hw.gridScale = dx
 hw.metric = xp.eye(vdim)/ρ
+print("starting hooke decomp..."); start = time.time()
 hw.hooke = hooke.hooke
+print("elapsed",time.time()-start)
 hw.damping=0.
 
-hw.dt = CFL(dx,hooke,ρ)
+dt = CFL(dx,hooke,ρ)
+hw.dt = dt
 print("shape_o",hw.shape_o,type(hw.shape_o))
 print("Self check : ",hw.check())
 
@@ -101,7 +105,7 @@ assert allclose(hw.p,p0)
 
 hw.AdvanceQ()
 hw.AdvanceP()
-hw.dt = -hw.dt
+hw.dt = -dt
 hw.AdvanceP()
 hw.AdvanceQ()
 
@@ -109,3 +113,9 @@ print(norm_infinity(hw.q-q0),norm_infinity(q0))
 print(norm_infinity(hw.p-p0),norm_infinity(p0))
 assert allclose(hw.q,q0,atol=1e-4)
 assert allclose(hw.p,p0,atol=1e-4)
+
+print(1/dt)
+print("starting evolution"); start = time.time()
+hw.Advance(dt,1000)
+print(hw.q[:,0,0,0])
+print("elapsed",time.time()-start)

@@ -211,10 +211,6 @@ __global__ void AdvanceP(
 
 	const int n_o = Grid::Index(x_o,shape_o);
 	const int n_i = Grid::Index(x_i,shape_i);
-
-	if(n_i==0 && n_o==0){
-		printf("x_i %i,%i, x_o %i,%i \n",x_i[0],x_i[1],x_o[0],x_o[1]);
-	} 
 	const int n_oi = n_o*size_i; 
 	int nstart;// Mutable, used for array data start
 	
@@ -289,9 +285,6 @@ __global__ void AdvanceP(
 		}
 		geom_symdim::madd_kvV(diff1sum*weight,offset,stress);
 	}
-/*	if(n_i==0 && n_o==0){
-		printf("pnew %f,%f\n", pnew[0],pnew[1]);
-	}*/
 	// Contribution of the first order term
 	for(int i=0; i<ndim; ++i){pnew[i] -= dt*scal_mm(firstorder + i*symdim,stress);}
 

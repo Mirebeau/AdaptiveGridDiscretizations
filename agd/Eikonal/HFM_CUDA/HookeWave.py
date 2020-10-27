@@ -47,7 +47,6 @@ class HookeWave:
 			}
 		if traits is None: traits = traits_default
 		else: traits_default.update(traits); traits = traits_default
-		print(traits,traits_default)
 
 		self._float_t = traits['Scalar']
 		self._int_t = np.int32
@@ -184,14 +183,33 @@ class HookeWave:
 			offsets[o]=((offsets2//2**(i*nbits))% 2**nbits) - 2**(nbits-1)
 		return offsets
 
+	def _compress_offsets(self,offsets):
+		offsets2 = cp.zeros(offsets.shape[1:],dtype=self.offsetpack_t)
+		order = self.voigt2lower
+		nbits = self.offsetnbits
+		for i,o in enumerate(order):
+			offsets2 += (offsets[o].astype(int)+2**(nbits-1)) * 2**(nbits*i)
+		return offsets2
+
 	@property	
 	def hooke(self):
 		weights,offsets = self.weights,self.offsets
 		return (weights * lp.outer_self(offsets)).sum(axis=2)
 
 	@hooke.setter
-	def hooke(self,value): self.set_hooke(value)
-		
+	def hooke(self,value): 
+		if value.ndim==2: self.set_hooke_cst(value)
+		else: self.set_hooke(value)
+	
+	def set_hooke_cst(self,hooke):
+		"""Sets a constant hooke tensor over the domain"""
+		weights,offsets = VoronoiDecomposition(hooke,offset_t=np.int8)
+		self._weights = self.block_expand(fd.as_field(weights,self.shape,depth=1))
+		self._offsets = self.block_expand(fd.as_field(self._compress_offsets(offsets),
+			self.shape,depth=1),constant_values=0)
+		self._firstorder = self.block_expand(cp.zeros((self.vdim*self.symdim,)+self.shape,
+			dtype=self.float_t))
+
 	def set_hooke(self,hooke,div_hooke=None):
 		hooke = fd.as_field(hooke,self.shape,depth=2)
 		if div_hooke is None: 
@@ -215,8 +233,7 @@ class HookeWave:
 			hk = None
 			div_hooke[np.isnan(div_hooke)]=0 # Should not be too bad thanks to damping
 
-		# Solve for the first order term, and save it. (self.vdim,self.symdim)+self.shape
-		print(hooke.shape,div_hooke.shape)
+		# Solve for the first order term. (self.vdim,self.symdim)+self.shape
 		#reshape going around a cupy bug in linalg solve
 		hooke2 = np.moveaxis(hooke.reshape((self.symdim,self.symdim,-1)),(0,1,2),(1,2,0))
 		div_hooke = np.moveaxis(div_hooke.reshape((self.vdim,self.symdim,-1)),(0,1,2),(2,1,0))
@@ -224,7 +241,7 @@ class HookeWave:
 		hooke2,div_hooke = None,None
 		firstorder = np.moveaxis(firstorder,(0,1,2),(2,1,0)).reshape((self.vdim,self.symdim)+self.shape)
 
-		# reshape for kernel
+		# reshape for kernel and save
 		firstorder = np.reshape(firstorder,(-1,)+self.shape)
 		self._firstorder = self.block_expand(firstorder)
 		firstorder = None
@@ -235,12 +252,7 @@ class HookeWave:
 		weights = None
 		
 		# Reorder the offset components, compress as integer
-		offsets2 = cp.zeros(offsets.shape[1:],dtype=self.offsetpack_t)
-		order = self.voigt2lower
-		nbits = self.offsetnbits
-		for i,o in enumerate(order):
-			offsets2 += (offsets[o].astype(int)+2**(nbits-1)) * 2**(nbits*i)
-		self._offsets = self.block_expand(offsets2,constant_values=0)
+		self._offsets = self.block_expand(self._compress_offsets(offsets),constant_values=0)
 
 	@property
 	def metric(self):
@@ -300,9 +312,6 @@ class HookeWave:
 	# Symplectic scheme
 	def AdvanceP(self):
 		self.check()
-		print("AdvanceP",self.shape_o,self.shape_i,self._weights.shape,self._offsets.shape,
-			self._firstorder.shape,self._damping.shape,self._q.shape,self._p.shape,self._tmp.shape)
-
 		self._AdvanceP(self.shape_o,self.shape_i,(
 			self._weights,self._offsets,self._firstorder,self._damping,
 			self._q,self._p,self._tmp))
@@ -310,9 +319,6 @@ class HookeWave:
 
 	def AdvanceQ(self):
 		self.check()
-		print("AdvanceQ",self.size_o,self.size_i,self._metric.shape,self._damping.shape,
-			self._q.shape,self._p.shape,self._tmp.shape)
-
 		self._AdvanceQ((self.size_o,),(self.size_i,),(
 			self._metric,self._damping,
 			self._q,self._p,self._tmp))
