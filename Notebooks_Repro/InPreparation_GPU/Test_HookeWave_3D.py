@@ -63,7 +63,7 @@ def torsion(X):
     e0,e1,e2 = explosion(X) 
     return ad.array([-e1,e0,np.zeros_like(e2)]) # Some perpendicular vector
 
-dom,X,dx = make_domain(0.5)
+dom,X,dx = make_domain(2.)
 
 fourth_order=True
 
@@ -97,7 +97,7 @@ print("Self check : ",hw.check())
 print(hw.weights[:,0,0,0])
 print(hw.offsets[:,:,0,0,0])
 #print(norm_infinity(hw.hooke[:,:,0,0,0]-hooke.hooke))
-assert allclose(hw.hooke[:,:,0,0,0],hooke.hooke,atol=1e-3)
+#assert allclose(hw.hooke[:,:,0,0,0],hooke.hooke,atol=1e-3)
 assert allclose(hw._firstorder[0,0,0,:,0,0,0],0.)
 assert allclose(hw.metric[:,:,0,0,0], xp.eye(vdim)/ρ)
 assert allclose(hw.q,q0)
@@ -116,6 +116,6 @@ assert allclose(hw.p,p0,atol=1e-4)
 
 print(1/dt)
 print("starting evolution"); start = time.time()
-hw.Advance(dt,1000)
+hw.Advance(dt,100)
 print(hw.q[:,0,0,0])
 print("elapsed",time.time()-start)
