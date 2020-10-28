@@ -237,7 +237,9 @@ class Hooke(ImplicitBase):
 
 	@classmethod 
 	def from_Thomsen(cls,tem):
-		"""Hooke tensor (m/s)^2 and density (g/cm^3)"""
+		"""
+		Hooke tensor (m/s)^2 and density (g/cm^3)
+		"""
 		hex,ρ = HexagonalFromTEM(tem)
 		return cls.from_hexagonal(*hex),ρ
 
@@ -286,14 +288,12 @@ class Hooke(ImplicitBase):
 		else:
 			raise ValueError("Unsupported dimension")
 
-
 	def dot_A(self,m,sym=True):
 		"""
 		Dot product associated with a Hooke tensor, which turns a strain tensor epsilon
 		into a stress tensor sigma.
 		- m : the strain tensor.
 		"""
-		
 		v,hooke = fd.common_field((self._Voigt_m2v(m,sym),self.hooke),(1,2))
 		w = lp.dot_AV(hooke,v)
 		return ad.array( ((w[0],w[2]),(w[2],w[1])) )
