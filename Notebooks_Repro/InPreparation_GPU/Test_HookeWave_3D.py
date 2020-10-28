@@ -63,16 +63,18 @@ def torsion(X):
     e0,e1,e2 = explosion(X) 
     return ad.array([-e1,e0,np.zeros_like(e2)]) # Some perpendicular vector
 
-dom,X,dx = make_domain(2.)
+dom,X,dx = make_domain(4.)
+print("Domain shape :",dom.shape)
 
 fourth_order=True
 
 hw = HookeWave(X.shape[1:],periodic=True,
     traits={
-    'compact_scheme_macro':False,
+    'compact_scheme_macro':True,
     'fourth_order_macro':fourth_order,
+#    'shape_i':(8,8,8),
     })
-
+print('shape_i',hw.shape_i)
 
 # Initial conditions
 #q0,p0 = explosion(X),np.zeros_like(X)
@@ -91,7 +93,6 @@ hw.damping=0.
 
 dt = CFL(dx,hooke,ρ)
 hw.dt = dt
-print("shape_o",hw.shape_o,type(hw.shape_o))
 print("Self check : ",hw.check())
 
 print(hw.weights[:,0,0,0])
@@ -116,6 +117,6 @@ assert allclose(hw.p,p0,atol=1e-4)
 
 print(1/dt)
 print("starting evolution"); start = time.time()
-hw.Advance(dt,100)
+hw.Advance(dt,10)
 print(hw.q[:,0,0,0])
 print("elapsed",time.time()-start)

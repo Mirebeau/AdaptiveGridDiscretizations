@@ -92,18 +92,6 @@ def VoronoiDecomposition(m,offset_t=np.int32,
 		retry64()
 		return out
 
-#		if retry64_tol and ndim==6:
-#			if m_exp is None: m_exp = expand_symmetric_matrix(m)
-#			mrec = Reconstruct(weights,offsets)
-#			error = np.sum(np.abs(m_exp-mrec),axis=(0,1))
-#			bad = np.logical_not(error < (retry64_tol * lp.trace(m_exp)))
-#			if np.any(bad):
-#				weights64,offsets64 = VoronoiDecomposition(m[:,bad],offset_t=offset_t,
-#					flattened=True,traits=traits,retry64_tol=0.)
-#				weights[:,bad] = weights64
-#				offsets[:,:,bad] = offsets64
-#		return weights,offsets
-
 	# Two steps approach. First minimize
 	a = cp.empty((ndim,ndim,*shape),dtype=float_t)
 	vertex = cp.empty(shape,dtype=int_t)
