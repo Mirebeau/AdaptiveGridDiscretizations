@@ -11,6 +11,8 @@ Voronoi's first reduction.
 typedef float Scalar; 
 #define fourth_order_macro false
 #define ndim_macro 2
+#define isotropic_metric_macro false // true for a metric proportional to the identity
+#define vertical_macro 0 // 1 : Hexagonal, 2 : Tetragonal, 3 : Orthorombic
 */
 typedef int OffsetPack;
 typedef int Int;
@@ -20,6 +22,12 @@ typedef int Int;
 // const bool periodic_axes[ndim] = {false,false,true}; // must be defined externally
 #else
 #define PERIODIC(...) 
+#endif
+
+#if vertical_macro
+#define VERTICAL(...) __VA_ARGS__
+#else
+#define VERTICAL(...) 
 #endif
 
 const int ndim = ndim_macro;
@@ -36,6 +44,7 @@ namespace geom_symdim {
 
 const int decompdim = geom_symdim::symdim; // Voronoi decomposition of hooke tensor
 const int firstdim = ndim*symdim;
+const int metricdim = isotropic_metric_macro ? 1 : symdim;
 
 __constant__ Scalar dt; // time step
 __constant__ Scalar idx; // Inverse grid scale 
@@ -185,14 +194,64 @@ Scalar diff_centered(const Int comp,
 	return result*(idx/2);
 }
 
+// ----------- Vertical geometry ------------
+
+#if vertical_macro
+const int vertdim = 
+	ndim_macro==2     ? 4 : // (2,1) block diag
+	vertical_macro==1 ? 5 : // hexagonal
+	vertical_macro==2 ? 6 : // tetragonal
+	vertical_macro==3 ? 9;  // Orthorombic 
+
+/// Produces the block diagonal hooke tensor from the raw coefficients
+void vertical_dispatch(const Scalar c[__restrict__ vertdim], 
+	Scalar b[__restrict__ symdim], Scalar d[__restrict__ symdim-ndim]){
+	#if ndim_macro==2 || vertical_macro==3 // Orthorombic
+	for(int i=0; i<symdim; ++i) {b[i]=c[i];}
+	for(int i=0; i<symdim-ndim; ++i){d[i]=c[symdim+i];}
+	#else
+	b[0]=c[0]; b[1]=c[1]; b[2]=c[0]; b[3]=c[2]; b[4]=c[2]; b[5]=c[3];
+	d[0]=c[4]; d[1]=c[5];
+	d[2] = vertical_macro==1 ? (c[0]-c[1])/2. : c[vertdim-1];
+	#endif
+}
+
+const int vertdecompdim = symdim + (symdim-ndim);
+void vertical_decomp(
+	const Scalar b[__restrict__ symdim], // ndim x ndim block
+	const Scalar d[__restrict__ symdim-ndim], // remaining diagonal
+	Scalar       w[__restrict__ decompdim], // weights
+	OffsetPack   o[__restrict__ decompdim]){// offsets
+	// Note : it is a bit silly to compress the offsets only to uncompress them afterwards.
+	// The vertical structure means that fewer weights and offsets are needed
+	for(int i=vertdecompdim; i<decompdim; ++i){w[i]=0;} // Will be bypassed
+
+	// Decomposition associated to the block
+	Int offsets[symdim][ndim]; // Weights and offsets for the block
+	decomp_m(b,w,offsets); // Fills the symdim first weights
+	for(int i=0; i<symdim; ++i){
+		__TODO__
+	}
+
+	// Decomposition associated to the remaining diagonal coefficients
+	for(int i=0; i<symdim-ndim; ++i){w[symdim+i] = d[i];}
+	o[symdim] = __TODO__
+}
+#endif // vertical_macro
+
 // -------- Main functions -----------
 
 extern "C" {
 
 __global__ void AdvanceP(
+	VERTICAL(// Simplified vertical geometry
+	const Scalar * __restrict__ vertical_t,    // [size_o,vertdim,size_i]
+	const Int * __restrict__ geomindex_t,)     // [size_o,size_i]
+	// Full Hooke tensor geometry
 	const Scalar * __restrict__ weights_t,     // [size_o,decompdim,size_i]
 	const OffsetPack * __restrict__ offsets_t, // [size_o,decompdim,size_i]
 	const Scalar * __restrict__ firstorder_t,  // [size_o,firstdim,size_i]
+
 	const Scalar * __restrict__ damping_t,     // [size_o,size_i]
 	const Scalar * __restrict__ q_t,           // [size_o,ndim,size_i]
 	const Scalar * __restrict__ pold_t,        // [size_o,ndim,size_i]
@@ -215,16 +274,35 @@ __global__ void AdvanceP(
 	int nstart;// Mutable, used for array data start
 	
 	// Weights and offsets are needed one at a time in the loop, 
-	// but we load them all here since they are contiguous in memory.
+	// but we load them all here since they are close in memory.
 	Scalar weights[decompdim];
 	OffsetPack offsets[decompdim];
+	Scalar firstorder[firstdim];
+
+	#if vertical_macro // Switch to vertical geometry when possible (Memory optimization)
+	Scalar vert_coefs[vertdim];
+	nstart = n_oi*vertdim;
+	for(int i=0; i<decompdim; ++i){vert_coefs[i] = vertical_t[nstart + size_i * i];
+	Scalar vert_block[symdim]; // Dense block at beginning of Hooke tensor
+	Scalar vert_diag[symdim-ndim]; // Diagonal terms
+
+	const Int geomindex = geomindex_t[n_oi+n_i];
+	if(geomindex>=0){ // Full anisotropic geometry. Precomputed decomposition
+		for(int i=0; i<decompdim; ++i){weights[i] = weights_t[geomindex*decompdim+i];}
+		for(int i=0; i<decompdim; ++i){offsets[i] = offsets_t[geomindex*decompdim+i];}
+		for(int i=0; i<firstdim; ++i){firstorder[i] = firstorder_t[geomindex*firstdim+i];}
+	} else { // Use vertical geometry
+		vertical_dispatch(vert_coefs,vert_block,vert_diag);
+		vertical_decomp(vert_block,vert_diag,weights,offsets);
+		__TODO__ // First order
+	}
+	#else // Load full geometry everywhere
 	nstart = n_oi*decompdim + n_i;
 	for(int i=0; i<decompdim; ++i){weights[i] = weights_t[nstart + size_i * i];}
 	for(int i=0; i<decompdim; ++i){offsets[i] = offsets_t[nstart + size_i * i];}
-
-	Scalar firstorder[firstdim];
 	nstart = n_oi*firstdim + n_i;
 	for(int i=0; i<firstdim; ++i){firstorder[i] = firstorder_t[nstart + size_i * i];}
+	#endif
 
 	const Scalar damping = damping_t[n_oi+n_i];
 
@@ -310,9 +388,9 @@ __global__ void AdvanceQ(
 	// Int x_t[ndim]; // Useless, this update does not involve finite differences
 
 	// Load data
-	Scalar metric[symdim];
-	nstart = n_oi*symdim + n_i;
-	for(int i=0; i<symdim; ++i){metric[i] = metric_t[nstart + size_i * i];}
+	Scalar metric[metricdim];
+	nstart = n_oi*metricdim + n_i;
+	for(int i=0; i<metricdim; ++i){metric[i] = metric_t[nstart + size_i * i];}
 
 	const Scalar damping = damping_t[n_oi + n_i];
 	
@@ -327,7 +405,11 @@ __global__ void AdvanceQ(
 	mul_kv(1-damping*dt,qold,qnew);
 
 	Scalar mp[ndim];
+	#if isotropic_metric_macro
+	mul_kv(metric[0],p,mp);
+	#else
 	dot_mv(metric,p,mp);
+	#endif
 
 	madd_kvV(dt,mp,qnew);
 

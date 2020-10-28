@@ -40,30 +40,22 @@ class HookeWave:
 
 		traits_default = {
 			'Scalar':np.float32,
+			'Int':np.int32,
 			'bypass_zeros_macro':True,
 			'compact_scheme_macro':True,
 			'fourth_order_macro':False,
+			'isotropic_metric_macro':False,
+			'vertical_macro':0,
 			'shape_i': (8,8) if self.vdim==2 else (4,4,4),
 			}
 		if traits is None: traits = traits_default
 		else: traits_default.update(traits); traits = traits_default
 
-		self._float_t = traits['Scalar']
-		self._int_t = np.int32
 		self._offsetpack_t = np.int32
 
-		shape_i=traits['shape_i']
-		assert len(shape_i) == self.vdim
-		self._shape_i = shape_i
-		self._size_i = np.prod(shape_i)
-
-# TODO. Another block layer. Presumably (2,)*self.vdim
-#		assert shape_j is None 
-#		self._shape_j = shape_j
-
-		shape_o = tuple(fd.round_up_ratio(shape,shape_i))
-		self._shape_o = shape_o
-		self._size_o = np.prod(shape_o)
+		# TODO ? Another block layer shape_j. Presumably (2,)*self.vdim
+		assert len(self.shape_i) == self.vdim
+		self._shape_o = tuple(fd.round_up_ratio(shape,self.shape_i))
 
 		if periodic in (True,False): periodic=(periodic,)*self.vdim
 		assert periodic is None or len(periodic)==self.vdim
@@ -91,6 +83,7 @@ class HookeWave:
 		cuda_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),"cuda")
 		date_modified = cupy_module_helper.getmtime_max(cuda_path)
 		source = cupy_module_helper.traits_header(traits,size_of_shape=True)
+		self._traits = traits
 
 		source += [
 		'#include "HookeWave.h"',
@@ -106,39 +99,47 @@ class HookeWave:
 		self.SetCst('shape_o',self.shape_o,self.int_t)
 		self.SetCst('shape_tot',self.shape,self.int_t)
 
-	# Tra<its
+	# Traits
 	@property	
-	def float_t(self):  return self._float_t
+	def float_t(self):  return self._traits['Scalar']
 	@property
 	def int_t(self):    return self._int_t
 	@property	
 	def offsetpack_t(self): return self._offsetpack_t
+
 	@property	
-	def order(self):    return self._order
+	def order(self):    return 4 if self._traits['fourth_order_macro'] else 2
 	@property	
 	def periodic(self): return self._periodic
+	@property
+	def isotropic_metric(self): return self._traits['isotropic_metric_macro']
+
 	@property	
 	def shape(self):    return self._shape
 	@property	
 	def shape_o(self):  return self._shape_o
 	@property	
-	def shape_i(self):  return self._shape_i
+	def shape_i(self):  return self._traits['shape_i']
 	@property	
-	def shape_j(self):  return self._shape_j
+	def size_o(self):   return np.prod(self.shape_o)
+	@property	
+	def size_i(self):   return np.prod(self.shape_i)
+
 	@property	
 	def vdim(self):     return len(self.shape)
+	def _triangular_number(n): return (n*(n+1))//2
 	@property
-	def symdim(self): 
-		vdim = self.vdim
-		return (vdim*(vdim+1))//2
+	def symdim(self):   return self._triangular_number(self.vdim)
 	@property
-	def decompdim(self):
-		symdim = self.symdim
-		return (symdim*(symdim+1))//2
-	@property	
-	def size_o(self):   return self._size_o
-	@property	
-	def size_i(self):   return self._size_i
+	def decompdim(self):return self._triangular_number(self.symdim)
+
+	# Special handling of vertical geometry
+	@property
+	def vertical(self): return self._traits['vertical_macro']
+	@property
+	def vertical_kind(self): 
+		return (None,'hexagonal','tetragonal','orthorombic')[self.vertical]
+	
 	@property
 	def offsetnbits(self):
 		if self.vdim==2: return 10
@@ -150,8 +151,6 @@ class HookeWave:
 		elif self.vdim==3: return (0,5,1,4,3,2)
 		else: raise ValueError("Unsupported dimension")	
 	
-
-
 	def block_expand(self,value,constant_values=np.nan,**kwargs):
 		"""
 		Reshapes the array so as to factor shape_i. Also moves the geometry axis before
@@ -212,6 +211,8 @@ class HookeWave:
 
 	def set_hooke(self,hooke,div_hooke=None):
 		hooke = fd.as_field(hooke,self.shape,depth=2)
+		assert hooke.shape[:2]==(self.symdim,self.symdim)
+		assert not self.vertical # __TODO__ : find where vertical approx is suitable
 		if div_hooke is None: 
 			# Compute the divergence of the Hooke tensor, using finite differences
 			if self.vdim==2: # Reshape as 2x2x3
@@ -257,12 +258,17 @@ class HookeWave:
 	@property
 	def metric(self):
 		metric = self.block_squeeze(self._metric)
-		return Metrics.misc.expand_symmetric_matrix(metric)
+		if self.isotropic_metric: return metric
+		else: return Metrics.misc.expand_symmetric_matrix(metric)
 	
 	@metric.setter
 	def metric(self,value):
-		value = fd.as_field(value,self.shape,depth=2)
-		value = Metrics.misc.flatten_symmetric_matrix(value)
+		if self.isotropic_metric:
+			value = fd.as_field(value,self.shape,depth=0)
+		else:
+			value = fd.as_field(value,self.shape,depth=2)
+			value = Metrics.misc.flatten_symmetric_matrix(value)
+			assert len(value)==self.symdim
 		self._metric = self.block_expand(value)
 
 	@property
@@ -301,10 +307,12 @@ class HookeWave:
 
 	@q.setter
 	def q(self,value): 
+		assert len(q)==self.vdim
 		value = fd.as_field(value,self.shape,depth=1)
 		self._q = self.block_expand(value)
 	@p.setter
 	def p(self,value): 
+		assert len(p)==self.vdim
 		value = fd.as_field(value,self.shape,depth=1)
 		self._p = self.block_expand(value)
 
@@ -312,6 +320,7 @@ class HookeWave:
 	# Symplectic scheme
 	def AdvanceP(self):
 		self.check()
+		assert not self.vertical # __TODO__ introduce geomindex, vertical
 		self._AdvanceP(self.shape_o,self.shape_i,(
 			self._weights,self._offsets,self._firstorder,self._damping,
 			self._q,self._p,self._tmp))
@@ -329,6 +338,7 @@ class HookeWave:
 		Check that all arguments have the correct type, shape, are not None, 
 		and are c-contiguous arrays
 		"""
+		assert not self.vertical # __TODO__ weights, offsets firstorder get special treatment, add geomindex and vertical
 		if self._nocheck: return
 		for arg in (self._weights,self._offsets,self._firstorder,self._damping,self._metric,
 			self._q,self._p,self._tmp):
