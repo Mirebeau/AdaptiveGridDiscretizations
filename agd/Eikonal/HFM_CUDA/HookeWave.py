@@ -175,10 +175,13 @@ class HookeWave:
 
 	# PDE parameters
 	@property
-	def weights(self): return self.block_squeeze(self._weights)
+	def weights(self): 
+		if self.vertical: return np.moveaxis(self._full_weights,1,0)
+		else: return self.block_squeeze(self._weights)
 	@property	
 	def offsets(self):
-		offsets2 = self.block_squeeze(self._offsets)
+		if self.vertical: offsets2 = np.moveaxis(self._full_offsets,1,0)
+		else: offsets2 = self.block_squeeze(self._offsets)
 		# Uncompress
 		offsets = cp.zeros((self.symdim,)+offsets2.shape,dtype=np.int8)
 		order = self.voigt2lower
@@ -198,7 +201,9 @@ class HookeWave:
 	@property	
 	def hooke(self):
 		weights,offsets = self.weights,self.offsets
-		return (weights * lp.outer_self(offsets)).sum(axis=2)
+		full_hooke = (weights * lp.outer_self(offsets)).sum(axis=2)
+		if not self.vertical: return full_hooke
+		
 
 	@hooke.setter
 	def hooke(self,value): 
@@ -261,28 +266,34 @@ class HookeWave:
 		self._offsets = self.block_expand(self._compress_offsets(offsets),constant_values=0)
 
 	def _to_vertical(hooke):
-		"""Vertical approximation. Also returns projection error."""
+		"""Coefficients of the vertical approximation."""
 		kind = self.vertical_kind
 		hk = Hooke(hooke)
-		if kind=='hexagonal':   
-			vert=hk.to_hexagonal();     rec=Hooke.from_hexagonal(vert);
-		elif kind=='tetragonal':
-			vert=hk.to_tetragonal();    rec=Hooke.from_tetragonal(vert);
-		elif kind=='orthorombic2':
-			vert=hk.to_orthorombic2();  rec=Hooke.from_orthorombic2(vert);
-		rec-=hooke
-		error2 = (rec**2).sum(axis=(0,1)); rec=None
-		norm2  = (hooke**2).sum(axis=(0,1));
-		return vert,np.sqrt(error2/norm2)
+		if   kind=='hexagonal':   return hk.to_hexagonal()
+		elif kind=='tetragonal':  return hk.to_tetragonal()
+		elif kind=='orthorombic2':return hk.to_orthorombic2()
+
+	def _from_vertical(vertical):
+		kind = self.vertical_kind
+		if   kind=='hexagonal':   return Hooke.from_hexagonal(vertical)
+		elif kind=='tetragonal':  return Hooke.from_tetragonal(vertical)
+		elif kind=='orthorombic2':return Hooke.from_orthorombic2(vertical)
 
 	def set_hooke_vertical(self,hooke,div_hooke=None):
 		"""Sets a hooke tensor, using a vertical approximation where suitable."""
 		# Project, reconstruct, and compute difference
-		vertical,error = self._to_vertical(hooke)
-		self._vertical = self.block_expand(vert) 
-		vert = None
-		full = error>self.vertical_thres
-		error = None
+		vertical = self._to_vertical(hooke)
+		# Find where the vertical approximation is suitable
+		reconstr = self._from_vertical(vertical)
+		error2 = ((reconstr-hooke)**2).sum(axis=(0,1))
+		reconstr=None
+		norm2 = (hooke**2).sum(axis=(0,1))
+		rel_error = np.sqrt(error2/norm2)
+		norm2,error2=None,None
+		self._vertical = self.block_expand(vertical) 
+		vertical = None
+		full = rel_error>self.vertical_thres # where to use the full hooke tensors
+		rel_error = None
 		full_ratio = full.sum()/np.prod(self.shape)
 		if full_ratio>=0.3: print("Performance warning : proportion {full_ratio} of "
 			"Hooke tensors cannot be handled by the vertical approximation")
@@ -297,9 +308,7 @@ class HookeWave:
 		offsets=None
 
 		assert False # __TODO__ : compute div_hooke
-
-
-
+		
 	@property
 	def metric(self):
 		metric = self.block_squeeze(self._metric)
