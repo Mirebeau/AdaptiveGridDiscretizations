@@ -228,6 +228,10 @@ class Hooke(ImplicitBase):
 		]))
 
 	@classmethod
+	def from_orthorombic2(cls,a,b,d,c,e,f,g,h,i): # More natural ordering of first bloc
+		return cls.from_orthorombic(a,b,c,d,e,f,g,h,i)
+
+	@classmethod
 	def from_tetragonal(cls,a,b,c,d,e,f):
 		return cls.from_orthorombic(a,b,c,a,c,d,e,e,f)
 
@@ -242,6 +246,21 @@ class Hooke(ImplicitBase):
 		"""
 		hex,ρ = HexagonalFromTEM(tem)
 		return cls.from_hexagonal(*hex),ρ
+
+	def to_orthorombic(self):
+		"""Inverse function of from_orthorombic. No reconstruction check."""
+		assert self.vdim==3
+		return tuple(self.hooke[i,j] for i,j in 
+			((0,0),(0,1),(0,2),(1,1),(1,2),(2,2),(3,3),(4,4),(5,5)))
+	def to_orthorombic2(self):
+		a,b,c,d,e,f,g,h,i = self.to_orthorombic()
+		return (a,b,d,c,e,f,g,h,i)
+	def to_tetragonal(self):
+		a,b,c,_a,_c,d,e,_e,f = self.to_orthorombic()
+		return (a,b,c,d,e,f)
+	def to_hexagonal(self):
+		a,b,c,d,e,_a_b_2 = self.to_tetragonal()
+		return (a,b,c,d,e)
 
 	def is_TTI(self,tol=None):
 		"""

@@ -24,6 +24,7 @@ from ... import AutomaticDifferentiation as ad
 from ... import FiniteDifferences as fd
 from ... import LinearParallel as lp
 from ... import Metrics
+from ...Metrics.Seismic import Hooke
 from . import cupy_module_helper
 from .cupy_module_helper import SetModuleConstant
 from .VoronoiDecomposition import VoronoiDecomposition
@@ -33,7 +34,7 @@ class HookeWave:
 	Warning : accessing this object's properties has a significant memory and 
 	computational cost, because all data is converted to a kernel friendly format.
 	"""
-	def __init__(self,shape,traits=None,periodic=False):
+	def __init__(self,shape,traits=None,periodic=False,vertical_thres=5e-3):
 		self._shape = shape
 		if self.vdim not in (2,3):
 			raise ValueError("Only dimensions 2 and 3 are supported")
@@ -64,6 +65,7 @@ class HookeWave:
 		# Voronoi decomposition of Hooke tensor
 		self._weights = None
 		self._offsets = None
+		self._vertical_thres = vertical_thres # Use vertical approximation beyond
 
 		self._metric = None
 		self._dt = None
@@ -119,7 +121,7 @@ class HookeWave:
 	@property	
 	def shape_o(self):  return self._shape_o
 	@property	
-	def shape_i(self):  return self._traits['shape_i']
+	def shape_i(self):  return self._traits['shape_i']	
 	@property	
 	def size_o(self):   return np.prod(self.shape_o)
 	@property	
@@ -138,7 +140,10 @@ class HookeWave:
 	def vertical(self): return self._traits['vertical_macro']
 	@property
 	def vertical_kind(self): 
-		return (None,'hexagonal','tetragonal','orthorombic')[self.vertical]
+		return (None,'hexagonal','tetragonal','orthorombic2')[self.vertical]
+	@property
+	def vertical_thres(self): return self._vertical_thres
+	
 	
 	@property
 	def offsetnbits(self):
@@ -212,7 +217,7 @@ class HookeWave:
 	def set_hooke(self,hooke,div_hooke=None):
 		hooke = fd.as_field(hooke,self.shape,depth=2)
 		assert hooke.shape[:2]==(self.symdim,self.symdim)
-		assert not self.vertical # __TODO__ : find where vertical approx is suitable
+		assert not self.vertical # __TODO__ : 
 		if div_hooke is None: 
 			# Compute the divergence of the Hooke tensor, using finite differences
 			if self.vdim==2: # Reshape as 2x2x3
@@ -254,6 +259,46 @@ class HookeWave:
 		
 		# Reorder the offset components, compress as integer
 		self._offsets = self.block_expand(self._compress_offsets(offsets),constant_values=0)
+
+	def _to_vertical(hooke):
+		"""Vertical approximation. Also returns projection error."""
+		kind = self.vertical_kind
+		hk = Hooke(hooke)
+		if kind=='hexagonal':   
+			vert=hk.to_hexagonal();     rec=Hooke.from_hexagonal(vert);
+		elif kind=='tetragonal':
+			vert=hk.to_tetragonal();    rec=Hooke.from_tetragonal(vert);
+		elif kind=='orthorombic2':
+			vert=hk.to_orthorombic2();  rec=Hooke.from_orthorombic2(vert);
+		rec-=hooke
+		error2 = (rec**2).sum(axis=(0,1)); rec=None
+		norm2  = (hooke**2).sum(axis=(0,1));
+		return vert,np.sqrt(error2/norm2)
+
+	def set_hooke_vertical(self,hooke,div_hooke=None):
+		"""Sets a hooke tensor, using a vertical approximation where suitable."""
+		# Project, reconstruct, and compute difference
+		vertical,error = self._to_vertical(hooke)
+		self._vertical = self.block_expand(vert) 
+		vert = None
+		full = error>self.vertical_thres
+		error = None
+		full_ratio = full.sum()/np.prod(self.shape)
+		if full_ratio>=0.3: print("Performance warning : proportion {full_ratio} of "
+			"Hooke tensors cannot be handled by the vertical approximation")
+		self._full_index = self.block_expand(np.nonzeros(full).astype(np.int32))
+		full_hooke = hooke[:,:,full]
+		full = None
+		weights,offsets = VoronoiDecomposition(full_hooke,offset_t=np.int8)
+		self._full_weights = cp.ascontiguousarray(np.moveaxis(weights,0,1))
+		weights=None
+		self._full_offsets = cp.ascontiguousarray(np.moveaxis(
+			self._compress_offsets(offsets),0,1))
+		offsets=None
+
+		assert False # __TODO__ : compute div_hooke
+
+
 
 	@property
 	def metric(self):
@@ -320,10 +365,13 @@ class HookeWave:
 	# Symplectic scheme
 	def AdvanceP(self):
 		self.check()
-		assert not self.vertical # __TODO__ introduce geomindex, vertical
-		self._AdvanceP(self.shape_o,self.shape_i,(
-			self._weights,self._offsets,self._firstorder,self._damping,
-			self._q,self._p,self._tmp))
+
+		if self.vertical: arg0 = (self._vertical,self._full_index,
+			self._full_weights,self._full_offsets,self._full_firstorder)
+		else: arg0 = (self._weights,self._offsets)
+
+		self._AdvanceP(self.shape_o,self.shape_i,
+			arg0+(self._damping,self._q,self._p,self._tmp))
 		self._p,self._tmp = self._tmp,self._p
 
 	def AdvanceQ(self):
@@ -340,14 +388,22 @@ class HookeWave:
 		"""
 		assert not self.vertical # __TODO__ weights, offsets firstorder get special treatment, add geomindex and vertical
 		if self._nocheck: return
-		for arg in (self._weights,self._offsets,self._firstorder,self._damping,self._metric,
-			self._q,self._p,self._tmp):
+		args0 = ((self._vertical,self._full_index) if self.vertical 
+			else (self._weights,self._offsets,self._firstorder))
+		for arg in args0+(self._damping,self._metric,self._q,self._p,self._tmp):
 			assert arg.flags.c_contiguous
 			assert arg.shape[:self.vdim]==self.shape_o
 			assert arg.shape[-self.vdim:]==self.shape_i
 			assert arg.ndim in (2*self.vdim,2*self.vdim+1)
-			assert arg.dtype == self.offsetpack_t if arg is self._offsets else self.float_t
+			assert arg.dtype in (self.float_t,self.int_t,self.offsetpack_t)
 
+		if self.vertical:
+			for arg in (self._full_weights,self._full_offsets,self._full_firstorder):
+				assert arg.flags.c_contiguous
+				assert arg.shape[:self.vdim] = self.shape
+				assert arg.ndim=2
+				assert arg.dtype == self.offsetpack_t if arg is self._offsets else self.float_t
+		
 		for arg in (self._dt,self._gridScale):
 			assert arg is not None
 

@@ -73,12 +73,14 @@ second order finite differences. Not much effect expected.*/
 
 // ------------- Offset manipulation -------------
 
+namespace Offset {
+
+const int nbit = ndim==2 ? 10 : 5; // Number of bits for each offset
+const int mask = (1<<nbit)-1;
+const int zero = 1<<(nbit-1);
+
 /// Unpack the offsets of Voronoi's first reduction
 void offset_expand(OffsetPack pack, Int exp[symdim]){
-	const int nbit = ndim==2 ? 10 : 5; // Number of bits for each offset
-	const int mask = (1<<nbit)-1;
-	const int zero = 1<<(nbit-1);
-
 	for(int i=0; i<symdim; ++i){exp[i] = ((pack >> (i*nbit)) & mask) - zero;}
 }
 
@@ -97,6 +99,8 @@ bool is_opp(const Int e[__restrict__ ndim], const Int f[__restrict__ ndim]){
 	for(int i=0; i<ndim; ++i){if(e[i]!=-f[i]) return false;}
 	return true;
 }
+
+} // Namespace offset
 
 // -------------------- Vector field component access -------------------
 
@@ -230,12 +234,27 @@ void vertical_decomp(
 	Int offsets[symdim][ndim]; // Weights and offsets for the block
 	decomp_m(b,w,offsets); // Fills the symdim first weights
 	for(int i=0; i<symdim; ++i){
-		__TODO__
+		#if ndim_macro==2
+		o[i] = 
+		  ((offsets[i][0]+Offset::zero) << (0*Offset::nbits)) 
+		+ ((offsets[i][1]+Offset::zero) << (2*Offset::nbits));
+		#else
+		o[i] = 
+		  ((offsets[i][0]+Offset::zero) << (0*Offset::nbits)) 
+		+ ((offsets[i][1]+Offset::zero) << (2*Offset::nbits))
+		+ ((offsets[i][2]+Offset::zero) << (5*Offset::nbits));
+		#endif
 	}
 
 	// Decomposition associated to the remaining diagonal coefficients
 	for(int i=0; i<symdim-ndim; ++i){w[symdim+i] = d[i];}
-	o[symdim] = __TODO__
+	#if ndim_macro==2
+	o[symdim] = (1+Offset::zero) << (1*Offset::nbits);
+	#else
+	o[symdim] = (1+Offset::zero) << (4*Offset::nbits);
+	o[symdim] = (1+Offset::zero) << (3*Offset::nbits);
+	o[symdim] = (1+Offset::zero) << (1*Offset::nbits);
+	#endif
 }
 #endif // vertical_macro
 
@@ -294,7 +313,7 @@ __global__ void AdvanceP(
 	} else { // Use vertical geometry
 		vertical_dispatch(vert_coefs,vert_block,vert_diag);
 		vertical_decomp(vert_block,vert_diag,weights,offsets);
-		__TODO__ // First order
+		__TODO__ // First order (Compare with neighbors to get divergence, etc.
 	}
 	#else // Load full geometry everywhere
 	nstart = n_oi*decompdim + n_i;
@@ -325,7 +344,7 @@ __global__ void AdvanceP(
 		Scalar weight = weights[decomp];
 		BYPASS_ZEROS(if(weight==0) continue;)
 		Int offset[symdim]; 
-		offset_expand(offsets[decomp],offset);
+		Offset::expand(offsets[decomp],offset);
 
 		Int moffset[ndim][ndim];
 		for(int i=0; i<ndim; ++i){
@@ -337,16 +356,16 @@ __global__ void AdvanceP(
 		// Contribution from the second order operator dvi = m_ij m_kl D_jk v_l
 		for(int i=0; i<ndim; ++i){
 			const Int * e = moffset[i]; // e[ndim]
-			BYPASS_ZEROS(if(is_zero(e)) continue;)
+			BYPASS_ZEROS(if(Offset::is_zero(e)) continue;)
 			for(int l=0; l<ndim; ++l){
 				const Int * f = moffset[l];
-				BYPASS_ZEROS(if(is_zero(f)) continue;)
+				BYPASS_ZEROS(if(Offset::is_zero(f)) continue;)
 				// Evaluate the cross derivative of v_l w.r.t moffsets[i] and moffsets[l]
 				Scalar cross;
 
-				if(i==l COMPACT_SCHEME(||is_same(e,f)||is_opp(e,f))){
+				if(i==l COMPACT_SCHEME(||Offset::is_same(e,f)||Offset::is_opp(e,f))){
 					cross = diff_second(l,e,x_t,q_t,q);
-					COMPACT_SCHEME(if(is_opp(e,f)) cross*=-1;)
+					COMPACT_SCHEME(if(Offset::is_opp(e,f)) cross*=-1;)
 				} else {
 					cross = diff_cross(l,e,f,x_t,q_t);
 				}
