@@ -516,10 +516,14 @@ class dictIn(MutableMapping):
 	SetFactor = DictIn_detail.SetFactor
 	SetSphere = DictIn_detail.SetSphere
 
-
-
-
-
+	@property
+	def factoringPointChoice(self):
+		if 'factoringPointChoice' in self: # 'Key' and 'Seed' are synonyms here
+			assert self['factoringPointChoice'] in ('Both','Key','Seed') 
+			return self['factoringPointChoice']
+		elif 'factoringRadius' not in self: return None
+		elif self.get('order',1)==3: return 'Both'
+		else: return 'Seed'
 
 
 

@@ -31,10 +31,6 @@ def SetFactor(self,radius=None,value=None,gradient=None):
 	Side effect : sets 'factoringValues', 'factoringGradients', 
 	   and in the case of a subgrid 'factoringIndexShift'
 	"""
-
-	# Only static factoring is supported
-	if self.get('factoringMethod','Static') != 'Static': return
-
 	# Set the factoring grid points
 	if radius is None:
 		radius = self.get('factoringRadius',10)
@@ -82,7 +78,7 @@ def SetFactor(self,radius=None,value=None,gradient=None):
 				metric.at(x).norm(diff(x)))
 		else:
 			raise ValueError(f"dictIn.SetFactor error : unsupported "
-				"value string : {value} . (Factoring point choice).")
+				"factoringPointChoice : {value} .")
 
 	if callable(value):
 		if gradient is None:
@@ -117,6 +113,8 @@ def SetFactor(self,radius=None,value=None,gradient=None):
 
 	self["factoringValues"] = value
 	self["factoringGradients"] = np.moveaxis(gradient,0,-1) # Geometry last in c++ code...
+
+	for key in ('factoringRadius', 'factoringPointChoice'): self.pop(key,None)
 
 	return factGrid
 

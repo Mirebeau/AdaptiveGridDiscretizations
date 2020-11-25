@@ -115,12 +115,9 @@ def RunSmart(hfmIn,co_output=None,cache=None,returns="out"):
 	"""
 	assert returns in ('in_raw','out_raw','out')
 
-	# Intercept and replace old source factorization convention
-	oldFactKeys = ('factoringRadius', 'factoringPointChoice')
-	if any(key in hfmIn for key in oldFactKeys) and 'factoringValues' not in hfmIn:
+	if hfmIn.factoringPointChoice == 'Both':
 		hfmIn = hfmIn.copy()
 		hfmIn.SetFactor()
-		for key in oldFactKeys: hfmIn.pop(key,None)
 
 	hfmIn_raw = {}
 
@@ -275,6 +272,8 @@ def PostProcess(key,value,raw_in,refined_out):
 	
 	elif key=='geodesicFlow':
 		setkey_safe(refined_out,'flow',np.moveaxis(value,-1,0))
+	elif key=='factoringGradients':
+		setkey_safe(refined_out,'factoringGradients',np.moveaxis(value,-1,0))
 	elif key=='activeOffsets':
 		setkey_safe(refined_out,'offsets',CastOffsets(value))
 	else:
