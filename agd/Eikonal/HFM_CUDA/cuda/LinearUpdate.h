@@ -100,6 +100,7 @@ __global__ void Update(
 	MINCHG_FREEZE(const Scalar chg_t, const Scalar * minChgPrev_o, Scalar * minChgNext_o,)
 	Int * updateList_o, PRUNING(BoolAtom * updatePrev_o,) BoolAtom * updateNext_o 
 	){ 
+	HFM_DEBUG(assert(shape2size(shape_o,ndim)==size_o && shape2size(shape_i,ndim)==size_i);)
 
 	__shared__ Int x_o[ndim];
 	__shared__ Int n_o;
@@ -137,6 +138,8 @@ __global__ void Update(
 		if(weight[k]==0.) {v_i[k]=v_i_invalid; continue;}
 
 		const Int index = index_t[k*size_tot + n_t];
+		HFM_DEBUG(assert(0<=index && index<size_tot);)
+
 		if(index/size_i == n_o){
 			v_i[k] = index%size_i;
 		} else {
@@ -169,6 +172,7 @@ __global__ void Update(
 			for(Int k=0; k<nindex; ++k){
 				const Int w_i = v_i[k];
 				if(w_i==v_i_invalid) {continue;}
+				HFM_DEBUG(assert(w_i==v_i_inBlock || (0<=w_i && w_i<size_i));)
 				const Scalar val = w_i==v_i_inBlock ? v_o[k] : u_i[w_i];
 				sum += weight[k] * val;
 			}
@@ -193,7 +197,7 @@ __global__ void Update(
 
 	chg_i[n_i] = changed ? 
 	#if minchg_freeze_macro
-	chg_t[n_t] // Changed blocks with large values will be temporarily freezed
+	chg_t[n_t] // Changed blocks with large values will be temporarily frozen
 	#else
 	0. // Dummy finite value
 	#endif

@@ -221,6 +221,7 @@ void merge(const T * __restrict__ values,
 /*
 // Apparently, cuda doesn't like recursive functions. I get illegal address error whereas 
 this works fine on the cpu. A flattened version is implemented below, avoiding recursion.
+(Reason : cuda compiler needs to upper bound recursion depth at compile time.)
 template<typename T>
 void recurse(const T * values,int * source, int * dest, int n, int rec){
 	// rec even : source->source

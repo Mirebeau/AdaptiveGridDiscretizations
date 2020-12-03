@@ -2,6 +2,11 @@
 // Copyright 2020 Jean-Marie Mirebeau, University Paris-Sud, CNRS, University Paris-Saclay
 // Distributed WITHOUT ANY WARRANTY. Licensed under the Apache License, Version 2.0, see http://www.apache.org/licenses/LICENSE-2.0
 
+/** This file implements Voronoi's first reduction 
+of six dimensional positive definite matrices.
+*/
+
+
 #include "TypeTraits.h"
 
 #define ndim_macro 6
@@ -61,12 +66,6 @@ struct SimplexStateT {
 	Int vertex;
 	Scalar objective;
 };
-
-
-/** This code extends the 5-dimensional code to handle senary forms */
-
-// We implement below Voronoi's reduction of four dimensional positive definite matrices.
-const Int maxiter=100;
 
 // The seven six dimensional perfect forms, vertices of Ryskov's polyhedron
 const Int nvertex = 7;

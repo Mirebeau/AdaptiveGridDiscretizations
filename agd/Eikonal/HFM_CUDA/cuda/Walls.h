@@ -19,6 +19,7 @@ bool Visible(const Int v[ndim],
 	const Int x_t[ndim], const WallT * __restrict__ wallDist_t,
 	const Int x_i[ndim], const WallT   wallDist_i[size_i]){
 	const Int n_i = threadIdx.x;
+	HFM_DEBUG(assert(n_i<size_i);)
 	if(wallDist_i[n_i]==WallT_Max) return true;		
 
 	// L1 norm of the vector will be compared with L1 distance to the walls.

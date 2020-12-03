@@ -7,6 +7,8 @@ This file implements the inf-convolution of an array with a small constant array
 The implementation could be substantially optimized, by rearranging the data in blocks, etc
 */
 
+#include "static_assert.h"
+
 #ifndef Int_macro
 typedef int Int;
 #endif
@@ -63,9 +65,13 @@ __constant__ T kernel_c[size_c];
 extern "C" {
 __global__ void 
 InfConvolution(const T * __restrict__ input, T * __restrict__ output){
+	HFM_DEBUG(assert(shape2size(shape_tot,ndim)==size_tot
+		&& shape2size(shape_c,ndim)==size_c);)
+
 	// Get the position where the work is to be done.
 	const Int n_t = blockIdx.x*blockDim.x + threadIdx.x;
 	if(n_t>=size_tot) {return;}
+
 	Int x_t[ndim];
 	Grid::Position(n_t,shape_tot,x_t);
 	T result = T_Neutral;

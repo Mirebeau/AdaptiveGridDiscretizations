@@ -14,7 +14,10 @@ void perp_v(const T x[2], T out[__restrict__ 2]){
 }
 
 // Computation of an obtuse superbase of a positive definite matrix, by Selling's algorithm
-const Int Selling_maxiter=50;
+#ifndef Selling_maxiter_macro
+const Int Selling_maxiter = 50;
+#endif
+
 void obtusesuperbase_m(const Scalar m[symdim], Int sb[ndim+1][ndim]){
 	canonicalsuperbase(sb);
 	const Int iterReducedMax = 3;

@@ -12,7 +12,7 @@ void decomp_v(const Scalar v[ndim], Scalar weights[decompdim], OffsetT offsets[d
 	decomp_m(m,weights,offsets);
 	const Scalar vv = scal_vv(v,v);
 
-	for(Int k=0; k<symdim; ++k){
+	for(Int k=0; k<decompdim; ++k){
 		OffsetT * e = offsets[k]; // e[ndim]
 		const Scalar ve = scal_vv(v,e), ee = scal_vv(e,e);
 		// Eliminate offsets which deviate too much from the direction of v

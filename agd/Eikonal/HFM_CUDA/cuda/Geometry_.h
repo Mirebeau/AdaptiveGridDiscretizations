@@ -124,6 +124,7 @@ Scalar scal_vmv(const Tx x[ndim], const Scalar m[symdim], const Ty y[ndim]){
 			++k;
 		}
 	}
+	HFM_DEBUG(assert(k==symdim);)
 	return result;
 }
 /// Squared norm associated with a symmetric matrix
@@ -136,7 +137,8 @@ template<typename Tx, typename Ty>
 Scalar scal_vdv(const Tx x[ndim], const Scalar diag[ndim], const Ty y[ndim]){
 	Scalar result=0; 
 	for(Int i=0; i<ndim; ++i){result+=x[i]*y[i]*diag[i];}
-	return result;}
+	return result;
+}
 
 // Frobenius scalar product of two matrices
 template<typename Tx, typename Ty>
@@ -149,6 +151,7 @@ Scalar scal_mm(const Tx mx[symdim],const Ty my[symdim]){
 			++k;
 		}
 	}
+	HFM_DEBUG(assert(k==symdim);)
 	return result;
 }
 
@@ -163,6 +166,7 @@ void self_outer_v(const T x[ndim], Tout m[__restrict__ ndim]){
 			++k;
 		}
 	}
+	HFM_DEBUG(assert(k==symdim);)
 }
 
 void self_outer_relax_v(const Scalar x[ndim], const Scalar relax, 
@@ -175,6 +179,7 @@ void self_outer_relax_v(const Scalar x[ndim], const Scalar relax,
 			++k;
 		}
 	}
+	HFM_DEBUG(assert(k==symdim);)
 }
 
 template<typename T>
@@ -191,6 +196,7 @@ void identity_M(Scalar m[symdim]){
 			++k;
 		}
 	}
+	HFM_DEBUG(assert(k==symdim);)
 }
 
 template<typename T>
@@ -212,7 +218,9 @@ void canonicalsuperbase(T sb[ndim+1][ndim]){
 template<typename T>
 T coef_m(const T m[symdim], const Int i, const Int j){
 	const Int i_ = max(i,j), j_=min(i,j);
-	return m[(i_*(i_+1))/2+j_];
+	const Int k = (i_*(i_+1))/2+j_;
+	HFM_DEBUG(assert(0<=i && i<ndim && 0<=j && j<ndim && 0<=k && k<symdim);)
+	return m[k];
 }
 
 /// Dot product of symmetric matrix times vector
@@ -227,6 +235,7 @@ void dot_mv(const Tm m[symdim], const Tv v[ndim], Tout out[__restrict__ ndim]){
 			++k;
 		}
 	}
+	HFM_DEBUG(assert(k==symdim);)
 }
 
 /// Matrix vector product
@@ -263,6 +272,7 @@ void tgram_am(const Ta a[ndim][ndim], const Tm m[symdim],
 			++k;
 		}
 	}
+	HFM_DEBUG(assert(k==symdim);)
 }
 
 // ----- Display ------

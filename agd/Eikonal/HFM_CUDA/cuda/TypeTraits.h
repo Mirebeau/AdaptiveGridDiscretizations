@@ -458,10 +458,3 @@ and weights in the anisotropic case.*/
 #else
 #define DECOMP_V_ALIGN(...) 
 #endif
-
-#if hfm_debug_macro
-#define HFM_DEBUG(...) __VA_ARGS__
-#else
-#define HFM_DEBUG(...)
-#endif
-

@@ -111,6 +111,8 @@ bool diags(const Scalar l[2], const Scalar q[3], Scalar diag_s[nmix][2]){
 
 bool scheme(const Scalar geom[geom_size], 
 	Scalar weights[nactx], Int offsets[nactx][ndim]){
+	STATIC_ASSERT(nactx==symdim*nmix)
+	
 	const Scalar * linear = geom; // linear[2]
 	const Scalar * quadratic = geom + 2; // quadratic[dim2::symdim]
 	const Scalar * transform = geom + (2+dim2::symdim); // transform[ndim * ndim]

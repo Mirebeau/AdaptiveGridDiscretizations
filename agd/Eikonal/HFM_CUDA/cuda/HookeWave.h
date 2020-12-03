@@ -7,6 +7,8 @@ generic hooke tensor. The tensor must be decomposed for finite differences using
 Voronoi's first reduction.
 */
 
+#include "static_assert.h"
+
 /* // The following must be defined externally
 typedef float Scalar; 
 #define fourth_order_macro false
@@ -108,12 +110,15 @@ bool is_opp(const Int e[__restrict__ ndim], const Int f[__restrict__ ndim]){
 // EXPECTS : Grid::InRange_per(x_t,shape_tot)
 Scalar component(const Int comp, const Int x_t[__restrict__ ndim], 
 	const Scalar * __restrict__ q_t){
+	HFM_DEBUG(assert(0<=comp && comp<ndim);)
+
 	Int x_o[ndim],x_i[ndim];
 	for(int k=0; k<ndim; ++k){
 		const int xk = 
 		PERIODIC(periodic_axes[k] ? Grid::mod_pos(x_t[k],shape_tot[k]) :) 
 		x_t[k];
 		x_o[k] = xk / shape_i[k]; x_i[k] = xk % shape_i[k];}
+
 	const int 
 	n_o = Grid::Index(x_o,shape_o),
 	n_i = Grid::Index(x_i,shape_i);
@@ -221,6 +226,8 @@ void vertical_dispatch(const Scalar c[__restrict__ vertdim],
 }
 
 const int vertdecompdim = symdim + (symdim-ndim);
+STATIC_ASSERT(vertdecompdim<decompdim, inconsistent_scheme_structure)
+
 void vertical_decomp(
 	const Scalar b[__restrict__ symdim], // ndim x ndim block
 	const Scalar d[__restrict__ symdim-ndim], // remaining diagonal
@@ -291,7 +298,7 @@ __global__ void AdvanceP(
 	const int n_i = Grid::Index(x_i,shape_i);
 	const int n_oi = n_o*size_i; 
 	int nstart;// Mutable, used for array data start
-	
+
 	// Weights and offsets are needed one at a time in the loop, 
 	// but we load them all here since they are close in memory.
 	Scalar weights[decompdim];

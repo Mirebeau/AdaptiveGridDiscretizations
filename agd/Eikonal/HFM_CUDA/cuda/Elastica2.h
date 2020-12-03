@@ -48,7 +48,7 @@ const Scalar sinPhi_s[nFejer]={0.173648178,   0.5, 0.766044443, 0.939692621, 1.,
 #endif
 
 const Int nsym = 0; // Number of symmetric offsets
-const Int nfwd = nFejer*symdim; // Number of forward offsets
+const Int nfwd = nFejer*decompdim; // Number of forward offsets
 
 #include "Constants.h"
 #include "Decomp_v_.h"
@@ -56,6 +56,8 @@ const Int nfwd = nFejer*symdim; // Number of forward offsets
 #if !precomputed_scheme_macro
 void scheme(GEOM(const Scalar geom[geom_size],) const Int x[ndim],
 	Scalar weights[nactx], OffsetT offsets[nactx][ndim]){
+	STATIC_ASSERT(nactx==nfwd)
+
 	XI_VAR(Scalar ixi;) KAPPA_VAR(Scalar kappa;) 
 	Scalar cT, sT; // cos(theta), sin(theta)
 	get_ixi_kappa_theta(GEOM(geom,) x, XI_VAR(ixi,) KAPPA_VAR(kappa,) cT, sT);
@@ -66,9 +68,9 @@ void scheme(GEOM(const Scalar geom[geom_size],) const Int x[ndim],
 		const Scalar cP = cosPhi_s[l], sP = sinPhi_s[l];
 		const Scalar v[ndim]={sP*cT,sP*sT,(sP*kappa+cP*ixi)};
 
-		decomp_v(v, &weights[l*symdim], &offsets[l*symdim]);
+		decomp_v(v, &weights[l*decompdim], &offsets[l*decompdim]);
 		const Scalar s = wFejer_s[l];
-		for(Int i=0; i<symdim; ++i) weights[l*symdim+i] *= s;
+		for(Int i=0; i<decompdim; ++i) weights[l*decompdim+i] *= s;
 	}
 } 
 #endif

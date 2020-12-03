@@ -23,6 +23,8 @@ const Int ndim; // Number of dimensions of solution
 const Int ndim_s; // Number of dimensions of broadcasted arrays
 */
 
+#include "static_assert.h"
+
 #ifndef periodic_macro
 #define PERIODIC(...) 
 #else
@@ -74,6 +76,9 @@ __global__ void ChartPaste(
 
 	BoolAtom * __restrict__ update_o
 	){
+
+HFM_DEBUG(assert( shape2size(shape_i,ndim)==size_i );)
+HFM_DEBUG(assert( shape2size(shape_i,ndim_s)*shape_i(shape_o,ndim_s) == size_s );)
 
 // Get the current position, array indices
 const Int n_i = threadIdx.x;

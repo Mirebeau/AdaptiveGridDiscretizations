@@ -6,6 +6,10 @@
 const Int ndim=3;
 #include "Geometry_.h"
 
+#ifndef Selling_maxiter_macro
+const Int Selling_maxiter = 100;
+#endif
+
 /// Cross product, in dimension three. 
 template<typename Tx, typename Ty, typename Tout=Tx>
 void cross_vv(const Tx x[3], const Ty y[3], Tout out[__restrict__ 3]){
@@ -15,8 +19,6 @@ void cross_vv(const Tx x[3], const Ty y[3], Tout out[__restrict__ 3]){
 	}
 }
 
-
-const Int Selling_maxiter=100;
 // the first two elements of these permutations range among all possible pairs
 const Int iterReducedMax = 6;
 const Int Selling_permutations[iterReducedMax][ndim+1] = { 

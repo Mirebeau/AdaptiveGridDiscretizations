@@ -33,7 +33,6 @@ struct SimplexStateT {
 /** This code is adapted from the c++ code in the CPU HFM library*/
 
 // We implement below Voronoi's reduction of four dimensional positive definite matrices.
-const Int maxiter=100;
 const Int kktdim=20; // Number of support vectors in Voronoi's decomposition
 typedef char small; // Small type to avoid overusing memory
 typedef unsigned char uchar;

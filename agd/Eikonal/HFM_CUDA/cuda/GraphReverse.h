@@ -6,6 +6,8 @@ This file implements a weighted graph inversion method on the GPU.
 It is used for the transposition of a triangular matrix, solved in a csr format.
 */
 
+#include "static_assert.h"
+
 #ifndef Int_macro
 typedef int Int;
 #endif
@@ -27,8 +29,6 @@ __constant__ Int size_tot;
 __constant__ Int nfwd;
 __constant__ Int nrev; // must be less than irevT_Max
 
-const Int debug_print=0; const Int n_test = 9;
-
 extern "C" {
 
 __global__ void GraphReverse(
@@ -46,6 +46,7 @@ __global__ void GraphReverse(
 
 		if(irev==irev_done) continue;
 		if(irev==nrev) continue; // Arrays need to be resized externally
+		HFM_DEBUG(assert(0<=irev && irev<nrev);)
 
 		const Int fwd = fwd_t[nfwd_t];
 		if(fwd==invalid) { 

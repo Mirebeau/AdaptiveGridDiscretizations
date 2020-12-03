@@ -9,7 +9,7 @@
 #include "Geometry3.h"
 
 const Int nsym = 0; // Number of symmetric offsets
-const Int nfwd = symdim; // Number of forward offsets
+const Int nfwd = decompdim; // Number of forward offsets
 
 #include "Constants.h"
 #include "decomp_v_.h"
@@ -21,6 +21,8 @@ const bool mix_is_min = true;
 #if !import_scheme_macro
 bool scheme(GEOM(const Scalar geom[geom_size],) const Int x[ndim],
 	Scalar weights[nactx], Int offsets[nactx][ndim]){
+	STATIC_ASSERT(nactx==2*nfwd, inconsistent_scheme_structure)
+
 	XI_VAR(Scalar ixi;) KAPPA_VAR(Scalar kappa;) 
 	Scalar cT, sT; // cos(theta), sin(theta)
 	get_ixi_kappa_theta(GEOM(geom,) x, XI_VAR(ixi,) KAPPA_VAR(kappa,) cT,sT);

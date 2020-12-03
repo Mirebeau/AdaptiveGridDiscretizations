@@ -44,6 +44,7 @@ void HFMNeighbors(
 		for(Int s=0; s<=1; ++s){
 			const Int ks = 2*k+s;
 			const Int w_i = v_i[ks];
+			HFM_DEBUG(assert(-1<=w_i && w_i<size_i);)
 			Scalar v_ MULTIP(,vq_);
 			if(w_i>=0){
 				v_ = u_i[w_i] SHIFT(+v_o[ks]);
@@ -65,6 +66,7 @@ void HFMNeighbors(
 	for(Int k=0; k<nfwd; ++k){
 		const Int nk = nsym+k, n2k = 2*nsym+k;
 		const Int w_i = v_i[n2k];
+		HFM_DEBUG(assert(-1<=w_i && w_i<size_i);)
 		if(w_i>=0){
 			v[nk] = u_i[w_i] SHIFT(+v_o[n2k]);
 			MULTIP(vq[nk] = uq_i[w_i];)

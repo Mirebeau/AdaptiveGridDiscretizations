@@ -30,11 +30,14 @@ const Int factor_size = geom_size;
 
 void scheme(const Scalar geom[geom_size], 
 	Scalar weights[nactx], OffsetT offsets[nactx][ndim], Scalar drift[3][ndim] ){
+	STATIC_ASSERT(nact==decompdim && nactx==3*decompdim, inconsistent_scheme_structure);
+
 	const Scalar * m = geom; // m[symdim]
 	const Scalar * eta = geom+symdim; // eta[ndim]
 	Scalar w[ndim]; dot_mv(m,eta,w);
 	Scalar wwT[symdim]; self_outer_v(w,wwT);
 
+	// Produce the two ellipses to be glued
 	decomp_m(m,weights+nact,offsets+nact); zero_V(drift[1]);
 
 	Scalar mwwT[symdim]; add_mm(m,wwT,mwwT);

@@ -102,6 +102,6 @@ void FiniteDifferences(
 		} // for s 
 	} // for kact
 	} // for kmix
-
+	HFM_DEBUG(assert(kv==ntotx && koff==nactx);)
 
 }

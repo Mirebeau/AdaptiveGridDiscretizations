@@ -5,6 +5,10 @@
 /** This file implements "dimension generic" (a.k.a dimension 4 and 5) tools 
 for Voronoi's first reduction of quadratic forms.*/
 
+#ifndef Voronoi_maxiter_macro
+const Int Voronoi_maxiter=100;
+#endif
+
 namespace Voronoi {
 
 
@@ -76,6 +80,6 @@ void decomp_m(const Scalar m[symdim],
 	copy_mM(m,state.m);
 	identity_A(state.a);
 	FirstGuess(state); 
-	for(Int i=0; i<maxiter; ++i){if(!BetterNeighbor(state)){break;}} 
+	for(Int i=0; i<Voronoi_maxiter; ++i){if(!BetterNeighbor(state)){break;}} 
 	KKT(state,weights,offsets);
 }

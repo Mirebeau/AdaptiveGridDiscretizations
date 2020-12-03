@@ -84,6 +84,12 @@ void Position(Int n, const Int shape_[ndim], Int x[ndim]){
 	HFM_DEBUG(assert(0<=x[0] && x[0]<shape_[0]);)
 }
 
+Int shape2size(const Int * shape_, Int ndim_){ // Intended for debug asserts
+	Int size=1;
+	for(int i=0; i<ndim_; ++i){size*=shape_[i];}
+	return size;
+}
+
 }
 
 

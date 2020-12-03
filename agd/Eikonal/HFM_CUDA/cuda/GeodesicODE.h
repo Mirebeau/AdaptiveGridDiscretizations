@@ -15,7 +15,6 @@ and to avoid relying on compiled CPU code.)
 
 #include "static_assert.h"
 
-
 /* The following, or equivalents, must be defined in including file
 
 typedef int Int;
