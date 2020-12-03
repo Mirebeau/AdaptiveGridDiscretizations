@@ -19,6 +19,7 @@ Int Index_tot(const Int x[ndim]){
 	for(Int k=0; k<ndim; ++k){
 		Int xk=x[k];
 		PERIODIC(if(periodic_axes[k]){xk = mod_pos(xk,shape_tot[k]);})
+		HFM_DEBUG(assert(0<=xk && xk<shape_tot[k]);)
 		const Int 
 		s_i = shape_i[k],
 		x_o= xk/s_i,
@@ -26,8 +27,8 @@ Int Index_tot(const Int x[ndim]){
 		if(k>0) {n_o*=shape_o[k]; n_i*=s_i;}
 		n_o+=x_o; n_i+=x_i; 
 	}
-	const Int n=n_o*size_i+n_i;
-	return n;
+	HFM_DEBUG(assert(0<=n_o && 0<=n_i && n_i<size_i);)
+	return n_o*size_i+n_i;
 }
 #endif
 
@@ -45,6 +46,7 @@ Int Index(const Int x[ndim], const Int shape_[ndim]){
 	for(Int k=0; k<ndim; ++k){
 		if(k>0) {n*=shape_[k];}
 		n+=x[k];
+		HFM_DEBUG(assert(0<=x[k] && x[k]<shape_[k]);)
 	}
 	return n;
 }
@@ -66,6 +68,7 @@ Int Index_per(const Int x[ndim], const Int shape_[ndim]){
 		Int xk=x[k];
 		PERIODIC(if(periodic_axes[k]){xk=mod_pos(xk,shape_[k]);})
 		n+=xk;
+		HFM_DEBUG(assert(0<=xk && xk<shape_[k]);)
 	}
 	return n;
 }
@@ -75,8 +78,10 @@ void Position(Int n, const Int shape_[ndim], Int x[ndim]){
 	for(Int k=ndim-1; k>=1; --k){
 		x[k] = n % shape_[k];
 		n /= shape_[k];
+		HFM_DEBUG(assert(0<=x[k] && x[k]<shape_[k]);)
 	}
 	x[0] = n;
+	HFM_DEBUG(assert(0<=x[0] && x[0]<shape_[0]);)
 }
 
 }

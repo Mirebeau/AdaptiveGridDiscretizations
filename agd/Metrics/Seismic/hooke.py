@@ -216,28 +216,32 @@ class Hooke(ImplicitBase):
 		return Hooke(mandel/cls._Mandel_factors(vdim,mandel.shape[2:],a))
 
 	@classmethod
-	def from_orthorombic(cls,a,b,c,d,e,f,g,h,i):
+	def from_orthorombic(cls,c11,c12,c13,c22,c23,c33,c44,c55,c66):
 		z=0.*a
 		return cls(ad.array([
-		[a,b,c,z,z,z],
-		[b,d,e,z,z,z],
-		[c,e,f,z,z,z],
-		[z,z,z,g,z,z],
-		[z,z,z,z,h,z],
-		[z,z,z,z,z,i]
+		[c11,c12,c13,  z,  z,  z],
+		[c12,c22,c23,  z,  z,  z],
+		[c13,c23,c33,  z,  z,  z],
+		[  z,  z,  z,c44,  z,  z],
+		[  z,  z,  z,  z,c55,  z],
+		[  z,  z,  z,  z,  z,c66]
 		]))
 
 	@classmethod
-	def from_orthorombic2(cls,a,b,d,c,e,f,g,h,i): # More natural ordering of first bloc
-		return cls.from_orthorombic(a,b,c,d,e,f,g,h,i)
+	def from_orthorombic2(cls,c11,c21,c22,c31,c32,c33,c44,c55,c66): 
+		"""Orthorombic medium with a different ordering of the first block coefficients"""
+		c12,c13,c23 = c21,c31,c32
+		return cls.from_orthorombic(c11,c12,c13,c22,c23,c33,c44,c55,c66)
 
 	@classmethod
-	def from_tetragonal(cls,a,b,c,d,e,f):
-		return cls.from_orthorombic(a,b,c,a,c,d,e,e,f)
+	def from_tetragonal(cls,c11,c12,c13,c33,c44,c66):
+		c22,c23,c55 = c11,c13,c44
+		return cls.from_orthorombic(c11,c12,c13,c22,c23,c33,c44,c55,c66)
 
 	@classmethod
-	def from_hexagonal(cls,a,b,c,d,e):
-		return cls.from_tetragonal(a,b,c,d,e,(a-b)/2)
+	def from_hexagonal(cls,c11,c12,c13,c33,c44):
+		c66 = (c11-c12)/2.
+		return cls.from_tetragonal(c11,c12,c13,c33,c44,c66)
 
 	@classmethod 
 	def from_Thomsen(cls,tem):
@@ -401,7 +405,9 @@ class Hooke(ImplicitBase):
 
 
 
-#Hooke tensor (m/s)^2 and density (g/cm^3)
+# Hooke tensor (m/s)^2 and density (g/cm^3)
+# Reference : Lecomte, I. (1993). Finite difference calculation of first traveltimes 
+# in anisotropic media 1. Geophysical Journal International, 113(2), 318–342.
 Hooke.mica = Hooke.from_hexagonal(178.,42.4,14.5,54.9,12.2), 2.79
 Hooke.stishovite = Hooke.from_tetragonal(453,211,203,776,252,302), 4.29
 Hooke.olivine = Hooke.from_orthorombic(323.7,66.4,71.6,197.6,75.6,235.1,64.6,78.7,79.0), 3.311

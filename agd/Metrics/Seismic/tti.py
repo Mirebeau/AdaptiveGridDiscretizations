@@ -145,7 +145,9 @@ class TTI(ImplicitBase):
 		hex,ρ = HexagonalFromTEM(tem)
 		return cls.from_hexagonal(*hex,vdim),ρ
 
+# See Hooke.py file for reference
 TTI.mica = TTI.from_hexagonal(178.,42.4,14.5,54.9,12.2), 2.79
-# Stishovite is tetragonal, but the P velocity is equivalent to an hexagonal model.
-TTI.stishovite = TTI.from_hexagonal(453,np.nan,203,776,252), 4.29 # See Hooke
+# Stishovite is tetragonal, but the P-Wave velocity in the XZ plane 
+# is equivalent to an hexagonal model.
+TTI.stishovite2 = TTI.from_hexagonal(453,np.nan,203,776,252).extract_xz(), 4.29 
 
