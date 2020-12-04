@@ -3,6 +3,7 @@
 // Distributed WITHOUT ANY WARRANTY. Licensed under the Apache License, Version 2.0, see http://www.apache.org/licenses/LICENSE-2.0
 
 /** This file implements common facilities for bounds checking and array access.*/
+
 namespace Grid {
 
 Int mod_pos(Int x,const Int n){
@@ -84,13 +85,10 @@ void Position(Int n, const Int shape_[ndim], Int x[ndim]){
 	HFM_DEBUG(assert(0<=x[0] && x[0]<shape_[0]);)
 }
 
+}
+
 Int shape2size(const Int * shape_, Int ndim_){ // Intended for debug asserts
 	Int size=1;
 	for(int i=0; i<ndim_; ++i){size*=shape_[i];}
 	return size;
 }
-
-}
-
-
-

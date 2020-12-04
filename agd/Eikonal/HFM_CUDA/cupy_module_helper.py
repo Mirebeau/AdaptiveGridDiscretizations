@@ -6,6 +6,10 @@ import numpy as np
 import cupy as cp
 import numbers
 
+hfm_debug_macro = False
+# Use possibly in combination -lineinfo or -G and 
+# <<< cuda-memcheck -- python MyCode.py
+
 def _cupy_has_RawModule():
 	"""
 	RawModule appears in cupy 8. 
@@ -64,6 +68,8 @@ def traits_header(traits,
 	- log2_size: insert a trait for the ceil of the base 2 logarithm of previous size.
 	- integral_max: declare max of integral typedefs
 	"""
+	traits.setdefault('hfm_debug_macro',hfm_debug_macro)
+
 	def to_c(value): 
 		if isinstance(value,bool): return str(value).lower()
 		else: return value
