@@ -2,6 +2,7 @@ import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor,CellExecutionError
 import sys
 import os
+import subprocess
 
 """
 This script runs the code of the specified notebook, or of all the notebooks 
@@ -16,12 +17,43 @@ result_path = "test_results"
 
 def ListNotebooks(dir=None):
 	filenames_extensions = [os.path.splitext(f) for f in os.listdir(dir)]
-	filenames = [filename for filename,extension in filenames_extensions if extension==".ipynb"]
+	filenames = [filename for filename,extension in filenames_extensions 
+		if extension==".ipynb"]
 	subdirectories = [filename for filename,extension in filenames_extensions 
-	if extension=="" and filename.startswith("Notebooks_")] # and filename!="Notebooks_Repro"
-	subfilenames = [os.path.join(subdir,file) for subdir in subdirectories for file in ListNotebooks(subdir)]
+		if extension=="" and filename.startswith("Notebooks_")] 
+		# and filename!="Notebooks_Repro"
+	subfilenames = [os.path.join(subdir,file) for subdir in subdirectories 
+		for file in ListNotebooks(subdir)]
 	return filenames+subfilenames
 
+def TestNotebook_CommandLine(notebook_filepath, result_path):
+	"""
+	Caling nbconvert via command line, 
+	required on one of my windows laptops, due to apparent bug with asyncio (?)
+	"""
+	print("Testing notebook " + notebook_filename)
+	filepath,extension = os.path.splitext(notebook_filepath)
+	if extension=='': extension='.ipynb'
+	subdir,filename = os.path.split(filepath)
+	filepath_out = os.path.join(subdir,'test_results',filename+'_out')
+
+	process = subprocess.Popen("jupyter nbconvert --to notebook --execute "
+		f" {filename}{extension}",
+		stdout=subprocess.PIPE,stderr=subprocess.STDOUT, universal_newlines=True,
+		cwd=os.path.join(os.getcwd(),subdir))
+
+	output=list(iter(process.stdout.readline, ""))
+	retcode = process.wait() #returncode
+	if retcode==0:
+		os.replace(filepath+".nbconvert"+extension,filepath_out+extension)
+	elif output[-2].startswith('DeliberateNotebookError:'):
+		print("Notebook stopped deliberately")
+	else:		
+		print(*output)
+		print(f"Error executing the notebook {notebook_filepath} :"
+			f" Returned with exit code {retcode}")
+		return False
+	return True
 
 def TestNotebook(notebook_filename, result_path):
 	print("Testing notebook " + notebook_filename)
@@ -53,11 +85,16 @@ def TestNotebook(notebook_filename, result_path):
 
 if __name__ == '__main__':
 #	if not os.path.exists(result_path): os.mkdir(result_path)
+#	import asyncio
+#	asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+
 	args = sys.argv[1:]
-	included,excluded = [],[]
+	included,excluded,tags = [],[],[]
 	for arg in args: 
-		if arg.startswith('-'): excluded.append(arg)
+		if arg.startswith('--'): tags.append(arg)
+		elif arg.startswith('-'): excluded.append(arg)
 		else: included.append(arg)
+	for tag in tags: assert tag in ['--CommandLine']
 
 	def keep(filepath):
 		split = os.path.split(filepath)
@@ -67,11 +104,13 @@ if __name__ == '__main__':
 
 	notebook_filenames = [f for f in ListNotebooks() if keep(f)]
 	notebooks_failed = []
+	Tester = TestNotebook_CommandLine if '--CommandLine' in tags else TestNotebook
 	for notebook_filename in notebook_filenames:
-		if not TestNotebook(notebook_filename,result_path):
+		if not Tester(notebook_filename,result_path):
 			notebooks_failed.append(notebook_filename)
 
 	if len(notebooks_failed)>0:
-		print("!!! Failure !!! The following notebooks raised errors:\n"+" ".join(notebooks_failed))
+		print("!!! Failure !!! The following notebooks raised errors:\n"
+			+" ".join(notebooks_failed))
 	else:
 		print("Success ! All notebooks completed without errors.")
