@@ -22,7 +22,7 @@ const Int factor_size = symdim;
 
 void scheme(const Scalar geom[geom_size], 
 	Scalar weights[nactx], OffsetT offsets[nactx][ndim] DRIFT(,Scalar drift[1][ndim]) ){
-	STATIC_ASSERT(nactx==decompdim)
+	STATIC_ASSERT(nactx==decompdim,inconsistent_scheme_parameters)
 	const Scalar * dual_metric = geom; // dual_metric[symdim]
 	decomp_m(dual_metric,weights,offsets);
 	DRIFT(copy_vV(geom+symdim,drift[0]);)

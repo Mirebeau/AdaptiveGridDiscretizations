@@ -5,14 +5,14 @@
 #define curvature_macro 1
 #include "Geometry3.h"
 
-const Int nsym = decomdim; // Number of symmetric offsets
+const Int nsym = decompdim; // Number of symmetric offsets
 const Int nfwd = 0; // Number of forward offsets
 
 #include "Constants.h"
 #if !precomputed_scheme_macro
 void scheme(GEOM(const Scalar geom[geom_size],) const Int x[ndim],
 	Scalar weights[nactx], Int offsets[nactx][ndim]){
-	STATIC_ASSERT(nactx==decompdim)
+	STATIC_ASSERT(nactx==decompdim,inconsistent_scheme_parameters)
 
 	XI_VAR(Scalar ixi;) KAPPA_VAR(Scalar kappa;)
 	Scalar cT, sT; // cos(theta), sin(theta)

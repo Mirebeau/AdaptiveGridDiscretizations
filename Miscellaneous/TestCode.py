@@ -3,6 +3,7 @@ from nbconvert.preprocessors import ExecutePreprocessor,CellExecutionError
 import sys
 import os
 import subprocess
+import time
 
 """
 This script runs the code of the specified notebook, or of all the notebooks 
@@ -31,12 +32,13 @@ def TestNotebook_CommandLine(notebook_filepath, result_path):
 	Caling nbconvert via command line, 
 	required on one of my windows laptops, due to apparent bug with asyncio (?)
 	"""
-	print("Testing notebook " + notebook_filename)
+	print("Testing notebook " + notebook_filename,end='',flush=True)
 	filepath,extension = os.path.splitext(notebook_filepath)
 	if extension=='': extension='.ipynb'
 	subdir,filename = os.path.split(filepath)
 	filepath_out = os.path.join(subdir,'test_results',filename+'_out')
 
+	start = time.time()
 	process = subprocess.Popen("jupyter nbconvert --to notebook --execute "
 		f" {filename}{extension}",
 		stdout=subprocess.PIPE,stderr=subprocess.STDOUT, universal_newlines=True,
@@ -44,6 +46,8 @@ def TestNotebook_CommandLine(notebook_filepath, result_path):
 
 	output=list(iter(process.stdout.readline, ""))
 	retcode = process.wait() #returncode
+	print(f" [Elapsed : {int(time.time()-start)}]")
+
 	if retcode==0:
 		os.replace(filepath+".nbconvert"+extension,filepath_out+extension)
 	elif output[-2].startswith('DeliberateNotebookError:'):
@@ -56,7 +60,7 @@ def TestNotebook_CommandLine(notebook_filepath, result_path):
 	return True
 
 def TestNotebook(notebook_filename, result_path):
-	print("Testing notebook " + notebook_filename)
+	print("Testing notebook " + notebook_filename, end='',flush=True)
 	filename,extension = os.path.splitext(notebook_filename)
 	if extension=='': extension='.ipynb'
 	filename_out = filename+"_out"
@@ -64,6 +68,7 @@ def TestNotebook(notebook_filename, result_path):
 		nb = nbformat.read(f,as_version=4) # alternatively nbformat.NO_CONVERT
 	ep = ExecutePreprocessor(timeout=600,kernel_name='python3')
 	success = True
+	start = time.time()
 	try:
 		out = ep.preprocess(nb,{}) 
 	except CellExecutionError as e:
@@ -76,6 +81,7 @@ def TestNotebook(notebook_filename, result_path):
 			print(str(e))
 			success=False
 	finally:
+		print(f" [Elapsed : {int(time.time()-start)}]")
 		subdir,file = os.path.split(filename_out)
 		os.makedirs(os.path.join(subdir,result_path),exist_ok=True)
 		with open(os.path.join(subdir,result_path,file)+extension, 

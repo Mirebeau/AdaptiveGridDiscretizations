@@ -85,7 +85,7 @@ __global__ void VoronoiMinimization(Scalar * __restrict__ m_t,Scalar * __restric
 	// Do the minimization
 	identity_A(state.a);
 	Voronoi::FirstGuess(state); 
-	for(int i=0; i<Voronoi::maxiter; ++i){if(!Voronoi::BetterNeighbor(state)){break;}} 
+	for(int i=0; i<Voronoi_maxiter; ++i){if(!Voronoi::BetterNeighbor(state)){break;}} 
 
 	// Export the results
 	for(int i=0; i<symdim; ++i){m_t[n_t+size_tot*i] = state.m[i];}

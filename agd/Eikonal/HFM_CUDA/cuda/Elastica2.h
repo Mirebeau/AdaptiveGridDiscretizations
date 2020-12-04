@@ -56,7 +56,7 @@ const Int nfwd = nFejer*decompdim; // Number of forward offsets
 #if !precomputed_scheme_macro
 void scheme(GEOM(const Scalar geom[geom_size],) const Int x[ndim],
 	Scalar weights[nactx], OffsetT offsets[nactx][ndim]){
-	STATIC_ASSERT(nactx==nfwd)
+	STATIC_ASSERT(nactx==nfwd,inconsistent_scheme_parameters)
 
 	XI_VAR(Scalar ixi;) KAPPA_VAR(Scalar kappa;) 
 	Scalar cT, sT; // cos(theta), sin(theta)

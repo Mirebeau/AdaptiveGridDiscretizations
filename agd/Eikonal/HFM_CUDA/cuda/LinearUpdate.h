@@ -8,6 +8,8 @@ automatic differentiation of the eikonal solver. These are triangular or almost 
 systems solved using Gauss-Siedel iteration.
 */
 
+#include "static_assert.h"
+
 #ifndef Scalar_macro
 typedef float Scalar;
 #endif
