@@ -7,15 +7,18 @@ cupy version (6.0, thus outdated) that is available on windows by conda at the
 time of writing.
 """
 
+# -- NOT -- fixed in cupy 8.2
 @implements_cupy_alt(np.max,TypeError)
 def max(a,*args,**kwargs):
 	initial=kwargs.pop('initial') # cupy (old version ?) does not accept initial argument
 	return np.maximum(initial,np.max(a,*args,**kwargs))
 
+# Fixed in cupy 8.2
 def flat(a):
 	try: return a.flat # cupy.ndarray (old version ?) does not have flat
 	except AttributeError: return a.reshape(-1) 
 
+# Fixed in cupy 8.2
 @implements_cupy_alt(np.full_like,TypeError)
 def full_like(arr,*args,**kwargs): # cupy (old version ?) lacks the shape argument
 	if is_ad(arr): 
@@ -28,8 +31,10 @@ def full_like(arr,*args,**kwargs): # cupy (old version ?) lacks the shape argume
 		kwargs.setdefault('dtype',arr.dtype)
 		return cp.full(shape,*args,**kwargs)
 
+# Fixed in cupy 8.2
 @implements_cupy_alt(np.zeros_like,TypeError)
 def zeros_like(a,*args,**kwargs): return full_like(a,0.,*args,**kwargs)
+# Fixed in cupy 8.2
 @implements_cupy_alt(np.ones_like,TypeError)
 def ones_like(a,*args,**kwargs):  return full_like(a,1.,*args,**kwargs)
 
@@ -42,14 +47,17 @@ def _along_axis(arr,indices,axis):
 		return np.broadcast_to(ind,indices.shape)
 	return tuple(indices_(ax) for ax in range(arr.ndim))
 
+# Fixed in cupy 8.2
 @implements_cupy_alt(np.take_along_axis,TypeError)
 def take_along_axis(arr,indices,axis):
 	return arr[_along_axis(arr,indices,axis)]
 
+# --- NOT --- fixed in cupy 8.2
 @implements_cupy_alt(np.put_along_axis,TypeError)
 def put_along_axis(arr,indices,values,axis):
 	arr[_along_axis(arr,indices,axis)]=values
 
+# Fixed in cupy 8.2
 @implements_cupy_alt(np.ravel_multi_index,TypeError)
 def ravel_multi_index(multi_index,dims,mode='raise',order='C'):
 	shape = multi_index.shape[1:]
@@ -71,6 +79,7 @@ def ravel_multi_index(multi_index,dims,mode='raise',order='C'):
 		result+=i
 	return result
 
+# -- NOT -- fixed in cupy 8.2
 @implements_cupy_alt(np.packbits,TypeError)
 def packbits(arr,bitorder='big'):
 	"""Implements bitorder option in cupy""" 
@@ -81,6 +90,7 @@ def packbits(arr,bitorder='big'):
 		arr = arr.reshape(shape)
 	return cp.packbits(arr)
 
+# Fixed in cupy 8.2
 @implements_cupy_alt(np.nanmean,TypeError)
 def nanmean(arr):
 	pos = np.logical_not(np.isnan(arr))
