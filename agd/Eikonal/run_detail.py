@@ -3,6 +3,7 @@
 
 import numpy as np
 from .LibraryCall import RunDispatch,GetBinaryDir
+from .DictIn_detail import factoringPointChoice
 from .. import Metrics
 from .. import AutomaticDifferentiation as ad
 
@@ -115,7 +116,7 @@ def RunSmart(hfmIn,co_output=None,cache=None,returns="out"):
 	"""
 	assert returns in ('in_raw','out_raw','out')
 
-	if hfmIn.factoringPointChoice == 'Both':
+	if factoringPointChoice(hfmIn) == 'Both':
 		hfmIn = hfmIn.copy()
 		hfmIn.SetFactor()
 
