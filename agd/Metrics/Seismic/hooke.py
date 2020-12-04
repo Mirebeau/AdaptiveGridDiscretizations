@@ -217,7 +217,7 @@ class Hooke(ImplicitBase):
 
 	@classmethod
 	def from_orthorombic(cls,c11,c12,c13,c22,c23,c33,c44,c55,c66):
-		z=np.zeros_like(c11)
+		z=0*c11 # np.zeros_like(c11) raises issue in combination with cupy
 		return cls(ad.array([
 		[c11,c12,c13,  z,  z,  z],
 		[c12,c22,c23,  z,  z,  z],
