@@ -188,7 +188,8 @@ __global__ void Update(
 			FLOW_OFFSETS(flow_offsets_t[n_t+size_tot*(k+nact*l)]=offset[l];)
 			FLOW_VECTOR(flow_vector[l]+=flow_weights[k]*offset[l];)
 		}
-		FLOW_INDICES(flow_indices_t[n_t+size_tot*k]=Grid::Index_tot(y_t);) 
+		FLOW_INDICES(flow_indices_t[n_t+size_tot*k]=
+			flow_weights[k]!=0 ? Grid::Index_tot(y_t) : Int_Max;) 
 	}
 	FLOW_WEIGHTSUM(flow_weightsum_t[n_t]=flow_weightsum;)
 	FLOW_VECTOR(for(Int l=0; l<ndim; ++l){flow_vector_t[n_t+size_tot*l]=flow_vector[l];})
