@@ -230,7 +230,7 @@ def SetKernel(self):
 			flow.traits['flow_vector_macro']=True
 
 		flow.source = cupy_module_helper.traits_header(flow.traits,
-			join=True,size_of_shape=True,log2_size=True,integral_max=integral_max) + "\n"
+			join=True,size_of_shape=True,log2_size=True,integral_max=True) + "\n"
 		flow.source += model_source+self.cuda_date_modified
 		flow.module = GetModule(flow.source,self.cuoptions)
 

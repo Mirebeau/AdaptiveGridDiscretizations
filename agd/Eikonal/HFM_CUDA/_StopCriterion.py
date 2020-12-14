@@ -165,4 +165,3 @@ def SetChart(self):
 	SetCst('size_s',np.prod(shape_s),self.int_t)
 
 
-

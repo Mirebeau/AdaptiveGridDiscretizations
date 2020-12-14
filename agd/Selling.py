@@ -156,7 +156,7 @@ def _ObtuseSuperbase2(m,sb):
 			try:
 				sb[:,k,acute] = sb[:,i,acute]-sb[:,j,acute]
 				sb[:,i,acute] = -sb[:,i,acute]
-			except ValueError: # Some cupy versions require simpler indexing
+			except IndexError: # Some cupy versions require simpler indexing
 				# Works with numpy, but often fails on cupy at the time of testing
 				# -> Bypass using Eikonal.VoronoiDecomposition
 				sb[:,k][:,acute] = sb[:,i][:,acute]-sb[:,j][:,acute]
@@ -235,7 +235,7 @@ def _ObtuseSuperbase3(m,sb):
 				sb[:,k,acute] += sb[:,i,acute]
 				sb[:,l,acute] += sb[:,i,acute]
 				sb[:,i,acute] = -sb[:,i,acute]
-			except ValueError: # Some cupy versions require simpler indexing
+			except IndexError: # Some cupy versions require simpler indexing
 				sb[:,k][:,acute] += sb[:,i][:,acute]
 				sb[:,l][:,acute] += sb[:,i][:,acute]
 				sb[:,i][:,acute] = -sb[:,i][:,acute]

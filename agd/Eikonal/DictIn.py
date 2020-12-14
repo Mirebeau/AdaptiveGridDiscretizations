@@ -101,6 +101,7 @@ def CenteredLinspace(a,b,n):
 	"""
 	n_=int(n); assert(n==n_) #Allow floats for convenience
 	r,dr=np.linspace(a,b,n_,endpoint=False,retstep=True)
+	if np.any(np.isnan(dr)): assert n==1; dr=b-a #Cupy 8.6 bug
 	return r+dr/2
 
 
