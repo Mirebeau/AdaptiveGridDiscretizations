@@ -12,7 +12,8 @@ def Info(volume):
 	if volume in ['NonDiv','Div','Algo','Repro']:
 		return """
 **Acknowledgement.** The experiments presented in these notebooks are part of ongoing research, 
-some of it with PhD student Guillaume Bonnet, in co-direction with Frederic Bonnans.
+some of it with PhD student Guillaume Bonnet, in co-direction with Frederic Bonnans, 
+and PhD student François Desquilbet, in co-direction with Ludovic Métivier.
 
 Copyright Jean-Marie Mirebeau, University Paris-Sud, CNRS, University Paris-Saclay
 """

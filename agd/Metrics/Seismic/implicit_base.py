@@ -22,7 +22,12 @@ class ImplicitBase(Base):
 
 	def norm(self,v):
 		v=ad.asarray(v)
-		return lp.dot_VV(v,self.gradient(ad.remove_ad(v)))
+		a=self.inverse_transformation
+		if a is not None:  
+			v,a = fd.common_field((v,a),(1,2))
+			v = lp.dot_AV(a,v)
+		# AD case is handled by the envelope theorem
+		return lp.dot_VV(v,self._gradient(ad.remove_ad(v))) 
 
 	def gradient(self,v):
 		v=ad.asarray(v)
@@ -30,7 +35,6 @@ class ImplicitBase(Base):
 		if a is None:
 			return self._gradient(v)
 		else:
-			v,a = fd.common_field((v,a),(1,2))
 			return lp.dot_AV(lp.transpose(a),self._gradient(lp.dot_AV(a,v)))
 
 	def inv_transform(self,a):
