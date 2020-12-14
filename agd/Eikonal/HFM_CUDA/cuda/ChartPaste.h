@@ -36,6 +36,7 @@ const Int ndim_s; // Number of dimensions of broadcasted arrays
 const Scalar boundary_tol = 1e-4;
 const Int ncorner_s = 1<<ndim_s;
 typedef unsigned char BoolAtom;
+Scalar infinity(){return 1./0.;}
 
 // Shape of the cartesian grid on which the solution is defined
 __constant__ Int shape_tot[ndim];
@@ -76,9 +77,9 @@ __global__ void ChartPaste(
 
 	BoolAtom * __restrict__ update_o
 	){
-
+const Int ndim_b = ndim-ndim_s; // Broadcasted dimensions
 HFM_DEBUG(assert( shape2size(shape_i,ndim)==size_i );)
-HFM_DEBUG(assert( shape2size(shape_i,ndim_s)*shape_i(shape_o,ndim_s) == size_s );)
+HFM_DEBUG(assert( shape2size(shape_tot+ndim_b,ndim_s) == size_s );)
 
 // Get the current position, array indices
 const Int n_i = threadIdx.x;
@@ -89,12 +90,11 @@ Grid::Position(n_i,shape_i,x_i);
 Grid::Position(n_o,shape_o,x_o);
 for(Int k=0; k<ndim; ++k){x_t[k] = x_o[k]*shape_i[k]+x_i[k];}
 
-const Int n_t = Grid::Index_tot(x_t); // Index in arr_t
 if( !Grid::InRange_per(x_t,shape_tot) ) return; // Out of domain
+const Int n_t = Grid::Index_tot(x_t); // Index in arr_t
 const Int n_s = Grid::Index_per(x_t,shape_tot) % size_s; // Index in arr_s
 
 // Import the mapped point
-const Int ndim_b = ndim-ndim_s; // Broadcasted dimensions
 Int q_t[ndim_s]; Scalar r_t[ndim_s]; // integer, and fractional part of mapping
 
 for(Int i=0; i<ndim_s; ++i){
@@ -119,6 +119,7 @@ MULTIP(const Scalar uq_orig = uq_t[n_t];) // Used as reference multiplier
 // Get the mapped value, obtained by interpolation
 Scalar u_mapped = 0.;
 Int y_t[ndim]; // Interpolation point
+Scalar w_sum = 0.;
 for(Int i=0; i<ndim_b; ++i){y_t[i] = x_t[i];}
 for(Int icorner=0; icorner<ncorner_s; ++icorner){
 	Scalar w = 1.; // Interpolation weight 
@@ -127,9 +128,13 @@ for(Int icorner=0; icorner<ncorner_s; ++icorner){
 		y_t[ndim_b+i] = q_t[i] + eps;
 		w *= eps ? r_t[i] : (1-r_t[i]);
 	}
+	if(!Grid::InRange_per(y_t,shape_tot)) continue;
 	const Int ny_t = Grid::Index_tot(y_t);
 	u_mapped += w * (u_t[ny_t] MULTIP(+(uq_t[ny_t]-uq_orig)*multip_step) );
+	w_sum+=w;
 }
+if(w_sum>0) {u_mapped/=w_sum;}
+else {u_mapped = infinity();}
 
 // Compare values, update if necessary
 if(u_mapped < u_orig){ // Excludes NaNs, +Infs, from u_mapped. Compatible with multip.
