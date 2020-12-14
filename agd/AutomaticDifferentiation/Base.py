@@ -310,7 +310,7 @@ def array_members(data,iterables=(tuple,list,dict)):
 	arrays = []
 	def check(path,arr):
 		if isndarray(arr):
-			name = ".".join(path)
+			name = ".".join(map(str,path))
 			for namelist,value in arrays:
 				if arr.data==value.data:
 					namelist.append(name)
