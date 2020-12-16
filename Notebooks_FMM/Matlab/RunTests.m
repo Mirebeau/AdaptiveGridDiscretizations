@@ -5,17 +5,21 @@ pause('on'); % Disables pauses. (Good for testing, bad for viewing)
 
 % This file is intended for testing, and solves a variety of eikonal
 % equations on the CPU and GPU. 
+% All the tests, see the loop below, can be run indepedently. Defaults
+% arguments are provided. For example
+% (matlab)>>> InitPython; IsotropicDemo.ConstantCost; % Runs 
 
 % ! Warning ! : total execution time is several minutes 
 % (Mostly due to the Pompidou test when running on the CPU)
 
 % ! Warning ! : you need the hfm library installed to use the CPU eikonal
-% solver. (python command line)>>> conda install hfm -c agd-lbr
+% solver. (terminal)>>> conda install hfm -c agd-lbr
 
 % ! Warning ! : you need a cuda capable gpu to use the GPU eikonal solver,
 % and the cupy python library installed. https://cupy.dev/
-% In addition, only the mode 'gpu_transfer' is currently supported 
-% (CPU arrays are passed, transferred to the GPU just before solving the PDE)
+% In addition, only the mode "gpu_transfer" is currently supported 
+% (CPU arrays are passed to Python, and are transferred to the GPU just 
+% before solving the PDE)
 
 % --- Mathematical details, enhanced examples ---
 % Please see the Python notebooks for more explanations/illustrations

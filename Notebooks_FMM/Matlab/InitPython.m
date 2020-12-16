@@ -4,6 +4,7 @@
 % Please tune the following values to your computer (see description below)
 pythonw_executable='C:\\Users\\jmmir\\miniconda3\\envs\\agd-hfm_cuda\\pythonw.exe';
 path_to_agd="../..";
+FileHFM_binary_dir = "C:\Users\jmmir\Documents\bin\FileHFM\Release";
 allow_duplicate_mkl=true;
 % --------------------------
 
@@ -17,14 +18,22 @@ allow_duplicate_mkl=true;
 % We recommend using a conda environment featuring
 % all the required libraries, see the provided yaml files for inspiration.
 % pythonw_executable should be the full path to the pythonw.exe file of
-% that environment. To obtain it (in python script within appropriate env) 
-% >>> import sys; sys.executable 
+% that environment. To obtain it (in a python script within appropriate env) 
+% (python)>>> import sys; sys.executable 
 % Set to NaN to ignore
 
 % - path_to_agd (string or NaN) : 
-% full path to where the agd python library can be found
-% Set to NaN to ignore, if e.g. the agd library is installed as a pip or
-% conda package
+% path to where the agd python library can be found
+% Set to NaN to ignore, if the agd library is installed as a Python package 
+% pip install (GPU compatible): (terminal)>>> pip install agd
+% conda install (Not GPU compatible): (terminal)>>> conda install agd -c agd-lbr
+
+
+% - FileHFM_binary_dir (string or NaN)
+% path to where the FileHFM binaries can be found (CPU eikonal solver,
+% interfacing with files rather than a direct Python link)
+% Set to NaN to ignore, if the hfm library is installed as a package
+% conda install : (terminal)>>> conda install hfm -c agd-lbr
 
 % - allow_duplicate_mkl : The python numpy library will be used. On my 
 % machine Matlab crashes complaining about duplicate instances of the 
@@ -62,6 +71,13 @@ else
     "pythonw_executable must be string or NaN")
 end
 
+if allow_duplicate_mkl
+% The python numpy library will be used. 
+% On my machine this line is needed.
+    tmp=py.os.environ; tmp{'KMP_DUPLICATE_LIB_OK'}='TRUE';
+end
+
+
 if isstring(path_to_agd)
 % The agd library must be visible from the python path
 % (This line is useless if agd is installed as a conda or pip packaged)
@@ -70,15 +86,11 @@ else
     assert(isnan(path_to_agd),"path_to_agd must be string or NaN")
 end
 
-
-% If you use the HFM library (CUP eikonal solver), locally compiled 
-% from sources, then the path to the executables must be provided
-%FileHFM_binary_dir = 'C:\Users\jmmir\Documents\bin\FileHFM\Release';
-%py.agd.Eikonal.LibraryCall.FileHFM_binary_dir = FileHFM_binary_dir;
-
-if allow_duplicate_mkl
-% The python numpy library will be used. 
-% On my machine this line is needed.
-    tmp=py.os.environ; tmp{'KMP_DUPLICATE_LIB_OK'}='TRUE';
+if isstring(FileHFM_binary_dir)
+    tmp=py.agd.Eikonal.LibraryCall.binary_dir; 
+    tmp{"FileHFM"}=FileHFM_binary_dir;
+else
+    assert(isnan(FileHFM_binary_dir),"FileHFM_binary_dir must be string or NaN")
 end
+
 
