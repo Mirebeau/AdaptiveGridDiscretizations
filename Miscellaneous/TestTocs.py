@@ -23,6 +23,20 @@ def ListNotebookFiles(dirname):
 	return [filename for filename,extension in filenames_extensions 
 	if extension==".ipynb" and filename!="Summary"]
 
+def CheckTodo(filepath,data):
+	if not CheckTodo.run: return
+	for cell in data['cells']:
+		if 'tags' in cell['metadata']:
+			tags = cell['metadata']['tags']
+			for tag in tags:
+				if tag.lower()=='todo':
+					print(f"TODO found in notebook {filepath}");
+					print(tags)
+					if CheckTodo.show: print(cell['source'])
+
+CheckTodo.run = False
+CheckTodo.show = False
+
 def UpdateConfig(filepath,data):
 	"""
 	Updates the EikonalGPU_config cell (comment or uncomment).
@@ -129,6 +143,7 @@ def TestToc(dirname,filename):
 	data = Load(filepath)
 	toc = TocTools.displayTOC(dirname+"/"+filename,dirname[10:]).splitlines(True)
 
+	CheckTodo(filepath,data)
 	updates = [
 		UpdateHeader(filepath,data),
 		UpdateToc(filepath,data,toc),
@@ -148,12 +163,13 @@ def TestTocss():
 	toc = TocTools.displayTOCss().splitlines(True)
 	if UpdateToc(filepath,data,toc): Dump(filepath,data)
 
-def Main(update=False,check_raise=False,show=False,GPU_config=None):
+def Main(update=False,check_raise=False,show=False,GPU_config=None,todo=False):
 	Dump.update = update
 	Dump.check_raise = check_raise
 	UpdateToc.show = show
 	UpdateConfig.show = show
 	UpdateConfig.GPU_config = GPU_config
+	CheckTodo.run = todo
 	TestTocss()
 	for dirname in ListNotebookDirs():
 		TestTocs(dirname)
