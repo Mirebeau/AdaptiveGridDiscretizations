@@ -2,7 +2,7 @@
 ## A set of tools for discretizing anisotropic PDEs on cartesian grids
 
 This repository contains
-- the agd library (Adaptive Grid Discretizations)
+- the agd library (Adaptive Grid Discretizations), written in Python&reg; and cuda&reg;
 - a series of *jupyter notebooks* in the Python&reg; language, reproducing my research in Anisotropic PDE discretizations and their applications.
 
 ### The AGD library
@@ -39,3 +39,8 @@ In order to open the book summary, type in a terminal:
 jupyter notebook Summary.ipynb
 ```
 Then use the hyperlinks to navigate within the notebooks.
+
+### Matlab users
+
+Recent versions of Matlab are able to call the Python interpreter, and thus to use the 
+agd library. See Notebooks_FMM/Matlab for examples featuring the CPU and GPU eikonal solvers.
