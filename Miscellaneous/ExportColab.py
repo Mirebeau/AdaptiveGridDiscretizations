@@ -89,7 +89,8 @@ google_drive_link = {
 	"Notebooks_FMM/RadarModels.ipynb":"https://drive.google.com/file/d/1Ix3cROvnvkb4xmCaZemjr67X1W2Uab1N/view?usp=sharing",
 	"Notebooks_Div/AnisotropicDiffusion.ipynb":"https://drive.google.com/file/d/1u6_XthpxwycWYIusJoP26x37n2Fvbevh/view?usp=sharing",
 	"Notebooks_Repro/Chart_GPU.ipynb":"https://drive.google.com/file/d/1m9Uu5kifCqG5EY2RMU5T5YVy98Szs9vB/view?usp=sharing",
-	"Notebooks_Algo/RollingBall_Models.ipynb":"https://drive.google.com/file/d/1hf1GueRjPrIpu6wPtiFVivILSgEbfP80/view?usp=sharing"
+	"Notebooks_Algo/RollingBall_Models.ipynb":"https://drive.google.com/file/d/1hf1GueRjPrIpu6wPtiFVivILSgEbfP80/view?usp=sharing",
+	"Notebooks_Repro/EikonalEulerian_Rate.ipynb":"https://drive.google.com/file/d/1cfHUJ7NJoN9cB-1Hwuy1eFj8-Fdmvcwh/view?usp=sharing",
 	}
 
 
