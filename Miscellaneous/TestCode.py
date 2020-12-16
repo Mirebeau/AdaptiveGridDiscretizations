@@ -74,9 +74,9 @@ def TestNotebook(notebook_filename, result_path):
 	except CellExecutionError as e:
 		if 'DeliberateNotebookError' in str(e):
 			DeliberateMsg = str(e).split('\n')[-2]
-			print(f"Notebook {notebook_filename} stopped deliberately -- {DeliberateMsg}")
+			print(f" Notebook {notebook_filename} stopped deliberately -- {DeliberateMsg}")
 		else:
-			print(f"Error executing the notebook {notebook_filename}")
+			print(f" Error executing the notebook {notebook_filename}")
 			print(f"See notebook {filename_out} for the traceback.")
 			print(str(e))
 			success=False
