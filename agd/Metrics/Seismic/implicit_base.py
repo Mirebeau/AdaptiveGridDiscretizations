@@ -13,12 +13,20 @@ class ImplicitBase(Base):
 	Base class for a metric defined implicitly, 
 	in terms of a level set function for the unit ball
 	of the dual metric, and of a linear transformation.
+
+	Inputs:
+	- niter_sqp (int, optional): number of iterations for Sequential Quadratic Programming
+	- relax_sqp (tuple,optional): relaxation parameter for the first iterations of SQP
+	- qconv_sqp (real, optional): such that hessian+quasi_sqp*grad^T grad > 0. Used when 
+	  the constraint is a quasi-convex function, but exp(qconv_sqp*f) is strongly convex
 	"""
 
-	def __init__(self,inverse_transformation=None,niter_sqp=6,relax_sqp=tuple()):
+	def __init__(self,inverse_transformation=None,
+		niter_sqp=6,relax_sqp=tuple(),qconv_sqp=0.):
 		self.inverse_transformation = inverse_transformation
 		self.niter_sqp = niter_sqp
 		self.relax_sqp = relax_sqp
+		self.qconv_sqp = qconv_sqp
 
 	def norm(self,v):
 		v=ad.asarray(v)
@@ -71,7 +79,7 @@ class ImplicitBase(Base):
 		zeros = np.all(v==0.,axis=0)
 		v[:,zeros]=np.nan
 		grad = sequential_quadratic(v,self._dual_level,params=self._dual_params(v.shape[1:]),
-			niter=self.niter_sqp,relax=self.relax_sqp)
+			niter=self.niter_sqp,relax=self.relax_sqp,qconv=self.qconv_sqp)
 		grad[:,zeros]=0.
 		v[:,zeros]=0.
 		return grad
@@ -97,13 +105,14 @@ class ImplicitBase(Base):
 		yield self.inverse_transformation
 		yield self.niter_sqp
 		yield self.relax_sqp
+		yield self.qconv_sqp
 
 	def _to_common_field(self,*args,**kwargs):
 		"""Makes compatible the dimensions of the various fields"""
 		raise ValueError("_to_common_field is not implemented for this class")
 
 
-def sequential_quadratic(v,f,niter,x=None,params=tuple(),relax=tuple()):
+def sequential_quadratic(v,f,niter,x=None,params=tuple(),relax=tuple(),qconv=0.):
 	"""
 	Maximizes <x,v> subject to the constraint f(x,*params)<=0, 
 	using sequential quadratic programming.
@@ -116,7 +125,7 @@ def sequential_quadratic(v,f,niter,x=None,params=tuple(),relax=tuple()):
 
 	# Fixed point iterations 
 	def step(val,V,D,v):
-		M = lp.inverse(D)
+		M = lp.inverse(D+qconv*lp.outer_self(V))
 		k = np.sqrt((lp.dot_VAV(V,M,V)-2.*val)/lp.dot_VAV(v,M,v))
 		return lp.dot_AV(M,k*v-V)
 
