@@ -10,6 +10,12 @@ from . import ad_generic
 from . import cupy_support as cps
 
 # ------- Ugly utilities -------
+def normalize_axis(axis,ndim,allow_tuple=True):
+	if allow_tuple and isinstance(axis,tuple): 
+		return tuple(normalize_axis(ax,ndim,False) for ax in axis)
+	if axis<0: return axis+ndim
+	return axis
+
 def add_ndim(arr,n): return np.reshape(arr,arr.shape+(1,)*n)
 def _add_dim(a):     return cps.expand_dims(a,axis=-1)	
 def _add_dim2(a):    return _add_dim(_add_dim(a))

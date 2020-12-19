@@ -175,7 +175,7 @@ class denseAD2(Base.baseAD):
 	# Reductions
 	def sum(self,axis=None,out=None,**kwargs):
 		if axis is None: return self.flatten().sum(axis=0,out=out,**kwargs)
-		if axis<0: axis=self.ndim+axis
+		axis=misc.normalize_axis(axis,self.ndim)
 		out = self.new(self.value.sum(axis,**kwargs), 
 			self.coef1.sum(axis,**kwargs), self.coef2.sum(axis,**kwargs))
 		return out
