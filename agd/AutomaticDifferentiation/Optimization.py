@@ -136,7 +136,7 @@ class damping_default:
 		return step
 
 
-def newton_root(func,x0,params=None,stop="Default",
+def newton_root(func,x0,params=tuple(),stop="Default",
 	relax=None,damping=None,ad="Sparse",solver=None,in_place=False):
 	"""
 	Newton's method, for finding a root of a given function.
