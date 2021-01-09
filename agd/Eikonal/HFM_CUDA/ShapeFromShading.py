@@ -70,7 +70,7 @@ def Solve(rhs,mask,u0,params,niter=300,traits=None):
 	date_modified = cupy_module_helper.getmtime_max(cuda_path)
 	source = cupy_module_helper.traits_header(traits)
 
-	source += ['#include "nonlinear_sfs.h"',
+	source += ['#include "ShapeFromShading.h"',
 	f"// Date cuda code last modified : {date_modified}"]
 	cuoptions = ("-default-device", f"-I {cuda_path}") 
 	source = "\n".join(source)
@@ -81,7 +81,7 @@ def Solve(rhs,mask,u0,params,niter=300,traits=None):
 	SetCst('shape_o',shape_o,int_t)
 	SetCst('shape_tot', np.array(shape_o)*np.array(shape_i), int_t)
 
-	sfs = module.get_function('sfs')
+	sfs = module.get_function('JacobiUpdate')
 
 	# Call the kernel
 	rhs,mask,u,update_o = [cp.ascontiguousarray(e) for e in (rhs,mask,u0,update_o)]

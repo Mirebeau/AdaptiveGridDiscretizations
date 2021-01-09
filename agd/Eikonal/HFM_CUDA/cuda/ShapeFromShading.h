@@ -101,7 +101,7 @@ float update(float * u_e,const float cp,const int n_e){
 
 extern "C" {
 
-__global__ void sfs(
+__global__ void JacobiUpdate(
 		  float	* __restrict__ u_t, 
 	const float	* __restrict__ cp_t, 
 	const boolatom * __restrict__ mask_t, 
