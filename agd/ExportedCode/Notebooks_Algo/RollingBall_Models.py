@@ -4,48 +4,17 @@ from ... import AutomaticDifferentiation as ad
 from ... import LinearParallel as lp
 from ... import Metrics
 from ... import FiniteDifferences as fd
+from ... import Sphere as sp
 norm = ad.Optimization.norm
 
-def rotation_from_quaternion(q):
-    """Produces the rotation associated with a unit quaternion."""
-    qr,qi,qj,qk = q
-    identity = fd.as_field(xp.eye(3),qr.shape,depth=2)
-    return identity + 2*ad.array([
-        [-(qj**2+qk**2), qi*qj-qk*qr, qi*qk+qj*qr],
-        [qi*qj+qk*qr, -(qi**2+qk**2), qj*qk-qi*qr],
-        [qi*qk-qj*qr, qj*qk+qi*qr, -(qi**2+qj**2)]])
+rotation_from_quaternion = sp.rotation3_from_sphere3
+quaternion_from_rotation = sp.sphere3_from_rotation3
 
-def quaternion_from_rotation(r):
-    """Produces the unit quaternion, with positive real part, associated with a rotation."""
-    qr = np.sqrt(lp.trace(r)+1.)/2.
-    qi = (r[2,1]-r[1,2])/(4*qr)
-    qj = (r[0,2]-r[2,0])/(4*qr)
-    qk = (r[1,0]-r[0,1])/(4*qr)
-    return ad.array([qr,qi,qj,qk])
+quaternion_from_euclidean = sp.sphere_from_plane
+euclidean_from_quaternion = sp.plane_from_sphere
 
-def quaternion_from_euclidean(e):
-    """Produces a point in the unit sphere by projecting a point in the equator plane."""
-    e = ad.asarray(e)
-    e2 = lp.dot_VV(e,e)
-    return ad.array([1.-e2,*(2*e)])/(1.+e2)
-def euclidean_from_quaternion(q):
-    """Produces a point in the equator plane from a point in the unit sphere."""
-    e2 = (1-q[0])/(1+q[0])
-    return q[1:]*((1+e2)/2.)
-
-def euclidean_from_rotation(r,qRef):
-    """Produces an euclidean point from a rotation, 
-    selecting in the intermediate step the quaternion 
-    in the same hemisphere as qRef"""
-    q = quaternion_from_rotation(r)
-    q[:,lp.dot_VV(q,qRef)<0] *= -1
-    return euclidean_from_quaternion(q)
-
-def rotation_from_euclidean(e): 
-    """Produces a rotation from an euclidean point. 
-    Also returns the intermediate quaternion."""
-    q = quaternion_from_euclidean(e)
-    return rotation_from_quaternion(q),q
+euclidean_from_rotation = sp.ball3_from_rotation3
+rotation_from_euclidean = sp.rotation3_from_ball3
 
 def antisym(a,b,c):
     z=np.zeros_like(a)
