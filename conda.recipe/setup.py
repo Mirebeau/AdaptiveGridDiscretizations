@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
 	name='agd',  
-	version='0.1.21',
+	version='0.1.22',
 	author="Jean-Marie Mirebeau",
 	author_email="jm.mirebeau@gmail.com",
 	description="Adaptive Grid Discretizations",
