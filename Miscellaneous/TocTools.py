@@ -55,9 +55,9 @@ VolumeFilenames = {
 'NonDiv':[
 	"MonotoneSchemes1D","Time1D_NonDiv","OTBoundary1D",
 	"LinearMonotoneSchemes2D","NonlinearMonotoneFirst2D",
-	"NonlinearMonotoneSecond2D",
-	"MongeAmpere","EikonalEulerian",
-	"BoatRoutingGeneric_Time","BoatRouting_Time", #"ShapeFromShading",
+	"NonlinearMonotoneSecond2D","MongeAmpere", # Second order non-linear PDEs
+	"EikonalEulerian","ShapeFromShading", # Eikonal and related
+	"BoatRoutingGeneric_Time","BoatRouting_Time", 
 ],
 'Div':["Time1D_Div","Elliptic","EllipticAsymmetric",
 "ElasticEnergy","ElasticWave",

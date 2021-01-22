@@ -109,8 +109,9 @@ def dot_VAV(v,a,w):
 	"""
 	return dot_VV(v,dot_AV(a,w))
 	
-# Multiplication by scalar, of a vector or matrix
 def mult(k,x):
+	"""Multiplication by scalar, of a vector or matrix"""
+	# Quite useless, as it is directly handled by broadcasting
 	bounds = k.shape
 	dim = x.ndim-k.ndim
 	if x.shape[dim:]!=bounds:
