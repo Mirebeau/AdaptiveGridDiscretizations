@@ -41,6 +41,8 @@ allow_duplicate_mkl=true;
 % Note that this way of doing things is apparently not recommended
 % https://stackoverflow.com/a/59119273
 
+%pythonw_executable='C:\Users\Shadow\Miniconda3\envs\agd-hfm_cuda\pythonw.exe';path_to_agd="C:\Users\Shadow\Documents\GitHub\AdaptiveGridDiscretizations";FileHFM_binary_dir = "C:\Users\Shadow\Documents\bin\FileHFM";
+
 tmp = pyenv; 
 if tmp.Status=="Loaded"
     disp("InitPython aborted : Python is already loaded") 
