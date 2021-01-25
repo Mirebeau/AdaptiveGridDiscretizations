@@ -3,7 +3,7 @@
 % -------- IMPORTANT -------
 % Please tune the following values to your computer (see description below)
 pythonw_executable='C:\\Users\\jmmir\\miniconda3\\envs\\agd-hfm_cuda\\pythonw.exe';
-path_to_agd="../..";
+path_to_agd="C:\Users\jmmir\Documents\GitHub\AdaptiveGridDiscretizations"; % "../..";
 FileHFM_binary_dir = "C:\Users\jmmir\Documents\bin\FileHFM\Release";
 allow_duplicate_mkl=true;
 % --------------------------
