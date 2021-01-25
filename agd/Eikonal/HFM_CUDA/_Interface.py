@@ -96,11 +96,11 @@ class Interface(object):
 			if isinstance(array_float,tuple):
 				shapeRef,shape = array_float,value.shape
 				if len(shapeRef)!=len(shape):
-					raise ValueError(f"Field key has incorrect number of dimensions. "
+					raise ValueError(f"Field {key} has incorrect number of dimensions. "
 						f"Expected shape {shapeRef}, found {shape}")
 				for sRef,s in zip(shapeRef,shape):
 					if sRef not in (-1,s): 
-						raise ValueError(f"Field key has incorrect dimensions. "
+						raise ValueError(f"Field {key} has incorrect dimensions. "
 							f"Expected shape {shapeRef}, found {shape}")
 			return value
 		elif isinstance(default,str) and default == "_None":
