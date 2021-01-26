@@ -65,7 +65,7 @@ VolumeFilenames = {
 ],
 'Algo':[
 "TensorSelling","TensorVoronoi","TensorVoronoi6",
-"SternBrocot","VoronoiVectors",
+"SternBrocot","VoronoiVectors","SeismicNorm",
 "Dense","Sparse","Reverse","ADBugs",
 "SubsetRd","FiniteDifferences"
 ],
