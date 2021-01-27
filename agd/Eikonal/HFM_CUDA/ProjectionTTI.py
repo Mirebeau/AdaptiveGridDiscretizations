@@ -43,7 +43,7 @@ def ProjectionTTI(hooke,n_newton=10,samples=None):
 		nX = {1:samples,3:int(np.round((2*samples)**(1/3)))}[xdim]
 		aX,dx = np.linspace(-1,1,nX,retstep=True,endpoint=False)
 		samples = np.array(np.meshgrid(*(dx/2+aX,)*xdim,indexing='ij'))
-		# Possibly add some noise to the samples ?
+		# TODO : Optionally add some noise to the samples ?
 		inside = (samples**2).sum(axis=0)<=1
 		samples = samples[:,inside]
 	assert len(samples)==xdim
