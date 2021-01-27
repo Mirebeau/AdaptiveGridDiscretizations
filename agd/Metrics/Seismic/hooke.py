@@ -189,13 +189,11 @@ class Hooke(ImplicitBase):
 	def rotate(self,r):
 		other = copy.copy(self)
 		hooke,r = common_field((self.hooke,r),(2,2))
-		Voigt,Voigti = self._Voigt,self._Voigti
-		other.hooke = ad.array([ [ [
-			hooke[Voigt[i,j],Voigt[k,l]]*r[ii,i]*r[jj,j]*r[kk,k]*r[ll,l]
-			for (i,j,k,l) in itertools.product(range(self.vdim),repeat=4)]
-			for (ii,jj) in Voigti] 
-			for (kk,ll) in Voigti]
-			).sum(axis=2)
+		Voigti = self._Voigti
+		R = ad.array([ [ 
+			r[i0,i1]*r[j0,j1] if i1==j1 else (r[i0,i1]*r[j0,j1]+r[j0,i1]*r[i0,j1])
+			for (i0,j0) in Voigti] for (i1,j1) in Voigti])
+		other.hooke = lp.dot_AA(lp.transpose(R),lp.dot_AA(hooke,R))
 		return other
 
 	@staticmethod
