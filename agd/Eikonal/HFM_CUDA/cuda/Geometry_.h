@@ -1,5 +1,10 @@
 /* This file is purposedly missing a #pragma once, because it is sometimes useful to 
-include it within several namespaces, where the constant ndim takes different values.*/ 
+include it within several namespaces, where the constant ndim takes different values.
+
+This files implement basic linear algebra routines in fixed dimension, in a cuda 
+compatible way. If one accepts a external dependency, there are many probably better 
+alternatives out there, such as GSL (Column major), or Eigen (cuda support experimental).
+*/ 
 
 // Copyright 2020 Jean-Marie Mirebeau, University Paris-Sud, CNRS, University Paris-Saclay
 // Distributed WITHOUT ANY WARRANTY. Licensed under the Apache License, Version 2.0, see http://www.apache.org/licenses/LICENSE-2.0
@@ -13,7 +18,7 @@ Naming conventions :
 - m,M : symmetric matrix 
 - a,A : square matrix 
 - lower case : input
-- upper case : output (terminal output may be omitted)
+- upper case : output (terminal output may be omitted from function name)
 
 IMPORTANT : NO-ALIAS ASSUMPTION ! Outputs are assumed to be __restrict__.
 */
@@ -60,10 +65,22 @@ template<typename Tx,typename Ty,typename Tout>
 void add_mm(const Tx x[symdim], const Ty y[symdim], Tout out[__restrict__ symdim]){
 	for(Int i=0; i<symdim; ++i){out[i]=x[i]+y[i];}}
 
+/*template<typename T>
+void add_mM(const T x[symdim], T y[__restrict__ symdim]){
+	for(Int i=0; i<symdim; ++i){y[i]+=x[i];}}*/
+
 /// Difference
 template<typename Tx, typename Ty, typename Tout>
 void sub_vv(const Tx x[ndim], const Ty y[ndim], Tout out[__restrict__ ndim]){
 	for(Int i=0; i<ndim; ++i){out[i]=x[i]-y[i];}}
+
+template<typename T>
+void sub_vV(const T x[ndim], T y[__restrict__ ndim]){
+	for(Int i=0; i<ndim; ++i){y[i]-=x[i];}}
+
+/*template<typename T>
+void sub_mM(const T x[symdim], T y[__restrict__ symdim]){
+	for(Int i=0; i<symdim; ++i){y[i]-=x[i];}}*/
 
 /// Opposite vector
 template<typename T>
@@ -74,10 +91,16 @@ template<typename T>
 void neg_V(T x[ndim]){
 	for(Int i=0; i<ndim; ++i){x[i]=-x[i];}}
 
+/*template<typename T>
+void neg_m(const T x[symdim], T out[__restrict__ symdim]){
+	for(Int i=0; i<symdim; ++i){out[i]=-x[i];}}*/
+
+/// Initialization
 template<typename T>
 void fill_kV(const T k, T v[__restrict__ ndim]){
 	for(Int i=0; i<ndim; ++i){v[i]=k;}}
 
+/// Multiplication
 template<typename T>
 void mul_kV(const T k, T v[__restrict__ ndim]){
 	for(Int i=0; i<ndim; ++i){v[i]*=k;}}
@@ -85,6 +108,10 @@ void mul_kV(const T k, T v[__restrict__ ndim]){
 template<typename Tk,typename Tv,typename Tout>
 void mul_kv(const Tk k, const Tv v[ndim], Tout out[__restrict__ ndim]){
 	for(Int i=0; i<ndim; ++i){out[i] = k * v[i];}}
+
+/*template<typename T>
+void mul_kM(const T k, T v[__restrict__ symdim]){
+	for(Int i=0; i<symdim; ++i){v[i]*=k;}}*/
 
 void div_Vk(Scalar v[__restrict__ ndim], const Scalar k){
 	const Scalar l=1./k; mul_kV(l,v);}
@@ -158,7 +185,7 @@ Scalar scal_mm(const Tx mx[symdim],const Ty my[symdim]){
 // -------- Outer products -------
 
 template<typename T, typename Tout>
-void self_outer_v(const T x[ndim], Tout m[__restrict__ ndim]){
+void self_outer_v(const T x[ndim], Tout m[__restrict__ symdim]){
 	Int k=0; 
 	for(Int i=0; i<ndim; ++i){
 		for(Int j=0; j<=i; ++j){
@@ -170,7 +197,7 @@ void self_outer_v(const T x[ndim], Tout m[__restrict__ ndim]){
 }
 
 void self_outer_relax_v(const Scalar x[ndim], const Scalar relax, 
-	Scalar m[__restrict__ ndim]){
+	Scalar m[__restrict__ symdim]){
 	const Scalar eps = scal_vv(x,x)*relax;
 	Int k=0;
 	for(Int i=0; i<ndim; ++i){
@@ -266,7 +293,8 @@ void tgram_am(const Ta a[ndim][ndim], const Tm m[symdim],
 	Tout out[__restrict__ symdim]){
 	Int k=0; 
 	for(Int i=0; i<ndim; ++i){
-		Tout mai[ndim]; dot_mv(m,a[i],mai);
+		Tout mai[ndim]; 
+		dot_mv(m,a[i],mai);
 		for(Int j=0; j<=i; ++j){
 			out[k] = scal_vv(mai,a[j]); // Accumulates with type Tout
 			++k;
