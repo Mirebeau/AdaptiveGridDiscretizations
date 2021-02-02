@@ -74,7 +74,8 @@ def default_traits(self):
 		
 	elif model in ('Isotropic2','Diagonal2'):
 		#Alternative : Large shape, many iterations, to take advantage of block based causality 
-		traits.update({'shape_i':(24,24),'niter_i':48,})
+		traits.update({'shape_i':(16,16),'niter_i':32,})
+#		traits.update({'shape_i':(24,24),'niter_i':48,}) # Slightly faster, but may fail with forwardAD : CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES
 		fim_front_width = None
 		# Alternative, more standard and reasonable shape
 		#traits.update({'shape_i':(8,8),'niter_i':16,})
