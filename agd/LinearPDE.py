@@ -27,11 +27,6 @@ import scipy.sparse as sp
 from . import Selling
 from . import LinearParallel as LP
 
-diff = np.zeros((3,3,2,2))
-diff[:,:,0,0]=1
-diff[:,:,1,1]=1
-
-
 def OperatorMatrix(diff,omega=None,mult=None, \
 		gridScale=1,
 		boundaryConditions='Periodic', 
@@ -133,7 +128,8 @@ def OperatorMatrix(diff,omega=None,mult=None, \
 		coefOmega = coefOmega.flatten() / gridScale # Take grid scale in
 		row = np.concatenate((row, index,	index))
 		col = np.concatenate((col, indexPos, indexNeg))
-		data= np.concatenate((data,IP*coefOmega/2,-IN*coefOmega/2))
+		INP = IN*IP
+		data= np.concatenate((data,INP*coefOmega/2,-INP*coefOmega/2))
 	
 	if not mult is None:
 		# TODO Non periodic boundary conditions
