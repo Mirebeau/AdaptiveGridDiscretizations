@@ -128,8 +128,7 @@ def OperatorMatrix(diff,omega=None,mult=None, \
 		coefOmega = coefOmega.flatten() / gridScale # Take grid scale in
 		row = np.concatenate((row, index,	index))
 		col = np.concatenate((col, indexPos, indexNeg))
-		INP = IN*IP
-		data= np.concatenate((data,INP*coefOmega/2,-INP*coefOmega/2))
+		data= np.concatenate((data,IP*iN*coefOmega/2,-IN*iP*coefOmega/2))
 	
 	if not mult is None:
 		# TODO Non periodic boundary conditions
