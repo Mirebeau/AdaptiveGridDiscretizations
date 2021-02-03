@@ -83,7 +83,7 @@ def ProjectionTTI(hooke,n_newton=10,samples=None):
 
 	# TODO : Convert to TTI norm
 
-	return score,x_out
+	return score,x_out.T
 
 
 
