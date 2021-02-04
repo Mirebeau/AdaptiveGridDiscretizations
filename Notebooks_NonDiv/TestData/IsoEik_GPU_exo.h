@@ -9,7 +9,7 @@ int * update_list, char * update_next, int xmax_, int ymax_){
 const int tid = threadIdx.x;
 const int bid = blockIdx.x;
 
-
+// Get the index and position of the current block
 // Blocks are organized in a grid of size Xmax x Ymax
 // The current block has position (X,Y) within this grid
 const int Xmax = 1+(xmax_-1)/8, Ymax = 1+(ymax_-1)/8;
@@ -39,28 +39,31 @@ for(int r=0; r<2; ++r){
 
 __syncthreads();
 
-// Compute the position (x,y) within this block, and (x_,y_) within the global grid
+// Compute the position (x,y) within this block
 const int x  = (tid/8)+1, y=(tid%8)+1;
-const int x_ = 8*X+x-1, y_=8*Y+y-1;
-const float cost = (x_<xmax_ && y_<ymax_) ? cost_[ymax_*x_+y_] : inf;
 const float u_old = u[x][y];
+
+// Compute the position within the global grid
+const int x_ = 8*X+x-1, y_=8*Y+y-1;
+const bool ingrid = x_<xmax_ && y_<ymax_;
+const float cost = ingrid ? cost_[ymax_*x_+y_] : inf;
 
 // Apply the local update operator a prescribed number of times
 for(int iter=0; iter<niter; ++iter){
 
 	// Get the neighbor values
 	const float 
-	v0 = min(u[x+1][y], u[x-1][y]),
-	v1 = min(u[x][y+1], u[x][y-1]);
+	v0 = // TODO
+	v1 = // TODO
 	const float 
-	w0 = min(v0,v1), 
-	w1 = max(v0,v1);
+	w0 = // TODO 
+	w1 = // TODO
 
 	// Compute the update
-	float u_new = w0 + cost;
+	float u_new = // TODO
 	if(u_new>w1){
-		const float delta = 2.*cost*cost - (w0-w1)*(w0-w1); // Non-negative, up to machine precision
-		u_new = (w0+w1 + sqrt(max(0.,delta)) )/2.;
+		const float delta = // TODO
+		u_new = // TODO
 	}
 
 	// Set the new value, if smaller. 
@@ -72,7 +75,7 @@ for(int iter=0; iter<niter; ++iter){
 }  
 
 // Export the updated values of the solution
-if(x_<xmax_ && y_<ymax_) u_[ymax_*x_+y_] = u[x][y];
+if(ingrid) // TODO
 
 // Check if any value has substantially changed
 if(u[x][y] < u_old-tol) updated=true;
@@ -81,10 +84,10 @@ __syncthreads();
 // Mark this block and neighbors for update, if adequate
 if(tid==0 && updated){
 	update_next[Ymax*X+Y]=1; 
-	if(X+1<Xmax)  update_next[Ymax*(X+1)+Y]=1;
-	if(X-1>=0)    update_next[Ymax*(X-1)+Y]=1;
-	if(Y+1<Ymax)  update_next[Ymax*X+(Y+1)]=1;
-	if(Y-1>=0)    update_next[Ymax*X+(Y-1)]=1;
+	if(X+1<Xmax)  // TODO
+	if(X-1>=0)    // TODO
+	if(Y+1<Ymax)  // TODO
+	if(Y-1>=0)    // TODO
 }
 
 } // void eikonal_gpu_update
