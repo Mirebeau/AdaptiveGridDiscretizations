@@ -43,7 +43,9 @@ def SplitExo(c):
 	statementEN=[]
 	code = []
 	current = text
+#	print(c['source'],"\n\n\n")
 	for line in c['source']:
+#		print(line)
 		if line == '<!---ExoFR\n':
 			assert current is text
 			current = statementFR
