@@ -8,6 +8,9 @@ import time
 """
 This script runs the code of the specified notebook, or of all the notebooks 
 in the current directory, and catches and reports any raised exceptions.
+
+Optional arguments
+  -- CommandLine : needed on my windows machine, due to asyncio error
 """
 
 # ------- Specific to this repository -----

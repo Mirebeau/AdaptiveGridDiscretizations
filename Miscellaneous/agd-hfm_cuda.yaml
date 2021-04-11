@@ -2,7 +2,7 @@ name: agd-hfm_cuda
 channels:
   - conda-forge
 dependencies:
-  - python=3.8
+  - python
   - matplotlib
   - notebook
   - scipy
