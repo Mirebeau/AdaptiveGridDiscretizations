@@ -130,7 +130,11 @@ class dictIn(MutableMapping):
 		if self.mode in ('gpu','cpu_transfer'):
 			import cupy as cp
 			self.xp = cp
-		else: self.xp = np
+			caster = lambda x : cp.asarray(x,dtype=float_t)
+			self.array_float_caster = lambda x : ad.asarray(x,caster=caster) #cupy >= 8.6
+		else: 
+			self.xp = np
+			self.array_float_caster = lambda x : np.asarray(x,dtype=float_t)
 		
 		if self.mode in ('gpu','cpu_transfer','gpu_transfer'): float_t=np.float32
 		else: float_t=np.float64
@@ -140,8 +144,6 @@ class dictIn(MutableMapping):
 			self.store['float_t']=float_t
 
 		self._float_t = float_t
-
-		self.array_float_caster = lambda x : self.xp.asarray(x,dtype=float_t)
 		if store: self.update(store)
 
 	def __copy__(self):     return dictIn(self.store.copy())
