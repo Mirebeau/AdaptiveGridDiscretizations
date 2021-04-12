@@ -285,7 +285,7 @@ def array(a,copy=True,caster=None):
 	Inputs : 
 	- caster : used to cast a scalar into an array scalar (overrides default)
 	"""
-	if isinstance(a,(list,tuple)): 
+	if isinstance(a,(list,tuple)) and len(a)>0: 
 		return stack([asarray(e,caster=caster) for e in a],axis=0)
 	elif isndarray(a): return a.copy() if copy else a
 	elif caster is not None: return caster(a)
