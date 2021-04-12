@@ -185,7 +185,7 @@ def SetSphere(self,dimsp,separation=5,radius=1.1):
 		if 'gridScales' in self: gridScales_rect = self['gridScales']
 		else: gridScales_rect = self['gridScale']*np.ones_like(dims_rect) 
 	else: # Nothing set. All coordinates are sphere like, d=k
-		dims_rect = self.array_float_caster(tuple())
+		dims_rect = self.xp.array(tuple(),dtype=self.float_t)
 		origin_rect = dims_rect.copy()
 		gridScales_rect = dims_rect.copy()
 

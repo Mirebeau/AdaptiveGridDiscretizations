@@ -42,7 +42,7 @@ def _append_dims(x,ndim):
 	return np.reshape(x,x.shape+(1,)*ndim)
 
 def map_coordinates(input,coordinates,*args,
-	grid=None,origin=None,scale=None,depth=0,**kwargs):
+	grid=None,origin=None,scale=None,depth=0,order=1,**kwargs):
 	"""
 	Thin wrapper over the ndimage.map_coordinates function, which adds the possibility of 
 	rescaling the coordinates using a reference grid, and interpolating tensors.
@@ -52,7 +52,9 @@ def map_coordinates(input,coordinates,*args,
 	- grid (optional) : reference coordinate system, which must be uniform
 	- origin,scale (optional) : obtained from origin_scale_shape(grid)
 	- depth : depth of interpolated objects 0->scalar, 1->vector, 2->matrix
+	- order (optional) : set default 1 for better cupy/numpy reproducibility
 	"""
+	kwargs['order']=order
 	if ad.cupy_generic.from_cupy(input):
 		from cupyx.scipy.ndimage.interpolation import map_coordinates as mc
 		def map_coordinates(arr,x,*args,**kwargs):
@@ -66,7 +68,7 @@ def map_coordinates(input,coordinates,*args,
 	if origin is None: return map_coordinates(input,coordinates,*args,**kwargs)
 	origin,scale = (_append_dims(e,coordinates.ndim-1) for e in (origin,scale))
 	y = (coordinates-origin)/scale
-	
+
 	if depth==0: return map_coordinates(input,y,*args,**kwargs)
 	oshape = input.shape[:depth]
 	input = input.reshape((-1,)+input.shape[depth:])

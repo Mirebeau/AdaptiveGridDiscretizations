@@ -285,14 +285,15 @@ def array(a,copy=True,caster=None):
 	Inputs : 
 	- caster : used to cast a scalar into an array scalar (overrides default)
 	"""
-	if isinstance(a,(list,tuple)): return stack([asarray(e) for e in a],axis=0)
+	if isinstance(a,(list,tuple)) and len(a)>0: 
+		return stack([asarray(e,caster=caster) for e in a],axis=0)
 	elif isndarray(a): return a.copy() if copy else a
-	elif caster is not None: caster(a)
+	elif caster is not None: return caster(a)
 	else: return array.caster(a) 
 
 array.caster = np.asarray
 
-def asarray(a): return array(a,copy=False)
+def asarray(a,**kwargs): return array(a,copy=False,**kwargs)
 
 def cupy_variant(cls):
 	cls_cupy = functional.class_rebase(cls,(baseAD_cupy,),cls.__name__+"_cupy")

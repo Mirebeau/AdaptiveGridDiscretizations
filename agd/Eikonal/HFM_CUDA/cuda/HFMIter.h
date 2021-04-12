@@ -18,6 +18,10 @@ void HFMIter(const bool active,
 		MIX(, Int & kmix_) ) ){
 	const Int n_i = threadIdx.x;
 
+/*After update to cupy 8.6, cuda toolkit 11.2, the code computes incorrect values 
+without pragma unroll, for the ReedsShepp2 model, with precomputed stencils.
+Could not find a sensible reason.*/
+	#pragma unroll 
 	for(int iter_i=0; iter_i<niter_i; ++iter_i){
 
 	#if strict_iter_i_macro // Always on if MULTIP or NMIX are on. 
