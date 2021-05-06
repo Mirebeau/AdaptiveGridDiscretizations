@@ -14,7 +14,8 @@ def _cupy_has_RawModule():
 	"""
 	RawModule appears in cupy 8. 
 	"""
-	return False # Version(cupy.__version__) >= Version("8") # Untested
+	from packaging.version import Version
+	return Version(cp.__version__) >= Version("9") # Untested
 
 def getmtime_max(directory):
 	"""
@@ -26,7 +27,7 @@ def getmtime_max(directory):
 
 def GetModule(source,cuoptions):
 	"""Returns a cupy raw module"""
-	if _cupy_has_RawModule(): return cp.RawModule(source,options=cuoptions)
+	if _cupy_has_RawModule(): return cp.RawModule(code=source,options=cuoptions)
 	else: return cp.core.core.compile_with_cache(source, 
 		options=cuoptions, prepend_cupy_headers=False)
 

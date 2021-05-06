@@ -6,12 +6,13 @@ dependencies:
   - matplotlib
   - notebook
   - scipy
-  - conda-build
-  - conda-verify
-  - anaconda-client
-  - nbformat
-  - nbdime
+#  - conda-build
+#  - conda-verify
+#  - anaconda-client
+#  - nbformat
+#  - nbdime
   - ffmpeg
   - cudatoolkit
-  - pip
+  - cupy
+#  - pip
 #  - ipywidgets
