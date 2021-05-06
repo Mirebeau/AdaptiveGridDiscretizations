@@ -64,7 +64,7 @@ def Decomposition(m,sb=None):
 
 def GatherByOffset(T,Coefs,Offsets):
 	"""
-	Get the coefficient of a each offset.
+	Get the coefficient of each offset.
 	This function is essentially used to make nice plots of how the superbase coefficients
 	and offsets vary as the decomposed tensor varies. 
 	"""

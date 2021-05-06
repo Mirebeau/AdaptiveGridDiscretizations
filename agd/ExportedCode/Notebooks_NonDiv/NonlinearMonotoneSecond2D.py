@@ -9,7 +9,7 @@ from agd.Plotting import savefig; #savefig.dirName = "Figures/NonlinearMonotoneS
 import numpy as np
 import matplotlib.pyplot as plt
 
-def SchemeNonMonotone(u,alpha,beta,bc,sqrt_relax=1e-6):
+def SchemeNonMonotone(u,α,β,bc,sqrt_relax=1e-6):
     # Compute the hessian matrix of u
     uxx = bc.Diff2(u,(1,0))
     uyy = bc.Diff2(u,(0,1))
@@ -17,35 +17,36 @@ def SchemeNonMonotone(u,alpha,beta,bc,sqrt_relax=1e-6):
     
     # Compute the eigenvalues
     # The relaxation is here to tame the non-differentiability of the square root.
-    htr = (uxx+uyy)/2.
-    sdelta = np.sqrt( np.maximum( ((uxx-uyy)/2.)**2 + uxy**2, sqrt_relax) )
+    htr = (uxx+uyy)/2. # Half trace
+    Δ = ((uxx-uyy)/2.)**2 + uxy**2 # Discriminant of characteristic polynomial
+    sΔ = np.sqrt( np.maximum( Δ, sqrt_relax) )
 
-    lambda_max = htr+sdelta
-    lambda_min = htr-sdelta
+    λ_max = htr+sΔ
+    λ_min = htr-sΔ
     
     # Numerical scheme
-    residue = beta - alpha*lambda_max - lambda_min
+    residue = β - α*λ_max - λ_min
     
     # Boundary conditions
     return np.where(bc.interior,residue,u-bc.grid_values)
 
-def SchemeSampling(u,diffs,beta,bc):
+def SchemeSampling(u,diffs,β,bc):
     # Tensor decomposition 
-    coefs,offsets = Selling.Decomposition(diffs)
+    μ,e = Selling.Decomposition(diffs)
     
     # Numerical scheme 
-    coefs = bc.as_field(coefs)
-    residue = beta - (coefs*bc.Diff2(u,offsets)).sum(0).min(0)
+    μ = bc.as_field(μ)
+    residue = β - (μ*bc.Diff2(u,e)).sum(0).min(0)
     
     # Boundary conditions
     return np.where(bc.interior,residue,u-bc.grid_values)
 
-def Diff(alpha,theta):
-    e0 = np.array((np.cos(theta),np.sin(theta)))
-    e1 = np.array((-np.sin(theta),np.cos(theta)))
-    if isinstance(alpha,np.ndarray): 
-        e0,e1 = (as_field(e,alpha.shape) for e in (e0,e1))
-    return alpha*lp.outer_self(e0) + lp.outer_self(e1)
+def Diff(α,θ):
+    e0 = np.array(( np.cos(θ),np.sin(θ)))
+    e1 = np.array((-np.sin(θ),np.cos(θ)))
+    if isinstance(α,np.ndarray): 
+        e0,e1 = (as_field(e,α.shape) for e in (e0,e1))
+    return α*lp.outer_self(e0) + lp.outer_self(e1)
 
 def SchemeSampling_OptInner(u,diffs,bc,oracle=None):
     # Select the active tensors, if they are known
@@ -60,52 +61,52 @@ def SchemeSampling_OptInner(u,diffs,bc,oracle=None):
     # Return the minimal value, and the minimizing index
     return ad.min_argmin( lp.dot_VV(coefs,bc.Diff2(u,offsets)), axis=0)
 
-def SchemeSampling_Opt(u,diffs,beta,bc):
+def SchemeSampling_Opt(u,diffs,β,bc):
     # Evaluate the operator using the envelope theorem
     result,_ = ad.apply(SchemeSampling_OptInner, u,bc.as_field(diffs),bc, envelope=True)
         
     # Boundary conditions
-    return np.where(bc.interior, beta-result, u-bc.grid_values)
+    return np.where(bc.interior, β-result, u-bc.grid_values)
 
-def MakeD(alpha):
+def MakeD(α):
     return np.moveaxis(0.5*np.array([
-        (alpha+1)*np.array([[1,0],[0,1]]),
-        (alpha-1)*np.array([[1,0],[0,-1]]),
-        (alpha-1)*np.array([[0,1],[1,0]])
+        (α+1)*np.array([[1,0],[0,1]]),
+        (α-1)*np.array([[1,0],[0,-1]]),
+        (α-1)*np.array([[0,1],[1,0]])
     ]), 0,-1)
 
-def NextAngleAndSuperbase(theta,sb,D):
+def NextAngleAndSuperbase(θ,sb,D):
     pairs = np.stack([(1,2), (2,0), (0,1)],axis=1)
     scals = lp.dot_VAV(np.expand_dims(sb[:,pairs[0]],axis=1), 
                        np.expand_dims(D,axis=-1), np.expand_dims(sb[:,pairs[1]],axis=1))
-    phi = np.arctan2(scals[2],scals[1])
+    ϕ = np.arctan2(scals[2],scals[1])
     cst = -scals[0]/np.sqrt(scals[1]**2+scals[2]**2)
-    theta_max = np.pi*np.ones(3)
+    θ_max = np.pi*np.ones(3)
     mask = cst<1
-    theta_max[mask] = (phi[mask]-np.arccos(cst[mask]))/2
-    theta_max[theta_max<=0] += np.pi
-    theta_max[theta_max<=theta] = np.pi
-    k = np.argmin(theta_max)
+    θ_max[mask] = (ϕ[mask]-np.arccos(cst[mask]))/2
+    θ_max[θ_max<=0] += np.pi
+    θ_max[θ_max<=θ] = np.pi
+    k = np.argmin(θ_max)
     i,j = (k+1)%3,(k+2)%3
-    return (theta_max[k],np.stack([sb[:,i],-sb[:,j],sb[:,j]-sb[:,i]],axis=1))
+    return (θ_max[k],np.stack([sb[:,i],-sb[:,j],sb[:,j]-sb[:,i]],axis=1))
 
 def AnglesAndSuperbases(D,maxiter=200):
     sb = Selling.CanonicalSuperbase(np.eye(2)).astype(int)
-    thetas=[]
+    θs=[]
     superbases=[]
-    theta=0
+    θ=0
     for i in range(maxiter):
-        thetas.append(theta)
-        if(theta>=np.pi): break
+        θs.append(θ)
+        if(θ>=np.pi): break
         superbases.append(sb)
-        theta,sb = NextAngleAndSuperbase(theta,sb,D)
-    return np.array(thetas), np.stack(superbases,axis=2)
+        θ,sb = NextAngleAndSuperbase(θ,sb,D)
+    return np.array(θs), np.stack(superbases,axis=2)
 
-def MinimizeTrace(u,alpha,bc,sqrt_relax=1e-16):
+def MinimizeTrace(u,α,bc,sqrt_relax=1e-16):
     # Compute the tensor decompositions
-    D=MakeD(alpha)
-    theta,sb = AnglesAndSuperbases(D)
-    theta = np.array([theta[:-1],theta[1:]])
+    D=MakeD(α)
+    θ,sb = AnglesAndSuperbases(D)
+    θ = np.array([θ[:-1],θ[1:]])
     
     # Compute the second order differences in the direction orthogonal to the superbase
     sb_rotated = np.array([-sb[1],sb[0]])
@@ -120,7 +121,7 @@ def MinimizeTrace(u,alpha,bc,sqrt_relax=1e-16):
     scals = lp.dot_VAV(sb1,D,sb2)
 
     # Compute the coefficients of the trigonometric polynomial
-    scals,theta = (bc.as_field(e) for e in (scals,theta))
+    scals,θ = (bc.as_field(e) for e in (scals,θ))
     coefs = -lp.dot_VV(scals, np.expand_dims(d2u,axis=1))
     
     # Optimality condition for the trigonometric polynomial in the interior
@@ -130,8 +131,8 @@ def MinimizeTrace(u,alpha,bc,sqrt_relax=1e-16):
     angle[angle<0]+=np.pi
     
     # Boundary conditions for the trigonometric polynomial minimization
-    mask = np.logical_not(np.logical_and(theta[0]<=angle,angle<=theta[1]))
-    t,c = theta[:,mask],coefs[:,mask]
+    mask = np.logical_not(np.logical_and(θ[0]<=angle,angle<=θ[1]))
+    t,c = θ[:,mask],coefs[:,mask]
     value[mask],amin_t = ad.min_argmin(c[0]+c[1]*np.cos(2*t)+c[2]*np.sin(2*t),axis=0)
         
     # Minimize over superbases
@@ -143,27 +144,27 @@ def MinimizeTrace(u,alpha,bc,sqrt_relax=1e-16):
 
     return value,angle
 
-def SchemeConsistent(u,alpha,beta,bc):
-    value,_ = MinimizeTrace(u,alpha,bc)
-    residue = beta - value
+def SchemeConsistent(u,α,β,bc):
+    value,_ = MinimizeTrace(u,α,bc)
+    residue = β - value
     return np.where(bc.interior,residue,u-bc.grid_values)
 
-def MinimizeTrace_Opt(u,alpha,bc,oracle=None):
-    if oracle is None:  return MinimizeTrace(u,alpha,bc)
+def MinimizeTrace_Opt(u,α,bc,oracle=None):
+    if oracle is None:  return MinimizeTrace(u,α,bc)
     
     # The oracle contains the optimal angles
-    diffs=Diff(alpha,oracle.squeeze(axis=0))
+    diffs=Diff(α,oracle.squeeze(axis=0))
     coefs,sb = Selling.Decomposition(diffs)
     value = lp.dot_VV(coefs,bc.Diff2(u,sb))
     return value,oracle
     
 
-def SchemeConsistent_Opt(u,alpha,beta,bc):
-    value,_ = ad.apply(MinimizeTrace_Opt,u,alpha,bc,envelope=True)
-    residue = beta - value
+def SchemeConsistent_Opt(u,α,β,bc):
+    value,_ = ad.apply(MinimizeTrace_Opt,u,α,bc,envelope=True)
+    residue = β - value
     return np.where(bc.interior,residue,u-bc.grid_values)
 
-def Pucci_ad(u,alpha,x):
+def Pucci_ad(u,α,x):
     """
     Computes alpha*lambda_max(D^2 u) + lambda_min(D^2 u), 
     at the given set of points, by automatic differentiation.
@@ -171,9 +172,10 @@ def Pucci_ad(u,alpha,x):
     x_ad = ad.Dense2.identity(constant=x,shape_free=(2,))
     hessian = u(x_ad).hessian()
     
-    sdelta = np.sqrt( ((hessian[0,0]-hessian[1,1])/2.)**2 + hessian[0,1]**2 )
+    Δ = ((hessian[0,0]-hessian[1,1])/2.)**2 + hessian[0,1]**2
+    sΔ = np.sqrt(Δ)
     mean = (hessian[0,0]+hessian[1,1])/2.
-    lambdaMin,lambdaMax = mean-sdelta,mean+sdelta
+    λMin,λMax = mean-sΔ,mean+sΔ
     
-    return lambdaMin+alpha*lambdaMax
+    return λMin+α*λMax
 
