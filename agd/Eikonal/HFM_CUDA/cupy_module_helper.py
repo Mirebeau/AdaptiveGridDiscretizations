@@ -15,7 +15,7 @@ def _cupy_has_RawModule():
 	RawModule appears in cupy 8. 
 	"""
 	from packaging.version import Version
-	return Version(cp.__version__) >= Version("9") # Untested
+	return Version(cp.__version__) >= Version("9") 
 
 def getmtime_max(directory):
 	"""
