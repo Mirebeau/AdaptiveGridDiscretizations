@@ -22,7 +22,7 @@ class AsymRander(Base):
 	Asymmetric Rander norms generalize both Rander norms and Asymmetric quadratic norms.
 	They were proposed by Da Chen in the context of image processing applications.
 
-	Members fields and __init__ arguments : 
+	Member fields and __init__ arguments : 
 	- m : an array of shape (vdim,vdim,n1,..,nk) where vdim is the ambient space dimension.
 	The array must be symmetric, a.k.a m[i,j] = m[j,i] for all 0<=i<j<vdim.
 	- u,v,w : an array of shape (vdim,n1,...,nk)

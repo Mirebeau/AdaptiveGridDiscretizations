@@ -26,7 +26,7 @@ class TTI(ImplicitBase):
 
 	The primal norm is obtained implicitly, by solving an optimization problem.
 
-	Members fields and __init__ arguments : 
+	Member fields and __init__ arguments : 
 	- linear : an array of shape (2,n1,...,nk) encoding the linear part l
 	- quadratic : an array of shape (2,2,n1,...,nk) encoding the quadratic part q
 	- vdim (optional) : the ambient space dimension

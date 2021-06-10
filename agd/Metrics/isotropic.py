@@ -9,7 +9,7 @@ class Isotropic(Base):
 	An Isotropic norm takes the form F(x) = cost * sqrt(<x,x>),
 	where cost is a given positive scalar.
 
-	Members fields and __init__ arguments : 
+	Member fields and __init__ arguments : 
 	- cost : an array of arbirary shape (n1,..,nk).
 	- vdim (optional) : the ambient space dimension
 	"""

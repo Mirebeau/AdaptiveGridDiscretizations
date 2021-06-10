@@ -25,7 +25,7 @@ class Hooke(ImplicitBase):
 	These norms characterize the arrival time of pressure waves in elasticity. 
 	They are often encountered in seismic traveltime tomography.
 
-	Members fields and __init__ arguments : 
+	Member fields and __init__ arguments : 
 	- hooke : an array of shape (hdim,hdim,n1,...,nk) where hdim = vdim*(vdim+1)/2
 	and vdim is the ambient space dimension. The array must be symmetric, and encodes the
 	hooke tensor c in Voigt notation.
