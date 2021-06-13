@@ -15,7 +15,7 @@ def Info(volume):
 some of it with PhD student Guillaume Bonnet, in co-direction with Frederic Bonnans, 
 and PhD student François Desquilbet, in co-direction with Ludovic Métivier.
 
-Copyright Jean-Marie Mirebeau, University Paris-Sud, CNRS, University Paris-Saclay
+Copyright Jean-Marie Mirebeau, Centre Borelli, ENS Paris-Saclay, CNRS, University Paris-Saclay
 """
 	elif volume == 'FMM':
 		return """
