@@ -100,6 +100,9 @@ def GetGeodesics(self):
 
 	args = tuple(cp.ascontiguousarray(arg) for arg in args)
 	kernel = geodesic.module.get_function('GeodesicODE')
+	SetCst('pastseed_delay',self.GetValue('pastseed_delay',default=0,
+		help="Number of geodesic backtracking steps before checking "
+		"the PastSeed criterion (use if seed and tip are close)"),self.int_t)
 
 	geoIt=0; geoMaxIt = int(np.ceil(max_len/typical_len))
 	while len(corresp)>0:
@@ -124,6 +127,7 @@ def GetGeodesics(self):
 			if stop!=0: stopping_criterion[i] = geodesic_termination_codes[int(stop)]
 			else: corresp_next.append(i)
 		corresp=corresp_next
+		SetCst('pastseed_delay',0,self.int_t)
 
 	geodesics_cat = [np.concatenate(geo,axis=0) for geo in geodesics]
 	geodesics = [self.hfmIn.PointFromIndex(geo).T for geo in geodesics_cat]

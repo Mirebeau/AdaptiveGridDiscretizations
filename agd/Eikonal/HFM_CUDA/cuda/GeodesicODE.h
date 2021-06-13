@@ -59,6 +59,7 @@ const Int ncorners = 1<<ndim;
 
 __constant__ Int nGeodesics;
 __constant__ Int max_len = 200; // Max geodesic length
+__constant__ Int pastseed_delay = 0; // Delay before checking the PastSeed stop criterion
 __constant__ Scalar causalityTolerance = 4; 
 __constant__ Scalar geodesicStep = 0.25;
 __constant__ Scalar weight_threshold = 0.05;
@@ -249,7 +250,7 @@ __global__ void GeodesicODE(
 
 		if(nymin     == nymin_p[(l-nymin_delay+hlen)%hlen]){
 						stop = ODEStop::Stationnary; break;}
-		if(eucl_p[l] >  eucl_p[ (l-eucl_delay+hlen) %hlen]){
+		if(eucl_p[l] >  eucl_p[ (l-eucl_delay+hlen) %hlen && len>= pastseed_delay ]){
 			stop = ODEStop::PastSeed;    break;}
 
 		// Make a half step, to get the Euler midpoint

@@ -3,9 +3,11 @@
 // Distributed WITHOUT ANY WARRANTY. Licensed under the Apache License, Version 2.0, see http://www.apache.org/licenses/LICENSE-2.0
 
 #define curvature_macro 1
+#define nsym_macro ! convex_curvature_macro
 #include "Geometry3.h"
 
 #if convex_curvature_macro // Model variant where the vehicle always turns left
+const Int nsym = 0;
 const Int nfwd = 1+decompdim; 
 #else
 const Int nsym = 1; // Number of symmetric offsets
@@ -26,7 +28,7 @@ void scheme(GEOM(const Scalar geom[geom_size],) const Int x[ndim],
 
 	weights[0]=ixi*ixi;
 	Int * offset = offsets[0];
-	offset[0]=0; offset[1]=0; offset[2]=1; // offsets[0]={0,0,1};
+	offset[0]=0; offset[1]=0; offset[2]=-1; // offsets[0]={0,0,-1}; sign for convex_curv
 
 	const Scalar v[ndim] = {cT,sT,kappa};
 	decomp_v(v, &weights[1], &offsets[1]);

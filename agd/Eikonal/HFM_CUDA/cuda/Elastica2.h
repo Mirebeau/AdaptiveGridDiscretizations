@@ -72,8 +72,9 @@ void scheme(GEOM(const Scalar geom[geom_size],) const Int x[ndim],
 
 		const Scalar s = wFejer_s[l] 
 		#if convex_curvature_macro // Model variant where the vehicle always turns left
-		* (2*l<nFejer ? 0. : 2*l==nFejer ? 0.5 : 1.)
-		#endif ;
+		* (2*l<nFejer-1 ? 1. : 2*l==nFejer-1 ? 0.5 : 0.)
+		#endif
+		;
 		
 		for(Int i=0; i<decompdim; ++i) weights[l*decompdim+i] *= s;
 	}
