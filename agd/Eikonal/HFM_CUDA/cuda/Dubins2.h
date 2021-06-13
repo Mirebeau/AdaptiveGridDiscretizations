@@ -29,8 +29,12 @@ bool scheme(GEOM(const Scalar geom[geom_size],) const Int x[ndim],
 
 	const Scalar
 	vL[ndim]={cT,sT,kappa+ixi},
+	#if convex_curvature_macro // Model variant where the vehicle always turns left
+	vR[ndim]={cT,sT,kappa};
+	#else
 	vR[ndim]={cT,sT,kappa-ixi};
-		
+	#endif
+
 	decomp_v(vL,  weights,        offsets);
 	decomp_v(vR, &weights[nfwd], &offsets[nfwd]);
 }

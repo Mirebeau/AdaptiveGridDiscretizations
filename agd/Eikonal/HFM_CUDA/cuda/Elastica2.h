@@ -69,7 +69,12 @@ void scheme(GEOM(const Scalar geom[geom_size],) const Int x[ndim],
 		const Scalar v[ndim]={sP*cT,sP*sT,(sP*kappa+cP*ixi)};
 
 		decomp_v(v, &weights[l*decompdim], &offsets[l*decompdim]);
-		const Scalar s = wFejer_s[l];
+
+		const Scalar s = wFejer_s[l] 
+		#if convex_curvature_macro // Model variant where the vehicle always turns left
+		* (2*l<nFejer ? 0. : 2*l==nFejer ? 0.5 : 1.)
+		#endif ;
+		
 		for(Int i=0; i<decompdim; ++i) weights[l*decompdim+i] *= s;
 	}
 } 

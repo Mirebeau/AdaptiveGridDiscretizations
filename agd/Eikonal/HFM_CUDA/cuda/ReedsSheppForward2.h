@@ -5,8 +5,12 @@
 #define curvature_macro 1
 #include "Geometry3.h"
 
+#if convex_curvature_macro // Model variant where the vehicle always turns left
+const Int nfwd = 1+decompdim; 
+#else
 const Int nsym = 1; // Number of symmetric offsets
 const Int nfwd = decompdim; // Number of forward offsets
+#endif
 
 #include "Constants.h"
 #include "Decomp_v_.h"

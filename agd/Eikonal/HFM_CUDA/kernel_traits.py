@@ -91,6 +91,9 @@ def default_traits(self):
 	else:
 		raise ValueError("Unsupported model")
 
+	if model in ('ReedsSheppForward2','Elastica2','Dubins2'):
+		traits['convex_curvature_macro']=False
+
 	self.fim_front_width_default = fim_front_width
 	return traits
 
@@ -108,15 +111,17 @@ def nscheme(self):
 	nsym=0 # Number of symmetric offsets
 	nfwd=0 # Number of forward offsets
 	nmix=1 # maximum or minimum of nmix schemes
-	if model in ('Isotropic','Diagonal'):nsym = ndim
-	elif model in ('Riemann','Rander'): nsym = decompdim
+	if model in ('Isotropic','Diagonal'):   nsym = ndim
+	elif model in ('Riemann','Rander'):     nsym = decompdim
 
-	elif model=='ReedsShepp':           nsym = decompdim
-	elif model=='ReedsSheppForward':    nsym = 1; nfwd = decompdim
-	elif model=='Dubins':               nfwd = decompdim; nmix = 2
-	elif model=='Elastica':             nfwd = traits['nFejer_macro']*decompdim
+	elif model=='ReedsShepp':               nsym = decompdim
+	elif model=='ReedsSheppForward':    
+		if traits['convex_curvature_macro']:nfwd = 1+decompdim;
+		else:                               nsym = 1; nfwd = decompdim
+	elif model=='Dubins':                   nfwd = decompdim; nmix = 2
+	elif model=='Elastica':                 nfwd = traits['nFejer_macro']*decompdim
 	elif self.model=='ReedsSheppGPU3':
-		if traits['forward_macro']: nsym=2; nfwd=6
+		if traits['forward_macro']:         nsym=2; nfwd=6
 		else: nsym=2+6
 
 	elif model=='AsymmetricQuadratic':  nsym = decompdim; nmix = 3
