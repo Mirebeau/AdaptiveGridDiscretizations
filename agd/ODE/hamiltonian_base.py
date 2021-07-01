@@ -1,14 +1,17 @@
 # Copyright 2020 Jean-Marie Mirebeau, University Paris-Sud, CNRS, University Paris-Saclay
 # Distributed WITHOUT ANY WARRANTY. Licensed under the Apache License, Version 2.0, see http://www.apache.org/licenses/LICENSE-2.0
 
-"""
+r"""
 This module implements some basic functionality for solving ODEs derived from a 
 Hamiltonian in a manner compatible with automatic differentiation.
 (Flow computation, symplectic schemes, etc)
 
 Recall that Hamilton's equations read 
-dq/dt =  dH/dp
-dp/dt = -dH/dq
+$$
+\frac {dq}{dt} = \frac {\partial H}{\partial p},
+\quad
+\frac {dp}{dt} = - \frac {\partial H}{\partial q}.
+$$
 """
 
 import numpy as np
@@ -103,11 +106,13 @@ class HamiltonianBase:
 	def flow_cat(self,qp,t=None):
 		"""
 		Symplectic gradient of the hamiltonian, intended for odeint. 
+
 		Input : 
-			- qp : position q, impulsion p, concatenated and flattened.
-			- t : ignored parameter (compatibility with scipy.integrate.odeint)
-		Output : 
-			- symplectic gradient, concatenated and flattened.
+		 - qp : position q, impulsion p, concatenated and flattened.
+		 - t : ignored parameter (compatibility with scipy.integrate.odeint)
+
+		Output :
+		 - symplectic gradient, concatenated and flattened.
 		"""
 		d = len(qp)//2
 		q = qp[:d]
@@ -127,17 +132,18 @@ class HamiltonianBase:
 	def integrate(self,q,p,scheme,niter=None,dt=None,T=None,path=False):
 		"""
 		Solves Hamilton's equations by running the scheme niter times.
+
 		Inputs : 
-			- q,p : Initial position and impulsion.
-			- scheme : ODE integration scheme. (string or callable)
-			
-			- niter,dt,T : number of steps, time step, and total time
+		 - q,p : Initial position and impulsion.
+		 - scheme : ODE integration scheme. (string or callable)
+		 - niter,dt,T : number of steps, time step, and total time
 			  (exactly two among the three must be specified)
-			- path : wether to return the intermediate steps. 
-			   (If positive number, period of intermediate steps to return)
+		 - path : wether to return the intermediate steps. 
+			   (If a positive number, period of intermediate steps to return)
+		
 		Output : 
-			- q,p if path is False. 
-			Otherwise [q0,...,qn],[p0,...,pn],[t0,..tn], with n=niter, tn=T.
+		 - q,p if path is False. 
+		  Otherwise [q0,...,qn],[p0,...,pn],[t0,..tn], with n=niter, tn=T.
 		"""
 		if isinstance(scheme,str):
 			schemes = self.nonsymplectic_schemes()

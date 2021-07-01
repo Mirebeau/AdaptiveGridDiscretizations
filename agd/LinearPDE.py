@@ -3,22 +3,6 @@
 
 """
 This module is DEPRECATED, but kept for compatibility.
-
- Constructs a linear operator sparse matrix, given as input 
-- an array of psd matrices, denoted diff
-- an array of vectors (optionnal), denoted omega
-- an array of scalars (optionnal),
-
-additional parameters
-- a grid scale 
-- boundary conditions, possibly axis by axis 
-	('Periodic', 'Reflected', 'Neumann', 'Dirichlet') 
-- divergence form or not
-
-The discretized operator is - div(diff * grad u) + <omega, grad u> + mult*u 
-replace the first term with Tr(diff * hess u) in non-divergence form.
-
-Returns : a list of triplets, for building a coo matrix
 """
 
 import numpy as np
@@ -32,7 +16,30 @@ def OperatorMatrix(diff,omega=None,mult=None, \
 		boundaryConditions='Periodic', 
 		divergenceForm=False,
 		intrinsicDrift=False):
+	r"""
+	Constructs a linear operator sparse matrix, given as input 
+	- an array `diff` of symmetric positive definite matrices, 
+		with shape $(d,d,n_1,...,n_d)$ where $d$ is the domain dimension.
+	- an array `omega` of vectors (optionnal), with shape $(d,n_1,...,n_d)$.
+	- an array of scalars (optionnal), with shape $(n_1,...,n_d)$.
+
+	additional parameters
+	- a grid scale 
+	- boundary conditions, possibly axis by axis 
+		('Periodic', 'Reflected', 'Neumann', 'Dirichlet') 
+	- divergence form or not
+
+	The discretized operator is
+	$$
+	 {-} \mathrm{div}(D \nabla u) + < \\omega, \nabla u> + mult*u,
+	$$
+	denoting $D:=$`diff` and $\\omega:=$`omega`.
+
+	Replace the first term with $\mathrm{Tr}(D \nabla^2 u)$ in the 
+	non-divergence form case.
 	
+	Returns : a list of triplets, for building a coo matrix
+	"""
 	# ----- Get the domain shape -----
 	bounds = diff.shape[2:]
 	dim = len(bounds)

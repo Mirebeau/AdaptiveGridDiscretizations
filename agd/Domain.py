@@ -2,7 +2,7 @@
 # Distributed WITHOUT ANY WARRANTY. Licensed under the Apache License, Version 2.0, see http://www.apache.org/licenses/LICENSE-2.0
 
 """
-This module allows to define domains of R^d by combinations of elementary shapes, 
+This module allows to define domains of $R^d$ by combinations of elementary shapes, 
 and to compute finite differences within these domains with Dirichlet boundary conditions.
 """
 
@@ -38,16 +38,18 @@ class Domain:
 		return self.level(x)<0
 
 	def intervals(self,x,v):
-		"""
+		r"""
 		A union of disjoint intervals, sorted in increasing order, 
-		] a[0],b[0] [ U ] a[1],b[1] [ U ... U ] a[n-1],b[n-1] [
-		such that x+h*v lies in the domain iff t lies on one of these intervals.
+		$$
+			] a_0,b_0 [ \cup ] a_1,b_1 [ \cup ... \cup ] a_{n-1},b_{n-1} [
+		$$
+		such that $x+t v$ lies in the domain iff $t$ lies on one of these intervals.
 		"""
 		raise ValueError("""Domain intervals function must be specialized""")
 
 	def freeway(self,x,v):
-		"""
-		Output : Least h>=0 such that x+h*v intersects the boundary.
+		r"""
+		Output : Least $t\geq 0$ such that $x+tv$ intersects the boundary.
 		"""
 		a,b = self.intervals(x,v)
 		a[a<0]=np.inf
@@ -56,7 +58,7 @@ class Domain:
 
 	def contains_ball(self,x,h,ball_pattern=None):
 		"""
-		Wether the domain contains the ball of center x and radius h.
+		Wether the domain contains the ball of center $x$ and radius $h$.
 		Approximate predicate based on sampling, using ball_pattern.
 		"""
 		if h==0.: 	return self.contains(x)
@@ -93,7 +95,7 @@ class Domain:
 
 class WholeSpace(Domain):
 	"""
-	This class represents the full space R^d.
+	This class represents the full space $R^d$.
 	"""
 	def level(self,x):
 		return np.full(x.shape[1:],-np.inf)
@@ -153,9 +155,13 @@ class Ball(Domain):
 		return begin,end
 
 class Box(Domain):
-	"""
-	This class represents a box shaped domain, mathematically defined as the product
-	[a1,b1] x ... x [ak,bk] of some intervals. 
+	r"""
+	This class represents a box shaped domain in $R^k$, mathematically defined 
+	as the product
+	$$
+		[a_1,b_1] \times ... \times [a_k,b_k]
+	$$
+	of some intervals. 
 
 
 	__init__ argument : 
@@ -173,21 +179,21 @@ class Box(Domain):
 	@property
 	def sides(self): 
 		"""
-		The intervals defining the box [[a1,b1], ..., [ak,bk]].
+		The intervals $[[a_1,b_1], ..., [a_k,b_k]]$ defining the box.
 		"""
 		return self._sides
 
 	@property
 	def center(self): 
 		"""
-		The center [ (a1+b1)/2, ..., (ak+bk)/2 ] of the box.
+		The center $[ (a_1+b_1)/2, ..., (a_k+b_k)/2 ]$ of the box.
 		"""
 		return self._center
 
 	@property
 	def edgelengths(self): 
 		"""
-		The edgelengths [ b1-a1, ..., bk-ak ] of the box.
+		The edge lengths $[ b_1-a_1, ..., b_k-a_k ]$ of the box.
 		"""
 		return 2.*self._hlen
 	@property
@@ -240,8 +246,9 @@ class Box(Domain):
 		return a,b
 
 class AbsoluteComplement(Domain):
-	"""
-	This class represents the complement, in the entire space R^d, of an existing domain.
+	r"""
+	This class represents the complement $R^d \setminus \Omega$, in the entire space,
+	 of a given domain $\Omega\subset R^d$.
 
 	__init__ argument: 
 	- dom : Domain of which to take the complement.
@@ -358,8 +365,9 @@ class Intersection(Domain):
 		return np.asarray(begr),np.asarray(endr)
 	
 def Complement(dom1,dom2):
-	"""
-	Relative complement dom1 - dom2 of two domains.
+	r"""
+	Relative complement $\Omega_1 \setminus \Omega_2$ of two given domains 
+	$\Omega_1,\Omega_2 \subset R^d$.
 	"""
 	return Intersection(dom1,AbsoluteComplement(dom2))
 
@@ -370,13 +378,16 @@ def Union(*doms):
 	return AbsoluteComplement(Intersection(*[AbsoluteComplement(dom) for dom in doms]))
 
 class Band(Domain):
-	"""
+	r"""
 	Defines a banded domain in space, in between two parallel hyperplanes.
-	lower_bound < <x,direction> < upper_bound
+	$$
+		l_b < < x,v> < u_b,
+	$$
+	where $v \in R^d$ is a direction, and $l_b,u_b$ are a lower bound and an upper bound.
 
 	__init__ arguments : 
-	- direction : array of shape (vdim,), where vdim is the ambient space dimension.
-	- bounds : [lower_bound, upper_bound]
+	- direction : array of shape $(d,)$, where $d$ is the ambient space dimension.
+	- bounds : $[l_b, u_b]$, the lower bound and upper bound.
 	"""
 
 	def __init__(self,direction,bounds):
@@ -420,7 +431,7 @@ class Band(Domain):
 
 def ConvexPolygon(pts):
 	"""
-	Defines a two dimensional convex polygonal domain from its vertices.
+	Defines a two dimensional *convex* polygonal domain from its vertices.
 
 	__init__ arguments :
 	- pts : array of shape (2,n). The polygon vertices, given in trigonometric order.
@@ -437,13 +448,17 @@ def ConvexPolygon(pts):
 
 class AffineTransform(Domain):
 	"""
-	Defines a domain which is the transformation of another domain
-	by an affine transformation, 
-		x' = mult x + shift
+	Defines a domain which is the image of another domain
+	by the affine transformation, 
+	$$
+		x' = A x + b
+	$$
 
 	Inputs : 
-	- mult, scalar, matrix, or None (Eq 1.)
-	- shift, vector, or None (Eq null vector)
+	- `mult` (optional) : the multiplier $A$, which is either a scalar or a matrix 
+	of shape $(d,d)$. (Defaults to the identity matrix.)
+	- `shift` (optional) : the vector $b$. (Defaults to zero.)
+	- `center` (optional) : reference point for the transformation. (Defaults to zero.)
 	"""
 
 	def __init__(self,dom,mult=None,shift=None,center=None):

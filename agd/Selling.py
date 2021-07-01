@@ -1,11 +1,14 @@
 # Copyright 2020 Jean-Marie Mirebeau, University Paris-Sud, CNRS, University Paris-Saclay
 # Distributed WITHOUT ANY WARRANTY. Licensed under the Apache License, Version 2.0, see http://www.apache.org/licenses/LICENSE-2.0
 
-"""
-This file implements Selling's algorithm in dimension two and three, which decomposes a 
-symmetric positive definite matrix D, of dimension d<=3, in the form 
-D = sum_i ai ei ei^T,
-where ai >= 0 and ei is a vector with integer coordinates, and 0<= i < d(d+2)/2.
+r"""
+This file implements Selling's algorithm in dimension $d \in \\{2,3\\}$, which decomposes a 
+symmetric positive definite matrix $D$, of dimension $d\leq 3$, in the form 
+$$
+	D = \sum_{0\leq i < I} a_i e_i e_i^\top,
+$$
+where $a_i \geq 0$ and $e_i\in Z^d$ is a vector with integer coordinates, 
+and where $I = d(d+2)/2$.
 
 Selling's decomposition is a central tool in the design of adaptive discretization schemes
 for anisotropic partial differential equations, on Cartesian grids.
@@ -27,7 +30,7 @@ def ObtuseSuperbase(m,sb=None):
 	"""
 	Input : 
 	- m : symmetric positive definite matrix, defined as an
-	 array of shape (vdim,vdim, n1,...,nk)
+	 array of shape $(d,d, n_1,...,n_k)$.
 	- sb (optional) : initial guess for the obtuse superbase.
 
 	Ouput : an m-obtuse superbase 
@@ -40,14 +43,14 @@ def ObtuseSuperbase(m,sb=None):
 	else: raise ValueError("Selling's decomposition only applies in dimension <=3.") 	
 
 def Decomposition(m,sb=None):
-	"""
+	r"""
 	Use Selling's algorithm to decompose a tensor
 
 	Input : 
 	- m : symmetric positive definite matrix, defined as an
-	 array of shape (vdim,vdim, n1,...,nk) where vdim<=3
+	 array of shape $(d,d, n_1,...,n_k)$ where $d\leq 3$.
 	- sb (optional) : superbase to use for the decomposition,
-	 array of shape (vdim,vdim+1, n1,...,nk)
+	 array of shape $(d,d+1, n_1,...,n_k)$.
 	Output : the coefficients and offsets of the decomposition.
 	"""
 	if ad.cupy_generic.from_cupy(m):
@@ -90,8 +93,8 @@ def CanonicalSuperbase(m):
 	"""
 	Returns a superbase with the same dimensions and array type as m.
 
-	Input : 
-	 - m : array of shape (vdim,vdim, n1,...,nk)
+	Output : 
+	 - m : array of shape $(d,d, n_1,...,n_k)$
 	"""
 	d=len(m); assert m.shape[1]==d
 	shape=m.shape[2:]
@@ -105,8 +108,8 @@ def CanonicalSuperbase(m):
 def SuperbasesForConditioning(cond,dim=2):
 	"""
 	Returns a family of superbases. 
-	For any positive definite matrix M with condition number below the given bound,
-	one of these superbases will be M-obtuse.
+	For any positive definite matrix $M$ with condition number below the given bound,
+	one of these superbases will be $M$-obtuse.
 	(Condition number is the ratio of the largest to the smallest eigenvalue.)
 
 	Input : 

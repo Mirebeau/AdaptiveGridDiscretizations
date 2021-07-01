@@ -8,10 +8,11 @@ from .. import LinearParallel as lp
 from .hamiltonian_base import HamiltonianBase,fixedpoint
 
 class MetricHamiltonian(HamiltonianBase):
-	"""
+	r"""
 	Hamiltonian defined by an interpolated metric, which is dualized and interpolated.
-	H(q,p) = (1/2) F^*_q(p)^2
-
+	$$
+	H(q,p) = \frac 1 2 F^*_q(p)^2
+	$$
 	__init__ arguments :
 	- metric : dual defines the hamiltonian
 	- inv_inner : passed to HamiltonianBase
@@ -32,14 +33,17 @@ class MetricHamiltonian(HamiltonianBase):
 	def _DpH(self,q,p): return self._dualmetric.at(q).gradient2(p)
 
 class GenericHamiltonian(HamiltonianBase):
-	"""
-	Hamiltonian defined by a arbitrary function of two variables, 
-	the position q and impulsion p.
-	H(q,p) = func(q,p)
+	r"""
+	Hamiltonian defined by a arbitrary function $f$ of two variables, 
+	the position $q$ and impulsion $p$.
+	$$
+	H(q,p) = f(q,p)
+	$$
 
 	__init__ arguments : 
-	- func : the function defining the hamiltonian, must take two arguments.
-	- disassociate_ad (optional) : hide AD information when calling f
+	- func : the function $f$ defining the hamiltonian, must take two arguments.
+	- disassociate_ad (optional) : hide AD information when calling $f$. (Use to avoid 
+	conflicts if the definition of $f$ itself involves automatic differentiation.)
 	- shape_free (optional) : shape of position and momentum variables
 	- **kwargs : passed to HamiltonianBase
 	"""
@@ -75,10 +79,11 @@ class GenericHamiltonian(HamiltonianBase):
 class SeparableHamiltonian(HamiltonianBase):
 	"""
 	Separable Hamiltonian defined by a pair of functions.
-	H(q,p) = Hq(q) + Hp(p).
-
+	$$
+		H(q,p) = H_Q(q) + H_P(p).
+	$$
 	__init__ arguments : 
-	- Hq,Hp : two functions, of a single argument, defining the hamiltonian
+	- Hq,Hp : the two functions $H_Q,H_P$, of a single argument, defining the hamiltonian
 	- **kwargs : passed to HamiltonianBase
 	"""
 
@@ -98,13 +103,15 @@ class SeparableHamiltonian(HamiltonianBase):
 		return self.Hp(p_ad).gradient()
 
 class QuadraticHamiltonian(HamiltonianBase):
-	"""
+	r"""
 	Quadratic Hamiltonian, defined by a pair of linear operators.
-	(Expected to be symmetric, semi-definite.)
-	H(q,p) = ( <q, Mq*q> + <p, Mp*p> ) / 2
+	(Expected to be symmetric semi-definite.)
+	$$
+		H(q,p) = \frac 1 2 (< q, M_Q q > +< p, M_P p >).
+	$$
 
 	__init__ arguments : 
-	- Mq,Mp : typically sparse positive definite matrices.
+	- Mq,Mp : positive semi-definite matrices $M_Q,M_P$, typically given in sparse form.
 	 Alternatively, define Mq,Mp as functions, and use the set_spmat
 	 to automatically generate the sparse matrices using automatic differentiation.
 	"""

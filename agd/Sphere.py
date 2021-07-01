@@ -94,7 +94,7 @@ def rotation3_from_ball3(e):
 def pauli(a,b,c,d=None):
 	"""
 	Pauli matrix. Symmetric if d is None, Hermitian otherwise.
-	Determinant is a^2-b^2-c^2-d^2
+	Determinant is $a^2-b^2-c^2-d^2$
 	"""
 	if d is None: return ad.array([[a+b,c],[c,a-b]])
 	else: return ad.array([[a+b,c+1j*d],[c-1j*d,a-b]])

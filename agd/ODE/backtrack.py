@@ -50,7 +50,7 @@ def odeint_array(f,y,t,grid,t_delay=0,t_substeps=2,order=1,**kwargs):
 	return solution
 
 class RecurseRewind:
-	"""
+	r"""
 	This class is designed to iterate a function, and then roll back the iterations, 
 	with a limited memory usage. For that purpose appropriate keypoints are stored,
 	 in a multilevel manner.
@@ -58,8 +58,10 @@ class RecurseRewind:
 	 - next : method to compute the next step.
 	 - initial : initial value
 	 - params : passed to next, in addition to current value
-	 - base : storage cost is O(n*base) for O(base**n) iterations, 
-	  evaluating O(n * base**n) times the next function
+	 - base : base $b$ used to internally represent the iteration counter, which balances 
+	 a tradeoff between memory usage and computational cost. Iterating $O(b^n)$ times
+	  and then rewinding these iterations, has a storage cost of $O(n*b)$ and a 
+	  computational cost of $O(n * b^n)$ function evaluations.
 
 	members:
 	 - reversed : wether __next__ should advance or rewind the iterations
