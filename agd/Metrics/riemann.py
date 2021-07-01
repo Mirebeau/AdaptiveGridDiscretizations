@@ -14,13 +14,13 @@ class Riemann(Base):
 	r"""
 	A Riemann norm takes the form 
 	$$
-	F(x) = \sqrt(< x,m x>), 
+	F(x) = \sqrt{< x,m x>}, 
 	$$
 	where m is a given symmetric positive definite tensor.
 
 	Member fields and __init__ arguments : 
-	- m : an array of shape (vdim,vdim,n1,..,nk) where vdim is the ambient space dimension.
-	The array must be symmetric, a.k.a m[i,j] = m[j,i] for all $0\leq i < j < vdim$.
+	- m : an array of shape $(d,d,n_1,..,n_k)$ where d=`vdim` is the ambient space dimension.
+	The array must be symmetric, a.k.a m[i,j] = m[j,i] for all $0\leq i < j < d$. 
 	"""
 
 	def __init__(self,m):

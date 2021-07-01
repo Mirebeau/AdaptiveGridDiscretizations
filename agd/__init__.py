@@ -39,3 +39,4 @@ somewhat opposite to numpy's (geometry first).
 
 .. include:: ../README.md
 """
+__docformat__ = "restructuredtext"

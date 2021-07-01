@@ -11,12 +11,12 @@ class Diagonal(Base):
 	r"""
 	A Diagonal norm takes the form 
 	$$
-	F(x) = \sqrt{\sum_i costs[i]*x[i]^2 },
+	F(x) = \sqrt{\sum_{0\leq i < d} c_i x_i^2 },
 	$$
-	where costs[i], 0<=i< vdim, are given positive scalars
+	where $(c_i)_{0\leq i < d}$, are given positive scalars
 
 	Member fields and __init__ arguments : 
-	- cost, an array of shape (vdim,n1,..,nk) where vdim is the ambient space dimension.
+	- costs : the array of $(c_i)_{0\leq i < d}$ positive numbers. Required shape : $(d,n_1,..,n_k)$ where $d=$`vdim` is the ambient space dimension.
 	"""
 
 	def __init__(self,costs):

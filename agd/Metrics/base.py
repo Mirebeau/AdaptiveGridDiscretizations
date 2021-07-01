@@ -10,7 +10,7 @@ from .. import Interpolation
 
 class Base:
 	"""
-	Base class for a metric
+	Base class for a metric, in other words a family of norms.
 	"""
 
 	def __repr__(self):
@@ -20,15 +20,21 @@ class Base:
 		return type(self).__name__ + str(tuple(self))
 
 	def norm(self,v):
-		"""
-		Norm defiend by the metric. 
-		Expected to be 1-homogeneous w.r.t. v
+		r"""
+		Norm or quasi-norm defined by the class, often denoted $N$ in mathematical 
+		formulas. Unless incorrect data is provided, this member function obeys, 
+		for all vectors $u,v\in R^d$ and all $\alpha \geq 0$
+		 - $N(u+v) \leq N(u)+N(v)$
+		 - $N(\alpha u) = \alpha N(u)$
+		 - $N(u)\geq 0$ with equality iff $u=0$.
+
+		Broadcasting will occur depending on the shape of $v$ and of the class data.
 		"""
 		raise NotImplementedError("""Error : norm must be specialized in subclass""")
 
 	def gradient(self,v):
 		"""
-		Gradient of the norm defined by the metric.
+		Gradient of the `norm` defined by the class.
 		"""
 		if ad.is_ad(v) or ad.is_ad(self,iterables=(type(self),)):
 			v_dis = ad.disassociate(v,shape_bound=v.shape[1:])
@@ -40,7 +46,7 @@ class Base:
 	
 	def dual(self):
 		r"""
-		Dual norm, mathematically defined by 
+		Dual `norm`, mathematically defined by 
 		$N^*(x) = max\\{ < x, y> ; N(y)\leq 1 \\}$
 		"""
 		raise NotImplementedError("dual is not implemented for this norm")
@@ -48,7 +54,7 @@ class Base:
 	@property
 	def vdim(self):
 		"""
-		Ambient vector space dimension
+		The ambient vector space dimension, often denoted $d$ in mathematical formulas.
 		"""
 		raise NotImplementedError("vdim is not implemented for this norm")
 
@@ -56,7 +62,7 @@ class Base:
 	def shape(self):
 		"""
 		Dimensions of the underlying domain.
-		Expected to be the empty tuple, or a tuple of length vdim.
+		Expected to be the empty tuple, or a tuple of length `vdim`.
 		"""
 		raise NotImplementedError("Shape not implemented for this norm")
 	
@@ -73,43 +79,48 @@ class Base:
 # ---- Well posedness related methods -----
 	def is_definite(self):
 		"""
-		Wether norm(u)=0 implies u=0. 
+		Attempts to check wether the data defines a mathematically valid `norm`.
 		"""
 		raise NotImplementedError("is_definite is not implemented for this norm")
 
 	def anisotropy(self):
-		"""
-		Sharp upper bound on norm(u)/norm(v), 
-		for any unit vectors u and v.
+		r"""
+		Anisotropy ratio of the `norm` denoted $N$.
+		Defined as 
+		$$
+			\max_{|u| = |v| = 1} \frac {N(u)}{N(v)}.
+		$$
 		"""
 		raise NotImplementedError("anisotropy is not implemented for this norm")
 
 	def anisotropy_bound(self):
 		"""
-		Upper bound on norm(u)/norm(v), 
-		for any unit vectors u and v.
+		An upper bound on the `anisotropy` of the norm.
 		"""
 		return self.anisotropy()
 	def cost_bound(self):
 		"""
-		Upper bound on norm(u), for any unit vector u.
+		Upper bound on $N(u)$, for any unit vector $u$, where $N$ is the `norm` 
+		defined by the class.
 		"""
 		raise NotImplementedError("cost_bound is not implemented for this norm")
 
 # ---- Causality and acuteness related methods ----
 
 	def cos_asym(self,u,v):
-		"""
-		Generalized cosine defined by the metric, defined as 
-		< grad F(u), v> / F(v)
+		r"""
+		Generalized asymmetric cosine defined by the norm $N$, of the angle between two vectors $u,v$. 
+		Defined as 
+		$\cos^a_N(u,v) := < \nabla N(u), v> / N(v)$.
 		"""
 		u,v=(ad.asarray(e) for e in (u,v))
 		return lp.dot_VV(self.gradient(u),v)/self.norm(v)
 
 	def cos(self,u,v):
-		"""
-		Generalized cosine defined by the metric, defined as 
-		min(cos_asym(u,v),cos_asym(v,u)).
+		r"""
+		Generalized cosine defined by the norm $N$. Expression
+		$\cos_N(u,v) := \min( \cos^a_N (u,v), \cos^a_N(v,u))$,
+		where $\cos^a_N=$`cos_asym`.
 		"""
 		u,v=(ad.asarray(e) for e in (u,v))
 		gu,gv=self.gradient(u),self.gradient(v)
@@ -118,9 +129,10 @@ class Base:
 		return np.minimum(guv/gvv,gvu/guu)
 
 	def angle(self,u,v):
-		"""
-		Generalized unoriented angle defined by the metric,
-		see the cos and cos_asym member functions.
+		r"""
+		Generalized unoriented angle defined by the norm,
+		defined as $\measuredangle_N(u,v) := \arccos(\cos_N(u,v))$.
+		See `cos` member functions.
 		"""
 		c = ad.asarray(self.cos(u,v))
 		mask=c < -1.
@@ -160,7 +172,10 @@ class Base:
 
 	def with_costs(self,costs):
 		"""
-		Produces a norm N' obeying N'(x) = N(costs * x)
+		Produces a norm $N'$ defined by 
+		$$
+		N'(x) = N(costs * x)
+		$$
 		where the multiplication is elementwise.
 		"""
 		a = cps.zeros_like(costs,shape=(len(costs),)+costs.shape)
@@ -169,14 +184,17 @@ class Base:
 
 	def with_speeds(self,speeds): 
 		"""
-		Produces a norm N' obeying N'(x) = N(x/speeds) 
+		Produces a norm $N'$ obeying 
+		$$
+		N'(x) = N(x/speeds)
+		$$ 
 		where the division is elementwise.
 		"""
 		return self.with_costs(1./speeds)
 	
 	def with_cost(self,cost): 
 		"""
-		Produces a norm N' obeying N'(x) = N(cost*x)
+		Produces a norm $N'$ obeying $N'(x) = N(cost*x)$.
 		"""
 		cost = ad.asarray(cost)
 		costs = np.broadcast_to(cost,(self.vdim,)+cost.shape)
@@ -185,7 +203,7 @@ class Base:
 
 	def with_speed(self,speed): 
 		"""
-		Produces a norm N' obeying N'(x) = N(x/speed)
+		Produces a norm $N'$ obeying $N'(x) = N(x/speed)$.
 		"""
 		return self.with_cost(1/speed)
 
@@ -259,15 +277,15 @@ class Base:
 # ---- Related with Lagrandian and Hamiltonian interpretation ----
 
 	def norm2(self,v):
-		"""
-		Half squared norm.
+		r"""
+		Half square of the `norm`, defined by $F(v) := \frac 1 2 N(v)^2$.
 		"""
 		n = self.norm(v)
 		return 0.5*n**2
 
 	def gradient2(self,v):
 		"""
-		Gradient of the half squared norm.
+		Gradient of `norm2`the half squared norm.
 		"""
 		g = self.gradient(v)
 		return lp.dot_VV(g,v)*g
@@ -276,9 +294,10 @@ class Base:
 		"""
 		Sets interpolation_data, required to specialize the norm 
 		at a given position.
+
 		Inputs:
-			- grid (optional). Coordinate system (required on first call). 
-			- kwargs. Passed to UniformGridInterpolation (includes order)
+		 - grid (optional). Coordinate system (required on first call). 
+		 - kwargs. Passed to UniformGridInterpolation (includes order)
 		"""
 		vdim = len(grid)
 		try: assert self.vdim == vdim
@@ -294,8 +313,9 @@ class Base:
 	def at(self,x):
 		"""
 		Interpolates the metric to a given position, on a grid given beforehand.
+
 		Inputs : 
-			- x. Place where interpolation is needed.
+		 - x. Place where interpolation is needed.
 		"""
 		return self.from_generator(
 			field(x) if callable(field) else field
