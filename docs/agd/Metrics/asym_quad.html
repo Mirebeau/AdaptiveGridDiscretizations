@@ -388,8 +388,17 @@ The array must be symmetric, a.k.a m[i,j] = m[j,i] for all 0 &lt;= i &lt; j &lt;
 
         </details>
 
-            <div class="docstring"><p>Norm defiend by the metric. 
-Expected to be 1-homogeneous w.r.t. v</p>
+            <div class="docstring"><p>Norm or quasi-norm defined by the class, often denoted $N$ in mathematical 
+formulas. Unless incorrect data is provided, this member function obeys, 
+for all vectors $u,v\in R^d$ and all $\alpha \geq 0$</p>
+
+<ul>
+<li>$N(u+v) \leq N(u)+N(v)$</li>
+<li>$N(\alpha u) = \alpha N(u)$</li>
+<li>$N(u)\geq 0$ with equality iff $u=0$.</li>
+</ul>
+
+<p>Broadcasting will occur depending on the shape of $v$ and of the class data.</p>
 </div>
 
 
@@ -413,7 +422,7 @@ Expected to be 1-homogeneous w.r.t. v</p>
 
         </details>
 
-            <div class="docstring"><p>Dual norm, mathematically defined by 
+            <div class="docstring"><p>Dual <code><a href="#AsymQuad.norm">norm</a></code>, mathematically defined by 
 $N^*(x) = max\{ &lt; x, y> ; N(y)\leq 1 \}$</p>
 </div>
 
@@ -425,7 +434,7 @@ $N^*(x) = max\{ &lt; x, y> ; N(y)\leq 1 \}$</p>
         <span class="name">vdim</span>
     </div>
 
-            <div class="docstring"><p>Ambient vector space dimension</p>
+            <div class="docstring"><p>The ambient vector space dimension, often denoted $d$ in mathematical formulas.</p>
 </div>
 
 
@@ -437,7 +446,7 @@ $N^*(x) = max\{ &lt; x, y> ; N(y)\leq 1 \}$</p>
     </div>
 
             <div class="docstring"><p>Dimensions of the underlying domain.
-Expected to be the empty tuple, or a tuple of length vdim.</p>
+Expected to be the empty tuple, or a tuple of length <code><a href="#AsymQuad.vdim">vdim</a></code>.</p>
 </div>
 
 
@@ -458,7 +467,7 @@ Expected to be the empty tuple, or a tuple of length vdim.</p>
 
         </details>
 
-            <div class="docstring"><p>Wether norm(u)=0 implies u=0.</p>
+            <div class="docstring"><p>Attempts to check wether the data defines a mathematically valid <code><a href="#AsymQuad.norm">norm</a></code>.</p>
 </div>
 
 
@@ -481,8 +490,11 @@ Expected to be the empty tuple, or a tuple of length vdim.</p>
 
         </details>
 
-            <div class="docstring"><p>Sharp upper bound on norm(u)/norm(v), 
-for any unit vectors u and v.</p>
+            <div class="docstring"><p>Anisotropy ratio of the <code><a href="#AsymQuad.norm">norm</a></code> denoted $N$.
+Defined as 
+$$
+        \max_{|u| = |v| = 1} \frac {N(u)}{N(v)}.
+$$</p>
 </div>
 
 
@@ -503,7 +515,8 @@ for any unit vectors u and v.</p>
 
         </details>
 
-            <div class="docstring"><p>Upper bound on norm(u), for any unit vector u.</p>
+            <div class="docstring"><p>Upper bound on $N(u)$, for any unit vector $u$, where $N$ is the <code><a href="#AsymQuad.norm">norm</a></code> 
+defined by the class.</p>
 </div>
 
 
@@ -548,7 +561,10 @@ The new unit ball is the inverse image of the previous one.</p>
 
         </details>
 
-            <div class="docstring"><p>Produces a norm N' obeying N'(x) = N(costs * x)
+            <div class="docstring"><p>Produces a norm $N'$ defined by 
+$$
+N'(x) = N(costs * x)
+$$
 where the multiplication is elementwise.</p>
 </div>
 

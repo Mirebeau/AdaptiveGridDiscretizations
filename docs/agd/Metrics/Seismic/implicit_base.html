@@ -434,8 +434,17 @@ the constraint is a quasi-convex function, but exp(qconv_sqp</em>f) is strongly 
 
         </details>
 
-            <div class="docstring"><p>Norm defiend by the metric. 
-Expected to be 1-homogeneous w.r.t. v</p>
+            <div class="docstring"><p>Norm or quasi-norm defined by the class, often denoted $N$ in mathematical 
+formulas. Unless incorrect data is provided, this member function obeys, 
+for all vectors $u,v\in R^d$ and all $\alpha \geq 0$</p>
+
+<ul>
+<li>$N(u+v) \leq N(u)+N(v)$</li>
+<li>$N(\alpha u) = \alpha N(u)$</li>
+<li>$N(u)\geq 0$ with equality iff $u=0$.</li>
+</ul>
+
+<p>Broadcasting will occur depending on the shape of $v$ and of the class data.</p>
 </div>
 
 
@@ -461,7 +470,7 @@ Expected to be 1-homogeneous w.r.t. v</p>
 
         </details>
 
-            <div class="docstring"><p>Gradient of the norm defined by the metric.</p>
+            <div class="docstring"><p>Gradient of the <code><a href="#ImplicitBase.norm">norm</a></code> defined by the class.</p>
 </div>
 
 

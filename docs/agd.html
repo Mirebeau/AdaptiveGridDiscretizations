@@ -50,6 +50,19 @@
                                pattern=".+" required>
 
 
+                    <h2>Contents</h2>
+                    <ul>
+  <li><a href="#adaptive-grid-discretizations-using-lattice-basis-reduction-agd-lbr">Adaptive Grid Discretizations using Lattice Basis Reduction (AGD-LBR)</a>
+  <ul>
+    <li><a href="#a-set-of-tools-for-discretizing-anisotropic-pdes-on-cartesian-grids">A set of tools for discretizing anisotropic PDEs on cartesian grids</a>
+    <ul>
+      <li><a href="#the-agd-library">The AGD library</a></li>
+      <li><a href="#the-notebooks">The notebooks</a></li>
+      <li><a href="#matlab-users">Matlab users</a></li>
+    </ul></li>
+  </ul></li>
+</ul>
+
 
                     <h2>Submodules</h2>
                     <ul>
@@ -119,7 +132,64 @@ somewhat opposite to numpy's (geometry first).</p></li>
 central tool in our designs of anisotropic PDE discretizations.</p></li>
 </ul>
 
-<p>.. include:: ../README.md</p>
+<h1 id="adaptive-grid-discretizations-using-lattice-basis-reduction-agd-lbr">Adaptive Grid Discretizations using Lattice Basis Reduction (AGD-LBR)</h1>
+
+<h2 id="a-set-of-tools-for-discretizing-anisotropic-pdes-on-cartesian-grids">A set of tools for discretizing anisotropic PDEs on cartesian grids</h2>
+
+<p>This repository contains</p>
+
+<ul>
+<li>the agd library (Adaptive Grid Discretizations), written in Python&reg; and cuda&reg;</li>
+<li>a series of <em>jupyter notebooks</em> in the Python&reg; language, reproducing my research in Anisotropic PDE discretizations and their applications.</li>
+<li>a basic documentation, <a href="https://mirebeau.github.io/AdaptiveGridDiscretizations/agd.html">view online</a>,
+generated with <a href="https://pdoc.dev/">pdoc</a>.</li>
+</ul>
+
+<h3 id="the-agd-library">The AGD library</h3>
+
+<p>The recommended ways to install are</p>
+
+<div class="codehilite"><pre><span></span><code><span class="go">conda install agd -c agd-lbr</span>
+</code></pre></div>
+
+<p>alternatively (required for using the GPU eikonal solver)</p>
+
+<div class="codehilite"><pre><span></span><code><span class="go">pip install agd</span>
+</code></pre></div>
+
+<h3 id="the-notebooks">The notebooks</h3>
+
+<p>You may <a href="http://nbviewer.jupyter.org/urls/rawgithub.com/Mirebeau/AdaptiveGridDiscretizations_showcase/master/Summary.ipynb
+">visualize the notebooks online using nbviewer</a>, or experimentally <a href="https://colab.research.google.com/notebook#fileId=1exIN-55tUG1LFlgoHM582k8o8zy6H46f&amp;offline=true&amp;sandboxMode=true">run and modify the notebooks online using GoogleColab</a>.
+You may need to turn on GPU acceleration in GoogleColab (typical error: cannot import cupy) : Modify->Notebook parameters->GPU.</p>
+
+<p>The notebooks are intended as documentation and testing for the adg library. They encompass:</p>
+
+<ul>
+<li>Anisotropic fast marching methods, for shortest path computation.</li>
+<li>Non-divergence form PDEs, including non-linear PDEs such as Monge-Ampere.</li>
+<li>Divergence form anisotropic PDEs, often encountered in image processing.</li>
+<li>Algorithmic tools, related with lattice basis reduction methods, and automatic differentiation.</li>
+</ul>
+
+<p>For offline consultation, please download and install <a href="https://www.anaconda.com">anaconda</a> or <a href="https://conda.io/en/latest/miniconda.html">miniconda</a>. <br />
+<em>Optionally</em>, you may create a dedicated conda environnement by typing the following in a terminal:</p>
+
+<div class="codehilite"><pre><span></span><code><span class="go">conda env create --file agd-hfm.yaml</span>
+<span class="go">conda activate agd-hfm</span>
+</code></pre></div>
+
+<p>In order to open the book summary, type in a terminal:</p>
+
+<div class="codehilite"><pre><span></span><code><span class="go">jupyter notebook Summary.ipynb</span>
+</code></pre></div>
+
+<p>Then use the hyperlinks to navigate within the notebooks.</p>
+
+<h3 id="matlab-users">Matlab users</h3>
+
+<p>Recent versions of Matlab are able to call the Python interpreter, and thus to use the 
+agd library. See Notebooks_FMM/Matlab for examples featuring the CPU and GPU eikonal solvers.</p>
 </div>
 
                         <details>
@@ -165,6 +235,7 @@ central tool in our designs of anisotropic PDE discretizations.</p></li>
 
 <span class="sd">.. include:: ../README.md</span>
 <span class="sd">&quot;&quot;&quot;</span>
+<span class="n">__docformat__</span> <span class="o">=</span> <span class="s2">&quot;restructuredtext&quot;</span>
 </pre></div>
 
         </details>

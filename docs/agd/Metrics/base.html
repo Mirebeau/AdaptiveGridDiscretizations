@@ -190,7 +190,7 @@
 
 <span class="k">class</span> <span class="nc">Base</span><span class="p">:</span>
 	<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">	Base class for a metric</span>
+<span class="sd">	Base class for a metric, in other words a family of norms.</span>
 <span class="sd">	&quot;&quot;&quot;</span>
 
 	<span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -200,15 +200,21 @@
 		<span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
 
 	<span class="k">def</span> <span class="nf">norm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">v</span><span class="p">):</span>
-		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Norm defiend by the metric. </span>
-<span class="sd">		Expected to be 1-homogeneous w.r.t. v</span>
+		<span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">		Norm or quasi-norm defined by the class, often denoted $N$ in mathematical </span>
+<span class="sd">		formulas. Unless incorrect data is provided, this member function obeys, </span>
+<span class="sd">		for all vectors $u,v\in R^d$ and all $\alpha \geq 0$</span>
+<span class="sd">		 - $N(u+v) \leq N(u)+N(v)$</span>
+<span class="sd">		 - $N(\alpha u) = \alpha N(u)$</span>
+<span class="sd">		 - $N(u)\geq 0$ with equality iff $u=0$.</span>
+
+<span class="sd">		Broadcasting will occur depending on the shape of $v$ and of the class data.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;Error : norm must be specialized in subclass&quot;&quot;&quot;</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="nf">gradient</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">v</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Gradient of the norm defined by the metric.</span>
+<span class="sd">		Gradient of the `norm` defined by the class.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="n">ad</span><span class="o">.</span><span class="n">is_ad</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="ow">or</span> <span class="n">ad</span><span class="o">.</span><span class="n">is_ad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">iterables</span><span class="o">=</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">),)):</span>
 			<span class="n">v_dis</span> <span class="o">=</span> <span class="n">ad</span><span class="o">.</span><span class="n">disassociate</span><span class="p">(</span><span class="n">v</span><span class="p">,</span><span class="n">shape_bound</span><span class="o">=</span><span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
@@ -220,7 +226,7 @@
 	
 	<span class="k">def</span> <span class="nf">dual</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Dual norm, mathematically defined by </span>
+<span class="sd">		Dual `norm`, mathematically defined by </span>
 <span class="sd">		$N^*(x) = max\\{ &lt; x, y&gt; ; N(y)\leq 1 \\}$</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;dual is not implemented for this norm&quot;</span><span class="p">)</span>
@@ -228,7 +234,7 @@
 	<span class="nd">@property</span>
 	<span class="k">def</span> <span class="nf">vdim</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Ambient vector space dimension</span>
+<span class="sd">		The ambient vector space dimension, often denoted $d$ in mathematical formulas.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;vdim is not implemented for this norm&quot;</span><span class="p">)</span>
 
@@ -236,7 +242,7 @@
 	<span class="k">def</span> <span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">		Dimensions of the underlying domain.</span>
-<span class="sd">		Expected to be the empty tuple, or a tuple of length vdim.</span>
+<span class="sd">		Expected to be the empty tuple, or a tuple of length `vdim`.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Shape not implemented for this norm&quot;</span><span class="p">)</span>
 	
@@ -253,43 +259,48 @@
 <span class="c1"># ---- Well posedness related methods -----</span>
 	<span class="k">def</span> <span class="nf">is_definite</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Wether norm(u)=0 implies u=0. </span>
+<span class="sd">		Attempts to check wether the data defines a mathematically valid `norm`.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;is_definite is not implemented for this norm&quot;</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="nf">anisotropy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Sharp upper bound on norm(u)/norm(v), </span>
-<span class="sd">		for any unit vectors u and v.</span>
+		<span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">		Anisotropy ratio of the `norm` denoted $N$.</span>
+<span class="sd">		Defined as </span>
+<span class="sd">		$$</span>
+<span class="sd">			\max_{|u| = |v| = 1} \frac {N(u)}{N(v)}.</span>
+<span class="sd">		$$</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;anisotropy is not implemented for this norm&quot;</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="nf">anisotropy_bound</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Upper bound on norm(u)/norm(v), </span>
-<span class="sd">		for any unit vectors u and v.</span>
+<span class="sd">		An upper bound on the `anisotropy` of the norm.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">anisotropy</span><span class="p">()</span>
 	<span class="k">def</span> <span class="nf">cost_bound</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Upper bound on norm(u), for any unit vector u.</span>
+<span class="sd">		Upper bound on $N(u)$, for any unit vector $u$, where $N$ is the `norm` </span>
+<span class="sd">		defined by the class.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;cost_bound is not implemented for this norm&quot;</span><span class="p">)</span>
 
 <span class="c1"># ---- Causality and acuteness related methods ----</span>
 
 	<span class="k">def</span> <span class="nf">cos_asym</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">u</span><span class="p">,</span><span class="n">v</span><span class="p">):</span>
-		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Generalized cosine defined by the metric, defined as </span>
-<span class="sd">		&lt; grad F(u), v&gt; / F(v)</span>
+		<span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">		Generalized asymmetric cosine defined by the norm $N$, of the angle between two vectors $u,v$. </span>
+<span class="sd">		Defined as </span>
+<span class="sd">		$\cos^a_N(u,v) := &lt; \nabla N(u), v&gt; / N(v)$.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">u</span><span class="p">,</span><span class="n">v</span><span class="o">=</span><span class="p">(</span><span class="n">ad</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="p">(</span><span class="n">u</span><span class="p">,</span><span class="n">v</span><span class="p">))</span>
 		<span class="k">return</span> <span class="n">lp</span><span class="o">.</span><span class="n">dot_VV</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">u</span><span class="p">),</span><span class="n">v</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="nf">cos</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">u</span><span class="p">,</span><span class="n">v</span><span class="p">):</span>
-		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Generalized cosine defined by the metric, defined as </span>
-<span class="sd">		min(cos_asym(u,v),cos_asym(v,u)).</span>
+		<span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">		Generalized cosine defined by the norm $N$. Expression</span>
+<span class="sd">		$\cos_N(u,v) := \min( \cos^a_N (u,v), \cos^a_N(v,u))$,</span>
+<span class="sd">		where $\cos^a_N=$`cos_asym`.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">u</span><span class="p">,</span><span class="n">v</span><span class="o">=</span><span class="p">(</span><span class="n">ad</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="p">(</span><span class="n">u</span><span class="p">,</span><span class="n">v</span><span class="p">))</span>
 		<span class="n">gu</span><span class="p">,</span><span class="n">gv</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">u</span><span class="p">),</span><span class="bp">self</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
@@ -298,9 +309,10 @@
 		<span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">guv</span><span class="o">/</span><span class="n">gvv</span><span class="p">,</span><span class="n">gvu</span><span class="o">/</span><span class="n">guu</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="nf">angle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">u</span><span class="p">,</span><span class="n">v</span><span class="p">):</span>
-		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Generalized unoriented angle defined by the metric,</span>
-<span class="sd">		see the cos and cos_asym member functions.</span>
+		<span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">		Generalized unoriented angle defined by the norm,</span>
+<span class="sd">		defined as $\measuredangle_N(u,v) := \arccos(\cos_N(u,v))$.</span>
+<span class="sd">		See `cos` member functions.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">c</span> <span class="o">=</span> <span class="n">ad</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">u</span><span class="p">,</span><span class="n">v</span><span class="p">))</span>
 		<span class="n">mask</span><span class="o">=</span><span class="n">c</span> <span class="o">&lt;</span> <span class="o">-</span><span class="mf">1.</span>
@@ -340,7 +352,10 @@
 
 	<span class="k">def</span> <span class="nf">with_costs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">costs</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Produces a norm N&#39; obeying N&#39;(x) = N(costs * x)</span>
+<span class="sd">		Produces a norm $N&#39;$ defined by </span>
+<span class="sd">		$$</span>
+<span class="sd">		N&#39;(x) = N(costs * x)</span>
+<span class="sd">		$$</span>
 <span class="sd">		where the multiplication is elementwise.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">a</span> <span class="o">=</span> <span class="n">cps</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">costs</span><span class="p">,</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">costs</span><span class="p">),)</span><span class="o">+</span><span class="n">costs</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
@@ -349,14 +364,17 @@
 
 	<span class="k">def</span> <span class="nf">with_speeds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">speeds</span><span class="p">):</span> 
 		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Produces a norm N&#39; obeying N&#39;(x) = N(x/speeds) </span>
+<span class="sd">		Produces a norm $N&#39;$ obeying </span>
+<span class="sd">		$$</span>
+<span class="sd">		N&#39;(x) = N(x/speeds)</span>
+<span class="sd">		$$ </span>
 <span class="sd">		where the division is elementwise.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">with_costs</span><span class="p">(</span><span class="mf">1.</span><span class="o">/</span><span class="n">speeds</span><span class="p">)</span>
 	
 	<span class="k">def</span> <span class="nf">with_cost</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">cost</span><span class="p">):</span> 
 		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Produces a norm N&#39; obeying N&#39;(x) = N(cost*x)</span>
+<span class="sd">		Produces a norm $N&#39;$ obeying $N&#39;(x) = N(cost*x)$.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">cost</span> <span class="o">=</span> <span class="n">ad</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">cost</span><span class="p">)</span>
 		<span class="n">costs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">cost</span><span class="p">,(</span><span class="bp">self</span><span class="o">.</span><span class="n">vdim</span><span class="p">,)</span><span class="o">+</span><span class="n">cost</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
@@ -365,7 +383,7 @@
 
 	<span class="k">def</span> <span class="nf">with_speed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">speed</span><span class="p">):</span> 
 		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Produces a norm N&#39; obeying N&#39;(x) = N(x/speed)</span>
+<span class="sd">		Produces a norm $N&#39;$ obeying $N&#39;(x) = N(x/speed)$.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">with_cost</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">speed</span><span class="p">)</span>
 
@@ -439,15 +457,15 @@
 <span class="c1"># ---- Related with Lagrandian and Hamiltonian interpretation ----</span>
 
 	<span class="k">def</span> <span class="nf">norm2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">v</span><span class="p">):</span>
-		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Half squared norm.</span>
+		<span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">		Half square of the `norm`, defined by $F(v) := \frac 1 2 N(v)^2$.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
 		<span class="k">return</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">n</span><span class="o">**</span><span class="mi">2</span>
 
 	<span class="k">def</span> <span class="nf">gradient2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">v</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Gradient of the half squared norm.</span>
+<span class="sd">		Gradient of `norm2`the half squared norm.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
 		<span class="k">return</span> <span class="n">lp</span><span class="o">.</span><span class="n">dot_VV</span><span class="p">(</span><span class="n">g</span><span class="p">,</span><span class="n">v</span><span class="p">)</span><span class="o">*</span><span class="n">g</span>
@@ -456,9 +474,10 @@
 		<span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">		Sets interpolation_data, required to specialize the norm </span>
 <span class="sd">		at a given position.</span>
+
 <span class="sd">		Inputs:</span>
-<span class="sd">			- grid (optional). Coordinate system (required on first call). </span>
-<span class="sd">			- kwargs. Passed to UniformGridInterpolation (includes order)</span>
+<span class="sd">		 - grid (optional). Coordinate system (required on first call). </span>
+<span class="sd">		 - kwargs. Passed to UniformGridInterpolation (includes order)</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">vdim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">grid</span><span class="p">)</span>
 		<span class="k">try</span><span class="p">:</span> <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">vdim</span> <span class="o">==</span> <span class="n">vdim</span>
@@ -474,8 +493,9 @@
 	<span class="k">def</span> <span class="nf">at</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">x</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">		Interpolates the metric to a given position, on a grid given beforehand.</span>
+
 <span class="sd">		Inputs : </span>
-<span class="sd">			- x. Place where interpolation is needed.</span>
+<span class="sd">		 - x. Place where interpolation is needed.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">from_generator</span><span class="p">(</span>
 			<span class="n">field</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">field</span><span class="p">)</span> <span class="k">else</span> <span class="n">field</span>
@@ -506,7 +526,7 @@
             <summary>View Source</summary>
             <div class="codehilite"><pre><span></span><span class="k">class</span> <span class="nc">Base</span><span class="p">:</span>
 	<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">	Base class for a metric</span>
+<span class="sd">	Base class for a metric, in other words a family of norms.</span>
 <span class="sd">	&quot;&quot;&quot;</span>
 
 	<span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -516,15 +536,21 @@
 		<span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
 
 	<span class="k">def</span> <span class="nf">norm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">v</span><span class="p">):</span>
-		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Norm defiend by the metric. </span>
-<span class="sd">		Expected to be 1-homogeneous w.r.t. v</span>
+		<span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">		Norm or quasi-norm defined by the class, often denoted $N$ in mathematical </span>
+<span class="sd">		formulas. Unless incorrect data is provided, this member function obeys, </span>
+<span class="sd">		for all vectors $u,v\in R^d$ and all $\alpha \geq 0$</span>
+<span class="sd">		 - $N(u+v) \leq N(u)+N(v)$</span>
+<span class="sd">		 - $N(\alpha u) = \alpha N(u)$</span>
+<span class="sd">		 - $N(u)\geq 0$ with equality iff $u=0$.</span>
+
+<span class="sd">		Broadcasting will occur depending on the shape of $v$ and of the class data.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;Error : norm must be specialized in subclass&quot;&quot;&quot;</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="nf">gradient</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">v</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Gradient of the norm defined by the metric.</span>
+<span class="sd">		Gradient of the `norm` defined by the class.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="n">ad</span><span class="o">.</span><span class="n">is_ad</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="ow">or</span> <span class="n">ad</span><span class="o">.</span><span class="n">is_ad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">iterables</span><span class="o">=</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">),)):</span>
 			<span class="n">v_dis</span> <span class="o">=</span> <span class="n">ad</span><span class="o">.</span><span class="n">disassociate</span><span class="p">(</span><span class="n">v</span><span class="p">,</span><span class="n">shape_bound</span><span class="o">=</span><span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
@@ -536,7 +562,7 @@
 	
 	<span class="k">def</span> <span class="nf">dual</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Dual norm, mathematically defined by </span>
+<span class="sd">		Dual `norm`, mathematically defined by </span>
 <span class="sd">		$N^*(x) = max\\{ &lt; x, y&gt; ; N(y)\leq 1 \\}$</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;dual is not implemented for this norm&quot;</span><span class="p">)</span>
@@ -544,7 +570,7 @@
 	<span class="nd">@property</span>
 	<span class="k">def</span> <span class="nf">vdim</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Ambient vector space dimension</span>
+<span class="sd">		The ambient vector space dimension, often denoted $d$ in mathematical formulas.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;vdim is not implemented for this norm&quot;</span><span class="p">)</span>
 
@@ -552,7 +578,7 @@
 	<span class="k">def</span> <span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">		Dimensions of the underlying domain.</span>
-<span class="sd">		Expected to be the empty tuple, or a tuple of length vdim.</span>
+<span class="sd">		Expected to be the empty tuple, or a tuple of length `vdim`.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Shape not implemented for this norm&quot;</span><span class="p">)</span>
 	
@@ -569,43 +595,48 @@
 <span class="c1"># ---- Well posedness related methods -----</span>
 	<span class="k">def</span> <span class="nf">is_definite</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Wether norm(u)=0 implies u=0. </span>
+<span class="sd">		Attempts to check wether the data defines a mathematically valid `norm`.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;is_definite is not implemented for this norm&quot;</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="nf">anisotropy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Sharp upper bound on norm(u)/norm(v), </span>
-<span class="sd">		for any unit vectors u and v.</span>
+		<span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">		Anisotropy ratio of the `norm` denoted $N$.</span>
+<span class="sd">		Defined as </span>
+<span class="sd">		$$</span>
+<span class="sd">			\max_{|u| = |v| = 1} \frac {N(u)}{N(v)}.</span>
+<span class="sd">		$$</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;anisotropy is not implemented for this norm&quot;</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="nf">anisotropy_bound</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Upper bound on norm(u)/norm(v), </span>
-<span class="sd">		for any unit vectors u and v.</span>
+<span class="sd">		An upper bound on the `anisotropy` of the norm.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">anisotropy</span><span class="p">()</span>
 	<span class="k">def</span> <span class="nf">cost_bound</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Upper bound on norm(u), for any unit vector u.</span>
+<span class="sd">		Upper bound on $N(u)$, for any unit vector $u$, where $N$ is the `norm` </span>
+<span class="sd">		defined by the class.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;cost_bound is not implemented for this norm&quot;</span><span class="p">)</span>
 
 <span class="c1"># ---- Causality and acuteness related methods ----</span>
 
 	<span class="k">def</span> <span class="nf">cos_asym</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">u</span><span class="p">,</span><span class="n">v</span><span class="p">):</span>
-		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Generalized cosine defined by the metric, defined as </span>
-<span class="sd">		&lt; grad F(u), v&gt; / F(v)</span>
+		<span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">		Generalized asymmetric cosine defined by the norm $N$, of the angle between two vectors $u,v$. </span>
+<span class="sd">		Defined as </span>
+<span class="sd">		$\cos^a_N(u,v) := &lt; \nabla N(u), v&gt; / N(v)$.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">u</span><span class="p">,</span><span class="n">v</span><span class="o">=</span><span class="p">(</span><span class="n">ad</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="p">(</span><span class="n">u</span><span class="p">,</span><span class="n">v</span><span class="p">))</span>
 		<span class="k">return</span> <span class="n">lp</span><span class="o">.</span><span class="n">dot_VV</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">u</span><span class="p">),</span><span class="n">v</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="nf">cos</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">u</span><span class="p">,</span><span class="n">v</span><span class="p">):</span>
-		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Generalized cosine defined by the metric, defined as </span>
-<span class="sd">		min(cos_asym(u,v),cos_asym(v,u)).</span>
+		<span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">		Generalized cosine defined by the norm $N$. Expression</span>
+<span class="sd">		$\cos_N(u,v) := \min( \cos^a_N (u,v), \cos^a_N(v,u))$,</span>
+<span class="sd">		where $\cos^a_N=$`cos_asym`.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">u</span><span class="p">,</span><span class="n">v</span><span class="o">=</span><span class="p">(</span><span class="n">ad</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="p">(</span><span class="n">u</span><span class="p">,</span><span class="n">v</span><span class="p">))</span>
 		<span class="n">gu</span><span class="p">,</span><span class="n">gv</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">u</span><span class="p">),</span><span class="bp">self</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
@@ -614,9 +645,10 @@
 		<span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">guv</span><span class="o">/</span><span class="n">gvv</span><span class="p">,</span><span class="n">gvu</span><span class="o">/</span><span class="n">guu</span><span class="p">)</span>
 
 	<span class="k">def</span> <span class="nf">angle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">u</span><span class="p">,</span><span class="n">v</span><span class="p">):</span>
-		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Generalized unoriented angle defined by the metric,</span>
-<span class="sd">		see the cos and cos_asym member functions.</span>
+		<span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">		Generalized unoriented angle defined by the norm,</span>
+<span class="sd">		defined as $\measuredangle_N(u,v) := \arccos(\cos_N(u,v))$.</span>
+<span class="sd">		See `cos` member functions.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">c</span> <span class="o">=</span> <span class="n">ad</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">u</span><span class="p">,</span><span class="n">v</span><span class="p">))</span>
 		<span class="n">mask</span><span class="o">=</span><span class="n">c</span> <span class="o">&lt;</span> <span class="o">-</span><span class="mf">1.</span>
@@ -656,7 +688,10 @@
 
 	<span class="k">def</span> <span class="nf">with_costs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">costs</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Produces a norm N&#39; obeying N&#39;(x) = N(costs * x)</span>
+<span class="sd">		Produces a norm $N&#39;$ defined by </span>
+<span class="sd">		$$</span>
+<span class="sd">		N&#39;(x) = N(costs * x)</span>
+<span class="sd">		$$</span>
 <span class="sd">		where the multiplication is elementwise.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">a</span> <span class="o">=</span> <span class="n">cps</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">costs</span><span class="p">,</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">costs</span><span class="p">),)</span><span class="o">+</span><span class="n">costs</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
@@ -665,14 +700,17 @@
 
 	<span class="k">def</span> <span class="nf">with_speeds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">speeds</span><span class="p">):</span> 
 		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Produces a norm N&#39; obeying N&#39;(x) = N(x/speeds) </span>
+<span class="sd">		Produces a norm $N&#39;$ obeying </span>
+<span class="sd">		$$</span>
+<span class="sd">		N&#39;(x) = N(x/speeds)</span>
+<span class="sd">		$$ </span>
 <span class="sd">		where the division is elementwise.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">with_costs</span><span class="p">(</span><span class="mf">1.</span><span class="o">/</span><span class="n">speeds</span><span class="p">)</span>
 	
 	<span class="k">def</span> <span class="nf">with_cost</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">cost</span><span class="p">):</span> 
 		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Produces a norm N&#39; obeying N&#39;(x) = N(cost*x)</span>
+<span class="sd">		Produces a norm $N&#39;$ obeying $N&#39;(x) = N(cost*x)$.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">cost</span> <span class="o">=</span> <span class="n">ad</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">cost</span><span class="p">)</span>
 		<span class="n">costs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">cost</span><span class="p">,(</span><span class="bp">self</span><span class="o">.</span><span class="n">vdim</span><span class="p">,)</span><span class="o">+</span><span class="n">cost</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
@@ -681,7 +719,7 @@
 
 	<span class="k">def</span> <span class="nf">with_speed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">speed</span><span class="p">):</span> 
 		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Produces a norm N&#39; obeying N&#39;(x) = N(x/speed)</span>
+<span class="sd">		Produces a norm $N&#39;$ obeying $N&#39;(x) = N(x/speed)$.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">with_cost</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">speed</span><span class="p">)</span>
 
@@ -755,15 +793,15 @@
 <span class="c1"># ---- Related with Lagrandian and Hamiltonian interpretation ----</span>
 
 	<span class="k">def</span> <span class="nf">norm2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">v</span><span class="p">):</span>
-		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Half squared norm.</span>
+		<span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">		Half square of the `norm`, defined by $F(v) := \frac 1 2 N(v)^2$.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
 		<span class="k">return</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">n</span><span class="o">**</span><span class="mi">2</span>
 
 	<span class="k">def</span> <span class="nf">gradient2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">v</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Gradient of the half squared norm.</span>
+<span class="sd">		Gradient of `norm2`the half squared norm.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
 		<span class="k">return</span> <span class="n">lp</span><span class="o">.</span><span class="n">dot_VV</span><span class="p">(</span><span class="n">g</span><span class="p">,</span><span class="n">v</span><span class="p">)</span><span class="o">*</span><span class="n">g</span>
@@ -772,9 +810,10 @@
 		<span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">		Sets interpolation_data, required to specialize the norm </span>
 <span class="sd">		at a given position.</span>
+
 <span class="sd">		Inputs:</span>
-<span class="sd">			- grid (optional). Coordinate system (required on first call). </span>
-<span class="sd">			- kwargs. Passed to UniformGridInterpolation (includes order)</span>
+<span class="sd">		 - grid (optional). Coordinate system (required on first call). </span>
+<span class="sd">		 - kwargs. Passed to UniformGridInterpolation (includes order)</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">vdim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">grid</span><span class="p">)</span>
 		<span class="k">try</span><span class="p">:</span> <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">vdim</span> <span class="o">==</span> <span class="n">vdim</span>
@@ -790,8 +829,9 @@
 	<span class="k">def</span> <span class="nf">at</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">x</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">		Interpolates the metric to a given position, on a grid given beforehand.</span>
+
 <span class="sd">		Inputs : </span>
-<span class="sd">			- x. Place where interpolation is needed.</span>
+<span class="sd">		 - x. Place where interpolation is needed.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">from_generator</span><span class="p">(</span>
 			<span class="n">field</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">field</span><span class="p">)</span> <span class="k">else</span> <span class="n">field</span>
@@ -801,7 +841,7 @@
 
         </details>
 
-            <div class="docstring"><p>Base class for a metric</p>
+            <div class="docstring"><p>Base class for a metric, in other words a family of norms.</p>
 </div>
 
 
@@ -827,17 +867,32 @@
                 <details>
             <summary>View Source</summary>
             <div class="codehilite"><pre><span></span>	<span class="k">def</span> <span class="nf">norm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">v</span><span class="p">):</span>
-		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Norm defiend by the metric. </span>
-<span class="sd">		Expected to be 1-homogeneous w.r.t. v</span>
+		<span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">		Norm or quasi-norm defined by the class, often denoted $N$ in mathematical </span>
+<span class="sd">		formulas. Unless incorrect data is provided, this member function obeys, </span>
+<span class="sd">		for all vectors $u,v\in R^d$ and all $\alpha \geq 0$</span>
+<span class="sd">		 - $N(u+v) \leq N(u)+N(v)$</span>
+<span class="sd">		 - $N(\alpha u) = \alpha N(u)$</span>
+<span class="sd">		 - $N(u)\geq 0$ with equality iff $u=0$.</span>
+
+<span class="sd">		Broadcasting will occur depending on the shape of $v$ and of the class data.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;Error : norm must be specialized in subclass&quot;&quot;&quot;</span><span class="p">)</span>
 </pre></div>
 
         </details>
 
-            <div class="docstring"><p>Norm defiend by the metric. 
-Expected to be 1-homogeneous w.r.t. v</p>
+            <div class="docstring"><p>Norm or quasi-norm defined by the class, often denoted $N$ in mathematical 
+formulas. Unless incorrect data is provided, this member function obeys, 
+for all vectors $u,v\in R^d$ and all $\alpha \geq 0$</p>
+
+<ul>
+<li>$N(u+v) \leq N(u)+N(v)$</li>
+<li>$N(\alpha u) = \alpha N(u)$</li>
+<li>$N(u)\geq 0$ with equality iff $u=0$.</li>
+</ul>
+
+<p>Broadcasting will occur depending on the shape of $v$ and of the class data.</p>
 </div>
 
 
@@ -854,7 +909,7 @@ Expected to be 1-homogeneous w.r.t. v</p>
             <summary>View Source</summary>
             <div class="codehilite"><pre><span></span>	<span class="k">def</span> <span class="nf">gradient</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">v</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Gradient of the norm defined by the metric.</span>
+<span class="sd">		Gradient of the `norm` defined by the class.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="n">ad</span><span class="o">.</span><span class="n">is_ad</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="ow">or</span> <span class="n">ad</span><span class="o">.</span><span class="n">is_ad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">iterables</span><span class="o">=</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">),)):</span>
 			<span class="n">v_dis</span> <span class="o">=</span> <span class="n">ad</span><span class="o">.</span><span class="n">disassociate</span><span class="p">(</span><span class="n">v</span><span class="p">,</span><span class="n">shape_bound</span><span class="o">=</span><span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
@@ -867,7 +922,7 @@ Expected to be 1-homogeneous w.r.t. v</p>
 
         </details>
 
-            <div class="docstring"><p>Gradient of the norm defined by the metric.</p>
+            <div class="docstring"><p>Gradient of the <code><a href="#Base.norm">norm</a></code> defined by the class.</p>
 </div>
 
 
@@ -884,7 +939,7 @@ Expected to be 1-homogeneous w.r.t. v</p>
             <summary>View Source</summary>
             <div class="codehilite"><pre><span></span>	<span class="k">def</span> <span class="nf">dual</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Dual norm, mathematically defined by </span>
+<span class="sd">		Dual `norm`, mathematically defined by </span>
 <span class="sd">		$N^*(x) = max\\{ &lt; x, y&gt; ; N(y)\leq 1 \\}$</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;dual is not implemented for this norm&quot;</span><span class="p">)</span>
@@ -892,7 +947,7 @@ Expected to be 1-homogeneous w.r.t. v</p>
 
         </details>
 
-            <div class="docstring"><p>Dual norm, mathematically defined by 
+            <div class="docstring"><p>Dual <code><a href="#Base.norm">norm</a></code>, mathematically defined by 
 $N^*(x) = max\{ &lt; x, y> ; N(y)\leq 1 \}$</p>
 </div>
 
@@ -904,7 +959,7 @@ $N^*(x) = max\{ &lt; x, y> ; N(y)\leq 1 \}$</p>
         <span class="name">vdim</span>
     </div>
 
-            <div class="docstring"><p>Ambient vector space dimension</p>
+            <div class="docstring"><p>The ambient vector space dimension, often denoted $d$ in mathematical formulas.</p>
 </div>
 
 
@@ -916,7 +971,7 @@ $N^*(x) = max\{ &lt; x, y> ; N(y)\leq 1 \}$</p>
     </div>
 
             <div class="docstring"><p>Dimensions of the underlying domain.
-Expected to be the empty tuple, or a tuple of length vdim.</p>
+Expected to be the empty tuple, or a tuple of length <code><a href="#Base.vdim">vdim</a></code>.</p>
 </div>
 
 
@@ -963,14 +1018,14 @@ See AutomaticDifferentiation.disassociate</p>
             <summary>View Source</summary>
             <div class="codehilite"><pre><span></span>	<span class="k">def</span> <span class="nf">is_definite</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Wether norm(u)=0 implies u=0. </span>
+<span class="sd">		Attempts to check wether the data defines a mathematically valid `norm`.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;is_definite is not implemented for this norm&quot;</span><span class="p">)</span>
 </pre></div>
 
         </details>
 
-            <div class="docstring"><p>Wether norm(u)=0 implies u=0.</p>
+            <div class="docstring"><p>Attempts to check wether the data defines a mathematically valid <code><a href="#Base.norm">norm</a></code>.</p>
 </div>
 
 
@@ -986,17 +1041,23 @@ See AutomaticDifferentiation.disassociate</p>
                 <details>
             <summary>View Source</summary>
             <div class="codehilite"><pre><span></span>	<span class="k">def</span> <span class="nf">anisotropy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Sharp upper bound on norm(u)/norm(v), </span>
-<span class="sd">		for any unit vectors u and v.</span>
+		<span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">		Anisotropy ratio of the `norm` denoted $N$.</span>
+<span class="sd">		Defined as </span>
+<span class="sd">		$$</span>
+<span class="sd">			\max_{|u| = |v| = 1} \frac {N(u)}{N(v)}.</span>
+<span class="sd">		$$</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;anisotropy is not implemented for this norm&quot;</span><span class="p">)</span>
 </pre></div>
 
         </details>
 
-            <div class="docstring"><p>Sharp upper bound on norm(u)/norm(v), 
-for any unit vectors u and v.</p>
+            <div class="docstring"><p>Anisotropy ratio of the <code><a href="#Base.norm">norm</a></code> denoted $N$.
+Defined as 
+$$
+        \max_{|u| = |v| = 1} \frac {N(u)}{N(v)}.
+$$</p>
 </div>
 
 
@@ -1013,16 +1074,14 @@ for any unit vectors u and v.</p>
             <summary>View Source</summary>
             <div class="codehilite"><pre><span></span>	<span class="k">def</span> <span class="nf">anisotropy_bound</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Upper bound on norm(u)/norm(v), </span>
-<span class="sd">		for any unit vectors u and v.</span>
+<span class="sd">		An upper bound on the `anisotropy` of the norm.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">anisotropy</span><span class="p">()</span>
 </pre></div>
 
         </details>
 
-            <div class="docstring"><p>Upper bound on norm(u)/norm(v), 
-for any unit vectors u and v.</p>
+            <div class="docstring"><p>An upper bound on the <code><a href="#Base.anisotropy">anisotropy</a></code> of the norm.</p>
 </div>
 
 
@@ -1039,14 +1098,16 @@ for any unit vectors u and v.</p>
             <summary>View Source</summary>
             <div class="codehilite"><pre><span></span>	<span class="k">def</span> <span class="nf">cost_bound</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Upper bound on norm(u), for any unit vector u.</span>
+<span class="sd">		Upper bound on $N(u)$, for any unit vector $u$, where $N$ is the `norm` </span>
+<span class="sd">		defined by the class.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;cost_bound is not implemented for this norm&quot;</span><span class="p">)</span>
 </pre></div>
 
         </details>
 
-            <div class="docstring"><p>Upper bound on norm(u), for any unit vector u.</p>
+            <div class="docstring"><p>Upper bound on $N(u)$, for any unit vector $u$, where $N$ is the <code><a href="#Base.norm">norm</a></code> 
+defined by the class.</p>
 </div>
 
 
@@ -1062,9 +1123,10 @@ for any unit vectors u and v.</p>
                 <details>
             <summary>View Source</summary>
             <div class="codehilite"><pre><span></span>	<span class="k">def</span> <span class="nf">cos_asym</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">u</span><span class="p">,</span><span class="n">v</span><span class="p">):</span>
-		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Generalized cosine defined by the metric, defined as </span>
-<span class="sd">		&lt; grad F(u), v&gt; / F(v)</span>
+		<span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">		Generalized asymmetric cosine defined by the norm $N$, of the angle between two vectors $u,v$. </span>
+<span class="sd">		Defined as </span>
+<span class="sd">		$\cos^a_N(u,v) := &lt; \nabla N(u), v&gt; / N(v)$.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">u</span><span class="p">,</span><span class="n">v</span><span class="o">=</span><span class="p">(</span><span class="n">ad</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="p">(</span><span class="n">u</span><span class="p">,</span><span class="n">v</span><span class="p">))</span>
 		<span class="k">return</span> <span class="n">lp</span><span class="o">.</span><span class="n">dot_VV</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">u</span><span class="p">),</span><span class="n">v</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
@@ -1072,8 +1134,9 @@ for any unit vectors u and v.</p>
 
         </details>
 
-            <div class="docstring"><p>Generalized cosine defined by the metric, defined as 
-&lt; grad F(u), v> / F(v)</p>
+            <div class="docstring"><p>Generalized asymmetric cosine defined by the norm $N$, of the angle between two vectors $u,v$. 
+Defined as 
+$\cos^a_N(u,v) := &lt; \nabla N(u), v> / N(v)$.</p>
 </div>
 
 
@@ -1089,9 +1152,10 @@ for any unit vectors u and v.</p>
                 <details>
             <summary>View Source</summary>
             <div class="codehilite"><pre><span></span>	<span class="k">def</span> <span class="nf">cos</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">u</span><span class="p">,</span><span class="n">v</span><span class="p">):</span>
-		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Generalized cosine defined by the metric, defined as </span>
-<span class="sd">		min(cos_asym(u,v),cos_asym(v,u)).</span>
+		<span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">		Generalized cosine defined by the norm $N$. Expression</span>
+<span class="sd">		$\cos_N(u,v) := \min( \cos^a_N (u,v), \cos^a_N(v,u))$,</span>
+<span class="sd">		where $\cos^a_N=$`cos_asym`.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">u</span><span class="p">,</span><span class="n">v</span><span class="o">=</span><span class="p">(</span><span class="n">ad</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="p">(</span><span class="n">u</span><span class="p">,</span><span class="n">v</span><span class="p">))</span>
 		<span class="n">gu</span><span class="p">,</span><span class="n">gv</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">u</span><span class="p">),</span><span class="bp">self</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
@@ -1102,8 +1166,9 @@ for any unit vectors u and v.</p>
 
         </details>
 
-            <div class="docstring"><p>Generalized cosine defined by the metric, defined as 
-min(cos_asym(u,v),cos_asym(v,u)).</p>
+            <div class="docstring"><p>Generalized cosine defined by the norm $N$. Expression
+$\cos_N(u,v) := \min( \cos^a_N (u,v), \cos^a_N(v,u))$,
+where $\cos^a_N=$<code><a href="#Base.cos_asym">cos_asym</a></code>.</p>
 </div>
 
 
@@ -1119,9 +1184,10 @@ min(cos_asym(u,v),cos_asym(v,u)).</p>
                 <details>
             <summary>View Source</summary>
             <div class="codehilite"><pre><span></span>	<span class="k">def</span> <span class="nf">angle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">u</span><span class="p">,</span><span class="n">v</span><span class="p">):</span>
-		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Generalized unoriented angle defined by the metric,</span>
-<span class="sd">		see the cos and cos_asym member functions.</span>
+		<span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">		Generalized unoriented angle defined by the norm,</span>
+<span class="sd">		defined as $\measuredangle_N(u,v) := \arccos(\cos_N(u,v))$.</span>
+<span class="sd">		See `cos` member functions.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">c</span> <span class="o">=</span> <span class="n">ad</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">u</span><span class="p">,</span><span class="n">v</span><span class="p">))</span>
 		<span class="n">mask</span><span class="o">=</span><span class="n">c</span> <span class="o">&lt;</span> <span class="o">-</span><span class="mf">1.</span>
@@ -1133,8 +1199,9 @@ min(cos_asym(u,v),cos_asym(v,u)).</p>
 
         </details>
 
-            <div class="docstring"><p>Generalized unoriented angle defined by the metric,
-see the cos and cos_asym member functions.</p>
+            <div class="docstring"><p>Generalized unoriented angle defined by the norm,
+defined as $\measuredangle_N(u,v) := \arccos(cos_N(u,v))$.
+See <code><a href="#Base.cos">cos</a></code> member functions.</p>
 </div>
 
 
@@ -1253,7 +1320,10 @@ The new unit ball is the direct image of the previous one.</p>
             <summary>View Source</summary>
             <div class="codehilite"><pre><span></span>	<span class="k">def</span> <span class="nf">with_costs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">costs</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Produces a norm N&#39; obeying N&#39;(x) = N(costs * x)</span>
+<span class="sd">		Produces a norm $N&#39;$ defined by </span>
+<span class="sd">		$$</span>
+<span class="sd">		N&#39;(x) = N(costs * x)</span>
+<span class="sd">		$$</span>
 <span class="sd">		where the multiplication is elementwise.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">a</span> <span class="o">=</span> <span class="n">cps</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">costs</span><span class="p">,</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">costs</span><span class="p">),)</span><span class="o">+</span><span class="n">costs</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
@@ -1263,7 +1333,10 @@ The new unit ball is the direct image of the previous one.</p>
 
         </details>
 
-            <div class="docstring"><p>Produces a norm N' obeying N'(x) = N(costs * x)
+            <div class="docstring"><p>Produces a norm $N'$ defined by 
+$$
+N'(x) = N(costs * x)
+$$
 where the multiplication is elementwise.</p>
 </div>
 
@@ -1281,7 +1354,10 @@ where the multiplication is elementwise.</p>
             <summary>View Source</summary>
             <div class="codehilite"><pre><span></span>	<span class="k">def</span> <span class="nf">with_speeds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">speeds</span><span class="p">):</span> 
 		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Produces a norm N&#39; obeying N&#39;(x) = N(x/speeds) </span>
+<span class="sd">		Produces a norm $N&#39;$ obeying </span>
+<span class="sd">		$$</span>
+<span class="sd">		N&#39;(x) = N(x/speeds)</span>
+<span class="sd">		$$ </span>
 <span class="sd">		where the division is elementwise.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">with_costs</span><span class="p">(</span><span class="mf">1.</span><span class="o">/</span><span class="n">speeds</span><span class="p">)</span>
@@ -1289,7 +1365,10 @@ where the multiplication is elementwise.</p>
 
         </details>
 
-            <div class="docstring"><p>Produces a norm N' obeying N'(x) = N(x/speeds) 
+            <div class="docstring"><p>Produces a norm $N'$ obeying 
+$$
+N'(x) = N(x/speeds)
+$$ 
 where the division is elementwise.</p>
 </div>
 
@@ -1307,7 +1386,7 @@ where the division is elementwise.</p>
             <summary>View Source</summary>
             <div class="codehilite"><pre><span></span>	<span class="k">def</span> <span class="nf">with_cost</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">cost</span><span class="p">):</span> 
 		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Produces a norm N&#39; obeying N&#39;(x) = N(cost*x)</span>
+<span class="sd">		Produces a norm $N&#39;$ obeying $N&#39;(x) = N(cost*x)$.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">cost</span> <span class="o">=</span> <span class="n">ad</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">cost</span><span class="p">)</span>
 		<span class="n">costs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">cost</span><span class="p">,(</span><span class="bp">self</span><span class="o">.</span><span class="n">vdim</span><span class="p">,)</span><span class="o">+</span><span class="n">cost</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
@@ -1316,7 +1395,7 @@ where the division is elementwise.</p>
 
         </details>
 
-            <div class="docstring"><p>Produces a norm N' obeying N'(x) = N(cost*x)</p>
+            <div class="docstring"><p>Produces a norm $N'$ obeying $N'(x) = N(cost*x)$.</p>
 </div>
 
 
@@ -1333,14 +1412,14 @@ where the division is elementwise.</p>
             <summary>View Source</summary>
             <div class="codehilite"><pre><span></span>	<span class="k">def</span> <span class="nf">with_speed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">speed</span><span class="p">):</span> 
 		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Produces a norm N&#39; obeying N&#39;(x) = N(x/speed)</span>
+<span class="sd">		Produces a norm $N&#39;$ obeying $N&#39;(x) = N(x/speed)$.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">with_cost</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">speed</span><span class="p">)</span>
 </pre></div>
 
         </details>
 
-            <div class="docstring"><p>Produces a norm N' obeying N'(x) = N(x/speed)</p>
+            <div class="docstring"><p>Produces a norm $N'$ obeying $N'(x) = N(x/speed)$.</p>
 </div>
 
 
@@ -1553,8 +1632,8 @@ arrays with the suitable floating point type, from the suitable library
                 <details>
             <summary>View Source</summary>
             <div class="codehilite"><pre><span></span>	<span class="k">def</span> <span class="nf">norm2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">v</span><span class="p">):</span>
-		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Half squared norm.</span>
+		<span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">		Half square of the `norm`, defined by $F(v) := \frac 1 2 N(v)^2$.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
 		<span class="k">return</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">n</span><span class="o">**</span><span class="mi">2</span>
@@ -1562,7 +1641,7 @@ arrays with the suitable floating point type, from the suitable library
 
         </details>
 
-            <div class="docstring"><p>Half squared norm.</p>
+            <div class="docstring"><p>Half square of the <code><a href="#Base.norm">norm</a></code>, defined by $F(v) := \frac 1 2 N(v)^2$.</p>
 </div>
 
 
@@ -1579,7 +1658,7 @@ arrays with the suitable floating point type, from the suitable library
             <summary>View Source</summary>
             <div class="codehilite"><pre><span></span>	<span class="k">def</span> <span class="nf">gradient2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">v</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Gradient of the half squared norm.</span>
+<span class="sd">		Gradient of `norm2`the half squared norm.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
 		<span class="k">return</span> <span class="n">lp</span><span class="o">.</span><span class="n">dot_VV</span><span class="p">(</span><span class="n">g</span><span class="p">,</span><span class="n">v</span><span class="p">)</span><span class="o">*</span><span class="n">g</span>
@@ -1587,7 +1666,7 @@ arrays with the suitable floating point type, from the suitable library
 
         </details>
 
-            <div class="docstring"><p>Gradient of the half squared norm.</p>
+            <div class="docstring"><p>Gradient of <code><a href="#Base.norm2">norm2</a></code>the half squared norm.</p>
 </div>
 
 
@@ -1606,9 +1685,10 @@ arrays with the suitable floating point type, from the suitable library
 		<span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">		Sets interpolation_data, required to specialize the norm </span>
 <span class="sd">		at a given position.</span>
+
 <span class="sd">		Inputs:</span>
-<span class="sd">			- grid (optional). Coordinate system (required on first call). </span>
-<span class="sd">			- kwargs. Passed to UniformGridInterpolation (includes order)</span>
+<span class="sd">		 - grid (optional). Coordinate system (required on first call). </span>
+<span class="sd">		 - kwargs. Passed to UniformGridInterpolation (includes order)</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">vdim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">grid</span><span class="p">)</span>
 		<span class="k">try</span><span class="p">:</span> <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">vdim</span> <span class="o">==</span> <span class="n">vdim</span>
@@ -1625,10 +1705,14 @@ arrays with the suitable floating point type, from the suitable library
         </details>
 
             <div class="docstring"><p>Sets interpolation_data, required to specialize the norm 
-at a given position.
-Inputs:
-        - grid (optional). Coordinate system (required on first call). 
-        - kwargs. Passed to UniformGridInterpolation (includes order)</p>
+at a given position.</p>
+
+<p>Inputs:</p>
+
+<ul>
+<li>grid (optional). Coordinate system (required on first call). </li>
+<li>kwargs. Passed to UniformGridInterpolation (includes order)</li>
+</ul>
 </div>
 
 
@@ -1646,8 +1730,9 @@ Inputs:
             <div class="codehilite"><pre><span></span>	<span class="k">def</span> <span class="nf">at</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">x</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">		Interpolates the metric to a given position, on a grid given beforehand.</span>
+
 <span class="sd">		Inputs : </span>
-<span class="sd">			- x. Place where interpolation is needed.</span>
+<span class="sd">		 - x. Place where interpolation is needed.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">from_generator</span><span class="p">(</span>
 			<span class="n">field</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">field</span><span class="p">)</span> <span class="k">else</span> <span class="n">field</span>
@@ -1657,9 +1742,13 @@ Inputs:
 
         </details>
 
-            <div class="docstring"><p>Interpolates the metric to a given position, on a grid given beforehand.
-Inputs : 
-        - x. Place where interpolation is needed.</p>
+            <div class="docstring"><p>Interpolates the metric to a given position, on a grid given beforehand.</p>
+
+<p>Inputs : </p>
+
+<ul>
+<li>x. Place where interpolation is needed.</li>
+</ul>
 </div>
 
 
