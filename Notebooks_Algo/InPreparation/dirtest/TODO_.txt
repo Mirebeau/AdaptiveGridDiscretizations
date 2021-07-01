@@ -1,5 +1,0 @@
-- Put toc on website
-- Rework Sparse, to illustrate e.g. 1D laplacian construction and TV Minimization.
-
-- NonDiv
- - Optimal transportation with correct bc 
