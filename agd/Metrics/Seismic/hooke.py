@@ -16,9 +16,11 @@ from .implicit_base import ImplicitBase
 from .thomsen_data import HexagonalFromTEM
 
 class Hooke(ImplicitBase):
-	"""
+	r"""
 	The *dual* norm defined by a Hooke tensor takes the form 
-	F^*(x) = max_{|y|<=1} sqrt(c_ijkl xi yj xk yl)
+	$$
+	F^*(x) = \max_{|y|\leq 1} \sqrt{\sum_{ijkl} c_{ijkl} x_i y_j x_k y_l}
+	$$
 	where c is the Hooke tensor, and y ranges over the unit ball.
 	The primal norm is obtained implicitly, by solving an optimization problem.
 
@@ -142,7 +144,7 @@ class Hooke(ImplicitBase):
 	def from_Ellipse(cls,m):
 		"""
 		Rank deficient Hooke tensor,
-		equivalent, for pressure waves, to the Riemannian metric defined by m ** -2.
+		equivalent, for pressure waves, to the Riemannian metric defined by $m ^ {-2}$.
 		Shear waves are infinitely slow.
 		"""
 		assert(len(m)==2)
@@ -204,12 +206,12 @@ class Hooke(ImplicitBase):
 		return fd.as_field(factors,shape,conditional=False)
 
 	def to_Mandel(self,a=np.sqrt(2)):
-		"""Introduces the sqrt(2) and 2 factors involved in Mandel's notation"""
+		r"""Introduces the $\sqrt 2$ and $2$ factors involved in Mandel's notation"""
 		return self.hooke*self._Mandel_factors(self.vdim,self.shape)
 
 	@classmethod
 	def from_Mandel(cls,mandel,a=np.sqrt(2)):
-		"""Removes the sqrt(2) and 2 factors involved in Mandel's notation"""
+		r"""Removes the $\sqrt 2$ and $2$ factors involved in Mandel's notation"""
 		vdim = cls._vdim(len(mandel))
 		return Hooke(mandel/cls._Mandel_factors(vdim,mandel.shape[2:],a))
 
@@ -313,6 +315,8 @@ class Hooke(ImplicitBase):
 		"""
 		Dot product associated with a Hooke tensor, which turns a strain tensor epsilon
 		into a stress tensor sigma.
+
+		Input:
 		- m : the strain tensor.
 		"""
 		v,hooke = fd.common_field((self._Voigt_m2v(m,sym),self.hooke),(1,2))
@@ -322,6 +326,8 @@ class Hooke(ImplicitBase):
 	def dot_AA(self,m1,m2=None,sym=True):
 		"""
 		Inner product associated with a Hooke tensor, on the space of symmetric matrices.
+
+		Inputs:
 		- m1 : first symmetric matrix
 		- m2 : second symmetric matrix. Defaults to m1.
 		"""
@@ -334,11 +340,13 @@ class Hooke(ImplicitBase):
 		return lp.dot_VV(v1,lp.dot_AV(hooke,v2))
 
 	def Selling(self):
-		"""
+		r"""
 		Returns a decomposition of the hooke tensor in the mathematical form
-		hooke = sum_i rho_i m_i x m_i,
-		where rho_i is a non-negative coefficient, m_i is symmetric and has integer 
-		entries, and sum_i rho_i is maximal. 
+		$$
+		hooke = \sum_i \rho_i m_i  m_i^\top,
+		$$
+		where $\rho_i$ is a non-negative coefficient, $m_i$ is symmetric nonzero and has 
+		integer entries, and $\sum_i \rho_i$ is maximal. 
 		"""
 		assert(self.inverse_transformation is None)
 		if self.vdim<=2: coefs,offsets = Selling.Decomposition(self.hooke)
@@ -361,6 +369,7 @@ class Hooke(ImplicitBase):
 	def apply_transform(self):
 		"""
 		Applies the transformation, if any stored, to the hooke tensor. 
+
 		CAUTION : this feature is required for some applications to elasticity, 
 		but is incompatible with the eikonal equation solver.
 		"""
@@ -384,7 +393,7 @@ class Hooke(ImplicitBase):
 		return cls(hooke)
 
 	def contract(self,w):
-		"""Returns the contracted tensor c_ijkl w_j w_l in Einstein's notations."""
+		r"""Returns the contracted tensor $\sum_{j,l}c_{ijkl} w_j w_l$."""
 		voi = self._Voigt
 		hooke,w = fd.common_field((self.hooke,w),depths=(2,1))
 		def c(i,j,k,l): return hooke[voi[i,j],voi[k,l]]

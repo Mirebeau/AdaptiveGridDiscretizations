@@ -8,9 +8,12 @@ from .. import AutomaticDifferentiation as ad
 from .. import FiniteDifferences as fd
 
 class Diagonal(Base):
-	"""
-	A Diagonal norm takes the form F(x) = sqrt(sum_i costs[i]*x[i]^2 ),
-	where costs[i], 0<=i<vdim, are given positive scalars
+	r"""
+	A Diagonal norm takes the form 
+	$$
+	F(x) = \sqrt{\sum_i costs[i]*x[i]^2 },
+	$$
+	where costs[i], 0<=i< vdim, are given positive scalars
 
 	Member fields and __init__ arguments : 
 	- cost, an array of shape (vdim,n1,..,nk) where vdim is the ambient space dimension.

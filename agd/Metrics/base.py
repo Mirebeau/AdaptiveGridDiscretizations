@@ -39,9 +39,9 @@ class Base:
 		return np.moveaxis(self.norm(v_ad).coef,-1,0)
 	
 	def dual(self):
-		"""
+		r"""
 		Dual norm, mathematically defined by 
-		N^*(x) = max{ <x,y> ; N(y)<=1 }
+		$N^*(x) = max\\{ < x, y> ; N(y)\leq 1 \\}$
 		"""
 		raise NotImplementedError("dual is not implemented for this norm")
 
@@ -101,7 +101,7 @@ class Base:
 	def cos_asym(self,u,v):
 		"""
 		Generalized cosine defined by the metric, defined as 
-		<grad F(u), v> / F(v)
+		< grad F(u), v> / F(v)
 		"""
 		u,v=(ad.asarray(e) for e in (u,v))
 		return lp.dot_VV(self.gradient(u),v)/self.norm(v)

@@ -11,13 +11,16 @@ from .. import AutomaticDifferentiation as ad
 from .. import FiniteDifferences as fd
 
 class Riemann(Base):
-	"""
-	A Riemann norm takes the form F(x) = sqrt(<x,m x>), 
+	r"""
+	A Riemann norm takes the form 
+	$$
+	F(x) = \sqrt(< x,m x>), 
+	$$
 	where m is a given symmetric positive definite tensor.
 
 	Member fields and __init__ arguments : 
 	- m : an array of shape (vdim,vdim,n1,..,nk) where vdim is the ambient space dimension.
-	The array must be symmetric, a.k.a m[i,j] = m[j,i] for all 0<=i<j<vdim.
+	The array must be symmetric, a.k.a m[i,j] = m[j,i] for all $0\leq i < j < vdim$.
 	"""
 
 	def __init__(self,m):
@@ -121,9 +124,10 @@ class Riemann(Base):
 		"""
 		Defines a Riemannian metric which has the same eigenvectors as the provided 
 		matrix, but (possibly) distinct eigenvalues obtained by the provided mapping.
+
 		Inputs : 
-			- matrix: a symmetric matrix, with shape (dim,dim,...)
-			- mapping: a function, taking as input an array of shape (dim,...),
+		- matrix: a symmetric matrix, with shape (dim,dim,...)
+		- mapping: a function, taking as input an array of shape (dim,...),
 			and returning a similarly shaped array. 
 			Called with the eigenvalues of matrix, sorted from smallest to largest.
 		"""

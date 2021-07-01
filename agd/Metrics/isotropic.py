@@ -5,8 +5,11 @@ from .base import Base
 from .. import AutomaticDifferentiation as ad
 
 class Isotropic(Base):
-	"""
-	An Isotropic norm takes the form F(x) = cost * sqrt(<x,x>),
+	r"""
+	An Isotropic norm takes the form 
+	$$
+	F(x) = cost * \sqrt{< x,x>},
+	$$
 	where cost is a given positive scalar.
 
 	Member fields and __init__ arguments : 

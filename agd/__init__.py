@@ -20,8 +20,9 @@ The AGD package is architectured around the following main components:
 - AutomaticDifferentiation : automatically compute gradients, hessians, jacobians, in 
  dense or sparse format, using operator and function overloading.
 
-- Eikonal : a ready to use solver of (generalized, anisotropic) eikonal equations, which
- characterize minimal distances w.r.t. Riemannian or other metrics.
+- Eikonal : a ready to use solver of (generalized, anisotropic) eikonal equations. Those
+ are partial differential equations which characterize minimal distances w.r.t. Riemannian
+ or other classes of metrics.
 
 - Metrics : helper classes for classical and less classical objects 
  (Riemannian metrics, Hooke elasticity tensors, etc) used to encode geometric information.

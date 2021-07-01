@@ -10,14 +10,17 @@ from .. import AutomaticDifferentiation as ad
 from .. import FiniteDifferences as fd
 
 class Rander(Base):
-	"""
-	A Rander norm takes the form F(x) = sqrt(<x,m.x>) + <w,x>,
+	r"""
+	A Rander norm takes the form 
+	$$
+	F(x) = \sqrt{< x,m.x>} + < w,x>,
+	$$
 	where m is a given symmetric positive definite tensor, 
-	and w is a given vector subject to the consition <w,m^{-1},w> < 1.
+	and w is a given vector subject to the consition $< w,m^{-1} w> < 1$.
 
 	Member fields and __init__ arguments : 
 	- m : an array of shape (vdim,vdim,n1,..,nk) where vdim is the ambient space dimension.
-	The array must be symmetric, a.k.a m[i,j] = m[j,i] for all 0<=i<j<vdim.
+	The array must be symmetric, a.k.a m[i,j] = m[j,i] for all $0\leq i< j< vdim$.
 	- w : an array of shape (vdim,n1,...,nk)
 	"""
 	def __init__(self,m,w):
@@ -30,12 +33,7 @@ class Rander(Base):
 
 
 	def dual(self):
-		"""
-		This function returns the dual 
-		to a Rander norm, which turns out to have a similar algebraic form.
-		The dual norm is defined as 
-		F'(x) = sup{ <x,y>; F(y)<=1 }
-		"""
+		# The dual of a Randers norm is also a Randers norm
 		s = lp.inverse(self.m-lp.outer_self(self.w))
 		omega = lp.dot_AV(s,self.w)
 		return Rander((1+lp.dot_VV(self.w,omega))*s, -omega)
@@ -93,16 +91,18 @@ class Rander(Base):
 
 	@classmethod
 	def from_Zermelo(cls,metric,drift):
-		"""
+		r"""
 		Zermelo's navigation problem consists in computing a minimal path for 
 		whose velocity is unit w.r.t. a Riemannian metric, and which is subject 
 		to a drift. The accessible velocities take the form 
-			x+drift where <x,m.x> <= 1
+			$x+drift$ where $< x,m.x> \leq 1$
 		This function reformulates it as a shortest path problem 
 		in a Rander manifold.
+
 		Inputs : 
 		- metric : Symmetric positive definite matrix (Riemannian metric)
-		- drift : Vector field, obeying <drift,metric.drift> < 1 (Drift)
+		- drift : Vector field, obeying $< drift,metric.drift> < 1$ (Drift)
+
 		Outputs : 
 		- the Rander metric.
 		"""
@@ -111,6 +111,7 @@ class Rander(Base):
 	def to_Zermelo(self):
 		"""
 		Input : Parameters of a Rander metric.
+
 		Output : Parameters of the corresponding Zermelo problem, of motion on a 
 		Riemannian manifold with a drift.
 		"""
@@ -118,18 +119,20 @@ class Rander(Base):
 		return lp.inverse(self_dual.m), self_dual.w
 
 	def to_Varadhan(eps=1):
-		"""
+		r"""
 		The Rander eikonal equation can be reformulated in an (approximate)
 		linear form, using a logarithmic transformation
-			u + 2 eps <omega,grad u> - eps**2 Tr(D hess u).
+			$u + 2 eps < omega,grad u> - eps**2 Tr(D hess u)$.
 		Then -eps log(u) solves the Rander eikonal equation, 
 		up to a small additional diffusive term.
+
 		Inputs : 
 		- m and w, parameters of the Rander metric
 		- eps (optionnal), relaxation parameter
+
 		Outputs : 
-		- D and 2*omega, parameters of the linear PDE. 
-		 (D*eps**2 and 2*omega*eps if eps is specified)
+		- $D$ and $2 * omega$, parameters of the linear PDE. 
+		 ($D * eps^2$ and $2 * omega * eps$ if eps is specified)
 		"""
 		return self.Varadhan_from_Zermelo(self.to_Zermelo(),eps)
 

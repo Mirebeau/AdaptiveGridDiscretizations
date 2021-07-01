@@ -13,11 +13,14 @@ from .. import AutomaticDifferentiation as ad
 from .. import FiniteDifferences as fd
 
 class AsymRander(Base):
-	"""
+	r"""
 	Asymmetric Rander norms take the form
-	F(x) = sqrt(<x,m x> + max(0,<u,x>)^2 + max(0,<v,x>)^2) + <w,x>
+	$$
+	F(x) = \sqrt{< x,m x> + max(0,< u,x>)^2 + max(0,< v,x>)^2} + < w,x>
+	$$
 	where m is a given symmetric positive definite tensor, and 
-	u,v,w are given vectors. The vector w must be small enough, so that F(x)>0 for all x!=0.
+	$u,v,w$ are given vectors. The vector $w$ must be small enough, so that $F(x)>0$ 
+	for all $x\neq 0$.
 
 	Asymmetric Rander norms generalize both Rander norms and Asymmetric quadratic norms.
 	They were proposed by Da Chen in the context of image processing applications.

@@ -11,10 +11,10 @@ Metrics are the fundamental input to (generalized) eikonal equations, which can 
 using the provided Eikonal module.
 
 Main norm/metric classes:
-- Isotropic : a multiple of the Euclidean norm on R^d.
+- Isotropic : a multiple of the Euclidean norm on $R^d$.
 - Diagonal : axis-dependent multiple of the Euclidean norm.
-- Riemann : anisotropic norm on R^d defined by a symmetric positice definite matrix of 
- shape dxd. Used to define a Riemannian metric.
+- Riemann : anisotropic norm on $R^d$ defined by a symmetric positice definite matrix of 
+ shape $(d,d)$. Used to define a Riemannian metric.
 - Rander : non-symmetric anisotropic norm, defined as the sum of a Riemann norm and 
  of a drift term.
 - AsymQuad : non-symmetric anisotropic norm, defined by gluing two Riemann norms along 

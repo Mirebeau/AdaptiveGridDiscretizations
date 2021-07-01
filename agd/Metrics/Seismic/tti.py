@@ -19,10 +19,12 @@ class TTI(ImplicitBase):
 	and arising in seismic tomography.
 
 	The *dual* unit ball is defined by an equation of the form
+	$$
 	l(X^2+Y^2,Z^2) + q(X^2+Y^2,Z^2) = 1,
-	where l is linear and q is quadratic, where X,Y,Z are the coefficients of the input 
-	vector, usually altered by a linear transformation.
-	In two dimensions, ignore the Y^2 term.
+	$$
+	where $l$ is linear and $q$ is quadratic, where $X,Y,Z$ are the coefficients 
+	of the input vector, usually altered by a linear transformation.
+	In two dimensions, ignore the $Y^2$ term.
 
 	The primal norm is obtained implicitly, by solving an optimization problem.
 

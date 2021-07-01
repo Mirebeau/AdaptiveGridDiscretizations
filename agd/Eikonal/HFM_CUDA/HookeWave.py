@@ -409,8 +409,8 @@ class HookeWave:
 		if self.vertical:
 			for arg in (self._full_weights,self._full_offsets,self._full_firstorder):
 				assert arg.flags.c_contiguous
-				assert arg.shape[:self.vdim] = self.shape
-				assert arg.ndim=2
+				assert arg.shape[:self.vdim] == self.shape
+				assert arg.ndim == 2
 				assert arg.dtype == self.offsetpack_t if arg is self._offsets else self.float_t
 		
 		for arg in (self._dt,self._gridScale):
