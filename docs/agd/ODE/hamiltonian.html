@@ -1,8 +1,3 @@
-/*
-Usage : 
-pdoc -t Miscellaneous/ -o docs agd
-*/
-
 <!doctype html>
 <html lang="en">
 <head>
@@ -130,10 +125,11 @@ pdoc -t Miscellaneous/ -o docs agd
 <span class="kn">from</span> <span class="nn">.hamiltonian_base</span> <span class="kn">import</span> <span class="n">HamiltonianBase</span><span class="p">,</span><span class="n">fixedpoint</span>
 
 <span class="k">class</span> <span class="nc">MetricHamiltonian</span><span class="p">(</span><span class="n">HamiltonianBase</span><span class="p">):</span>
-	<span class="sd">&quot;&quot;&quot;</span>
+	<span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">	Hamiltonian defined by an interpolated metric, which is dualized and interpolated.</span>
-<span class="sd">	H(q,p) = (1/2) F^*_q(p)^2</span>
-
+<span class="sd">	$$</span>
+<span class="sd">	H(q,p) = \frac 1 2 F^*_q(p)^2</span>
+<span class="sd">	$$</span>
 <span class="sd">	__init__ arguments :</span>
 <span class="sd">	- metric : dual defines the hamiltonian</span>
 <span class="sd">	- inv_inner : passed to HamiltonianBase</span>
@@ -154,14 +150,17 @@ pdoc -t Miscellaneous/ -o docs agd
 	<span class="k">def</span> <span class="nf">_DpH</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">q</span><span class="p">,</span><span class="n">p</span><span class="p">):</span> <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dualmetric</span><span class="o">.</span><span class="n">at</span><span class="p">(</span><span class="n">q</span><span class="p">)</span><span class="o">.</span><span class="n">gradient2</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
 
 <span class="k">class</span> <span class="nc">GenericHamiltonian</span><span class="p">(</span><span class="n">HamiltonianBase</span><span class="p">):</span>
-	<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">	Hamiltonian defined by a arbitrary function of two variables, </span>
-<span class="sd">	the position q and impulsion p.</span>
-<span class="sd">	H(q,p) = func(q,p)</span>
+	<span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">	Hamiltonian defined by a arbitrary function $f$ of two variables, </span>
+<span class="sd">	the position $q$ and impulsion $p$.</span>
+<span class="sd">	$$</span>
+<span class="sd">	H(q,p) = f(q,p)</span>
+<span class="sd">	$$</span>
 
 <span class="sd">	__init__ arguments : </span>
-<span class="sd">	- func : the function defining the hamiltonian, must take two arguments.</span>
-<span class="sd">	- disassociate_ad (optional) : hide AD information when calling f</span>
+<span class="sd">	- func : the function $f$ defining the hamiltonian, must take two arguments.</span>
+<span class="sd">	- disassociate_ad (optional) : hide AD information when calling $f$. (Use to avoid </span>
+<span class="sd">	conflicts if the definition of $f$ itself involves automatic differentiation.)</span>
 <span class="sd">	- shape_free (optional) : shape of position and momentum variables</span>
 <span class="sd">	- **kwargs : passed to HamiltonianBase</span>
 <span class="sd">	&quot;&quot;&quot;</span>
@@ -197,10 +196,11 @@ pdoc -t Miscellaneous/ -o docs agd
 <span class="k">class</span> <span class="nc">SeparableHamiltonian</span><span class="p">(</span><span class="n">HamiltonianBase</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">	Separable Hamiltonian defined by a pair of functions.</span>
-<span class="sd">	H(q,p) = Hq(q) + Hp(p).</span>
-
+<span class="sd">	$$</span>
+<span class="sd">		H(q,p) = H_Q(q) + H_P(p).</span>
+<span class="sd">	$$</span>
 <span class="sd">	__init__ arguments : </span>
-<span class="sd">	- Hq,Hp : two functions, of a single argument, defining the hamiltonian</span>
+<span class="sd">	- Hq,Hp : the two functions $H_Q,H_P$, of a single argument, defining the hamiltonian</span>
 <span class="sd">	- **kwargs : passed to HamiltonianBase</span>
 <span class="sd">	&quot;&quot;&quot;</span>
 
@@ -220,13 +220,15 @@ pdoc -t Miscellaneous/ -o docs agd
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">Hp</span><span class="p">(</span><span class="n">p_ad</span><span class="p">)</span><span class="o">.</span><span class="n">gradient</span><span class="p">()</span>
 
 <span class="k">class</span> <span class="nc">QuadraticHamiltonian</span><span class="p">(</span><span class="n">HamiltonianBase</span><span class="p">):</span>
-	<span class="sd">&quot;&quot;&quot;</span>
+	<span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">	Quadratic Hamiltonian, defined by a pair of linear operators.</span>
-<span class="sd">	(Expected to be symmetric, semi-definite.)</span>
-<span class="sd">	H(q,p) = ( &lt;q, Mq*q&gt; + &lt;p, Mp*p&gt; ) / 2</span>
+<span class="sd">	(Expected to be symmetric semi-definite.)</span>
+<span class="sd">	$$</span>
+<span class="sd">		H(q,p) = \frac 1 2 (&lt; q, M_Q q &gt; +&lt; p, M_P p &gt;).</span>
+<span class="sd">	$$</span>
 
 <span class="sd">	__init__ arguments : </span>
-<span class="sd">	- Mq,Mp : typically sparse positive definite matrices.</span>
+<span class="sd">	- Mq,Mp : positive semi-definite matrices $M_Q,M_P$, typically given in sparse form.</span>
 <span class="sd">	 Alternatively, define Mq,Mp as functions, and use the set_spmat</span>
 <span class="sd">	 to automatically generate the sparse matrices using automatic differentiation.</span>
 <span class="sd">	&quot;&quot;&quot;</span>
@@ -289,10 +291,11 @@ pdoc -t Miscellaneous/ -o docs agd
                 <details>
             <summary>View Source</summary>
             <div class="codehilite"><pre><span></span><span class="k">class</span> <span class="nc">MetricHamiltonian</span><span class="p">(</span><span class="n">HamiltonianBase</span><span class="p">):</span>
-	<span class="sd">&quot;&quot;&quot;</span>
+	<span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">	Hamiltonian defined by an interpolated metric, which is dualized and interpolated.</span>
-<span class="sd">	H(q,p) = (1/2) F^*_q(p)^2</span>
-
+<span class="sd">	$$</span>
+<span class="sd">	H(q,p) = \frac 1 2 F^*_q(p)^2</span>
+<span class="sd">	$$</span>
 <span class="sd">	__init__ arguments :</span>
 <span class="sd">	- metric : dual defines the hamiltonian</span>
 <span class="sd">	- inv_inner : passed to HamiltonianBase</span>
@@ -316,9 +319,10 @@ pdoc -t Miscellaneous/ -o docs agd
         </details>
 
             <div class="docstring"><p>Hamiltonian defined by an interpolated metric, which is dualized and interpolated.
-H(q,p) = (1/2) F^*_q(p)^2</p>
-
-<p>__init__ arguments :</p>
+$$
+H(q,p) = \frac 1 2 F^*_q(p)^2
+$$
+__init__ arguments :</p>
 
 <ul>
 <li>metric : dual defines the hamiltonian</li>
@@ -381,14 +385,17 @@ H(q,p) = (1/2) F^*_q(p)^2</p>
                 <details>
             <summary>View Source</summary>
             <div class="codehilite"><pre><span></span><span class="k">class</span> <span class="nc">GenericHamiltonian</span><span class="p">(</span><span class="n">HamiltonianBase</span><span class="p">):</span>
-	<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">	Hamiltonian defined by a arbitrary function of two variables, </span>
-<span class="sd">	the position q and impulsion p.</span>
-<span class="sd">	H(q,p) = func(q,p)</span>
+	<span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">	Hamiltonian defined by a arbitrary function $f$ of two variables, </span>
+<span class="sd">	the position $q$ and impulsion $p$.</span>
+<span class="sd">	$$</span>
+<span class="sd">	H(q,p) = f(q,p)</span>
+<span class="sd">	$$</span>
 
 <span class="sd">	__init__ arguments : </span>
-<span class="sd">	- func : the function defining the hamiltonian, must take two arguments.</span>
-<span class="sd">	- disassociate_ad (optional) : hide AD information when calling f</span>
+<span class="sd">	- func : the function $f$ defining the hamiltonian, must take two arguments.</span>
+<span class="sd">	- disassociate_ad (optional) : hide AD information when calling $f$. (Use to avoid </span>
+<span class="sd">	conflicts if the definition of $f$ itself involves automatic differentiation.)</span>
 <span class="sd">	- shape_free (optional) : shape of position and momentum variables</span>
 <span class="sd">	- **kwargs : passed to HamiltonianBase</span>
 <span class="sd">	&quot;&quot;&quot;</span>
@@ -424,15 +431,18 @@ H(q,p) = (1/2) F^*_q(p)^2</p>
 
         </details>
 
-            <div class="docstring"><p>Hamiltonian defined by a arbitrary function of two variables, 
-the position q and impulsion p.
-H(q,p) = func(q,p)</p>
+            <div class="docstring"><p>Hamiltonian defined by a arbitrary function $f$ of two variables, 
+the position $q$ and impulsion $p$.
+$$
+H(q,p) = f(q,p)
+$$</p>
 
 <p>__init__ arguments : </p>
 
 <ul>
-<li>func : the function defining the hamiltonian, must take two arguments.</li>
-<li>disassociate_ad (optional) : hide AD information when calling f</li>
+<li>func : the function $f$ defining the hamiltonian, must take two arguments.</li>
+<li>disassociate_ad (optional) : hide AD information when calling $f$. (Use to avoid 
+conflicts if the definition of $f$ itself involves automatic differentiation.)</li>
 <li>shape_free (optional) : shape of position and momentum variables</li>
 <li>**kwargs : passed to HamiltonianBase</li>
 </ul>
@@ -494,10 +504,11 @@ H(q,p) = func(q,p)</p>
             <div class="codehilite"><pre><span></span><span class="k">class</span> <span class="nc">SeparableHamiltonian</span><span class="p">(</span><span class="n">HamiltonianBase</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">	Separable Hamiltonian defined by a pair of functions.</span>
-<span class="sd">	H(q,p) = Hq(q) + Hp(p).</span>
-
+<span class="sd">	$$</span>
+<span class="sd">		H(q,p) = H_Q(q) + H_P(p).</span>
+<span class="sd">	$$</span>
 <span class="sd">	__init__ arguments : </span>
-<span class="sd">	- Hq,Hp : two functions, of a single argument, defining the hamiltonian</span>
+<span class="sd">	- Hq,Hp : the two functions $H_Q,H_P$, of a single argument, defining the hamiltonian</span>
 <span class="sd">	- **kwargs : passed to HamiltonianBase</span>
 <span class="sd">	&quot;&quot;&quot;</span>
 
@@ -520,12 +531,13 @@ H(q,p) = func(q,p)</p>
         </details>
 
             <div class="docstring"><p>Separable Hamiltonian defined by a pair of functions.
-H(q,p) = Hq(q) + Hp(p).</p>
-
-<p>__init__ arguments : </p>
+$$
+        H(q,p) = H_Q(q) + H_P(p).
+$$
+__init__ arguments : </p>
 
 <ul>
-<li>Hq,Hp : two functions, of a single argument, defining the hamiltonian</li>
+<li>Hq,Hp : the two functions $H_Q,H_P$, of a single argument, defining the hamiltonian</li>
 <li>**kwargs : passed to HamiltonianBase</li>
 </ul>
 </div>
@@ -584,13 +596,15 @@ H(q,p) = Hq(q) + Hp(p).</p>
                 <details>
             <summary>View Source</summary>
             <div class="codehilite"><pre><span></span><span class="k">class</span> <span class="nc">QuadraticHamiltonian</span><span class="p">(</span><span class="n">HamiltonianBase</span><span class="p">):</span>
-	<span class="sd">&quot;&quot;&quot;</span>
+	<span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">	Quadratic Hamiltonian, defined by a pair of linear operators.</span>
-<span class="sd">	(Expected to be symmetric, semi-definite.)</span>
-<span class="sd">	H(q,p) = ( &lt;q, Mq*q&gt; + &lt;p, Mp*p&gt; ) / 2</span>
+<span class="sd">	(Expected to be symmetric semi-definite.)</span>
+<span class="sd">	$$</span>
+<span class="sd">		H(q,p) = \frac 1 2 (&lt; q, M_Q q &gt; +&lt; p, M_P p &gt;).</span>
+<span class="sd">	$$</span>
 
 <span class="sd">	__init__ arguments : </span>
-<span class="sd">	- Mq,Mp : typically sparse positive definite matrices.</span>
+<span class="sd">	- Mq,Mp : positive semi-definite matrices $M_Q,M_P$, typically given in sparse form.</span>
 <span class="sd">	 Alternatively, define Mq,Mp as functions, and use the set_spmat</span>
 <span class="sd">	 to automatically generate the sparse matrices using automatic differentiation.</span>
 <span class="sd">	&quot;&quot;&quot;</span>
@@ -641,13 +655,15 @@ H(q,p) = Hq(q) + Hp(p).</p>
         </details>
 
             <div class="docstring"><p>Quadratic Hamiltonian, defined by a pair of linear operators.
-(Expected to be symmetric, semi-definite.)
-H(q,p) = ( <q, Mq*q> + <p, Mp*p> ) / 2</p>
+(Expected to be symmetric semi-definite.)
+$$
+        H(q,p) = \frac 1 2 (&lt; q, M_Q q &gt; +&lt; p, M_P p &gt;).
+$$</p>
 
 <p>__init__ arguments : </p>
 
 <ul>
-<li>Mq,Mp : typically sparse positive definite matrices.
+<li>Mq,Mp : positive semi-definite matrices $M_Q,M_P$, typically given in sparse form.
 Alternatively, define Mq,Mp as functions, and use the set_spmat
 to automatically generate the sparse matrices using automatic differentiation.</li>
 </ul>

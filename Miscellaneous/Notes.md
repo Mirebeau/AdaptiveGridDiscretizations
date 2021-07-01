@@ -25,6 +25,18 @@ pip install cupy-cuda102
 
 The suffix should be the cudatoolkit version number.
 
+## documentation
+
+In a terminal in AdaptiveGridDiscretizations directory
+
+Build documentation :
+pdoc -t Miscellaneous/ -o docs agd
+
+View documentation in interactive mode : 
+pdoc -t Miscellaneous/ agd
+Quit the interactive mode : Ctrl+C (MacOs), Ctrl+fn+S (Windows, Dell keyboard)
+
+
 <!---
 All terminal commands presented here assume that the base directory is the directory containing this file.
 

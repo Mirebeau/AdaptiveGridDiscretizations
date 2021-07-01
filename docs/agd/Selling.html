@@ -1,8 +1,3 @@
-/*
-Usage : 
-pdoc -t Miscellaneous/ -o docs agd
-*/
-
 <!doctype html>
 <html lang="en">
 <head>
@@ -87,10 +82,13 @@ pdoc -t Miscellaneous/ -o docs agd
                     <h1 class="modulename">
 <a href="./../agd.html">agd</a><wbr>.Selling    </h1>
 
-                        <div class="docstring"><p>This file implements Selling's algorithm in dimension two and three, which decomposes a 
-symmetric positive definite matrix D, of dimension d&lt;=3, in the form 
-D = sum_i ai ei ei^T,
-where ai &gt;= 0 and ei is a vector with integer coordinates, and 0&lt;= i &lt; d(d+2)/2.</p>
+                        <div class="docstring"><p>This file implements Selling's algorithm in dimension $d \in \{2,3\}$, which decomposes a 
+symmetric positive definite matrix $D$, of dimension $d\leq 3$, in the form 
+$$
+        D = \sum_{0\leq i &lt; I} a_i e_i e_i^\top,
+$$
+where $a_i \geq 0$ and $e_i\in Z^d$ is a vector with integer coordinates, 
+and where $I = d(d+2)/2$.</p>
 
 <p>Selling's decomposition is a central tool in the design of adaptive discretization schemes
 for anisotropic partial differential equations, on Cartesian grids.</p>
@@ -101,11 +99,14 @@ for anisotropic partial differential equations, on Cartesian grids.</p>
             <div class="codehilite"><pre><span></span><span class="c1"># Copyright 2020 Jean-Marie Mirebeau, University Paris-Sud, CNRS, University Paris-Saclay</span>
 <span class="c1"># Distributed WITHOUT ANY WARRANTY. Licensed under the Apache License, Version 2.0, see http://www.apache.org/licenses/LICENSE-2.0</span>
 
-<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">This file implements Selling&#39;s algorithm in dimension two and three, which decomposes a </span>
-<span class="sd">symmetric positive definite matrix D, of dimension d&lt;=3, in the form </span>
-<span class="sd">D = sum_i ai ei ei^T,</span>
-<span class="sd">where ai &gt;= 0 and ei is a vector with integer coordinates, and 0&lt;= i &lt; d(d+2)/2.</span>
+<span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This file implements Selling&#39;s algorithm in dimension $d \in \\{2,3\\}$, which decomposes a </span>
+<span class="sd">symmetric positive definite matrix $D$, of dimension $d\leq 3$, in the form </span>
+<span class="sd">$$</span>
+<span class="sd">	D = \sum_{0\leq i &lt; I} a_i e_i e_i^\top,</span>
+<span class="sd">$$</span>
+<span class="sd">where $a_i \geq 0$ and $e_i\in Z^d$ is a vector with integer coordinates, </span>
+<span class="sd">and where $I = d(d+2)/2$.</span>
 
 <span class="sd">Selling&#39;s decomposition is a central tool in the design of adaptive discretization schemes</span>
 <span class="sd">for anisotropic partial differential equations, on Cartesian grids.</span>
@@ -127,7 +128,7 @@ for anisotropic partial differential equations, on Cartesian grids.</p>
 	<span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">	Input : </span>
 <span class="sd">	- m : symmetric positive definite matrix, defined as an</span>
-<span class="sd">	 array of shape (vdim,vdim, n1,...,nk)</span>
+<span class="sd">	 array of shape $(d,d, n_1,...,n_k)$.</span>
 <span class="sd">	- sb (optional) : initial guess for the obtuse superbase.</span>
 
 <span class="sd">	Ouput : an m-obtuse superbase </span>
@@ -140,14 +141,14 @@ for anisotropic partial differential equations, on Cartesian grids.</p>
 	<span class="k">else</span><span class="p">:</span> <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Selling&#39;s decomposition only applies in dimension &lt;=3.&quot;</span><span class="p">)</span> 	
 
 <span class="k">def</span> <span class="nf">Decomposition</span><span class="p">(</span><span class="n">m</span><span class="p">,</span><span class="n">sb</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-	<span class="sd">&quot;&quot;&quot;</span>
+	<span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">	Use Selling&#39;s algorithm to decompose a tensor</span>
 
 <span class="sd">	Input : </span>
 <span class="sd">	- m : symmetric positive definite matrix, defined as an</span>
-<span class="sd">	 array of shape (vdim,vdim, n1,...,nk) where vdim&lt;=3</span>
+<span class="sd">	 array of shape $(d,d, n_1,...,n_k)$ where $d\leq 3$.</span>
 <span class="sd">	- sb (optional) : superbase to use for the decomposition,</span>
-<span class="sd">	 array of shape (vdim,vdim+1, n1,...,nk)</span>
+<span class="sd">	 array of shape $(d,d+1, n_1,...,n_k)$.</span>
 <span class="sd">	Output : the coefficients and offsets of the decomposition.</span>
 <span class="sd">	&quot;&quot;&quot;</span>
 	<span class="k">if</span> <span class="n">ad</span><span class="o">.</span><span class="n">cupy_generic</span><span class="o">.</span><span class="n">from_cupy</span><span class="p">(</span><span class="n">m</span><span class="p">):</span>
@@ -190,8 +191,8 @@ for anisotropic partial differential equations, on Cartesian grids.</p>
 	<span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">	Returns a superbase with the same dimensions and array type as m.</span>
 
-<span class="sd">	Input : </span>
-<span class="sd">	 - m : array of shape (vdim,vdim, n1,...,nk)</span>
+<span class="sd">	Output : </span>
+<span class="sd">	 - m : array of shape $(d,d, n_1,...,n_k)$</span>
 <span class="sd">	&quot;&quot;&quot;</span>
 	<span class="n">d</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">m</span><span class="p">);</span> <span class="k">assert</span> <span class="n">m</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">==</span><span class="n">d</span>
 	<span class="n">shape</span><span class="o">=</span><span class="n">m</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
@@ -205,8 +206,8 @@ for anisotropic partial differential equations, on Cartesian grids.</p>
 <span class="k">def</span> <span class="nf">SuperbasesForConditioning</span><span class="p">(</span><span class="n">cond</span><span class="p">,</span><span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">	Returns a family of superbases. </span>
-<span class="sd">	For any positive definite matrix M with condition number below the given bound,</span>
-<span class="sd">	one of these superbases will be M-obtuse.</span>
+<span class="sd">	For any positive definite matrix $M$ with condition number below the given bound,</span>
+<span class="sd">	one of these superbases will be $M$-obtuse.</span>
 <span class="sd">	(Condition number is the ratio of the largest to the smallest eigenvalue.)</span>
 
 <span class="sd">	Input : </span>
@@ -383,7 +384,7 @@ for anisotropic partial differential equations, on Cartesian grids.</p>
 	<span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">	Input : </span>
 <span class="sd">	- m : symmetric positive definite matrix, defined as an</span>
-<span class="sd">	 array of shape (vdim,vdim, n1,...,nk)</span>
+<span class="sd">	 array of shape $(d,d, n_1,...,n_k)$.</span>
 <span class="sd">	- sb (optional) : initial guess for the obtuse superbase.</span>
 
 <span class="sd">	Ouput : an m-obtuse superbase </span>
@@ -402,7 +403,7 @@ for anisotropic partial differential equations, on Cartesian grids.</p>
 
 <ul>
 <li>m : symmetric positive definite matrix, defined as an
-array of shape (vdim,vdim, n1,...,nk)</li>
+array of shape $(d,d, n_1,...,n_k)$.</li>
 <li>sb (optional) : initial guess for the obtuse superbase.</li>
 </ul>
 
@@ -422,14 +423,14 @@ array of shape (vdim,vdim, n1,...,nk)</li>
                 <details>
             <summary>View Source</summary>
             <div class="codehilite"><pre><span></span><span class="k">def</span> <span class="nf">Decomposition</span><span class="p">(</span><span class="n">m</span><span class="p">,</span><span class="n">sb</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-	<span class="sd">&quot;&quot;&quot;</span>
+	<span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">	Use Selling&#39;s algorithm to decompose a tensor</span>
 
 <span class="sd">	Input : </span>
 <span class="sd">	- m : symmetric positive definite matrix, defined as an</span>
-<span class="sd">	 array of shape (vdim,vdim, n1,...,nk) where vdim&lt;=3</span>
+<span class="sd">	 array of shape $(d,d, n_1,...,n_k)$ where $d\leq 3$.</span>
 <span class="sd">	- sb (optional) : superbase to use for the decomposition,</span>
-<span class="sd">	 array of shape (vdim,vdim+1, n1,...,nk)</span>
+<span class="sd">	 array of shape $(d,d+1, n_1,...,n_k)$.</span>
 <span class="sd">	Output : the coefficients and offsets of the decomposition.</span>
 <span class="sd">	&quot;&quot;&quot;</span>
 	<span class="k">if</span> <span class="n">ad</span><span class="o">.</span><span class="n">cupy_generic</span><span class="o">.</span><span class="n">from_cupy</span><span class="p">(</span><span class="n">m</span><span class="p">):</span>
@@ -452,9 +453,9 @@ array of shape (vdim,vdim, n1,...,nk)</li>
 
 <ul>
 <li>m : symmetric positive definite matrix, defined as an
-array of shape (vdim,vdim, n1,...,nk) where vdim&lt;=3</li>
+array of shape $(d,d, n_1,...,n_k)$ where $d\leq 3$.</li>
 <li>sb (optional) : superbase to use for the decomposition,
-array of shape (vdim,vdim+1, n1,...,nk)
+array of shape $(d,d+1, n_1,...,n_k)$.
 Output : the coefficients and offsets of the decomposition.</li>
 </ul>
 </div>
@@ -518,8 +519,8 @@ and offsets vary as the decomposed tensor varies.</p>
 	<span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">	Returns a superbase with the same dimensions and array type as m.</span>
 
-<span class="sd">	Input : </span>
-<span class="sd">	 - m : array of shape (vdim,vdim, n1,...,nk)</span>
+<span class="sd">	Output : </span>
+<span class="sd">	 - m : array of shape $(d,d, n_1,...,n_k)$</span>
 <span class="sd">	&quot;&quot;&quot;</span>
 	<span class="n">d</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">m</span><span class="p">);</span> <span class="k">assert</span> <span class="n">m</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">==</span><span class="n">d</span>
 	<span class="n">shape</span><span class="o">=</span><span class="n">m</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
@@ -535,10 +536,10 @@ and offsets vary as the decomposed tensor varies.</p>
 
             <div class="docstring"><p>Returns a superbase with the same dimensions and array type as m.</p>
 
-<p>Input : </p>
+<p>Output : </p>
 
 <ul>
-<li>m : array of shape (vdim,vdim, n1,...,nk)</li>
+<li>m : array of shape $(d,d, n_1,...,n_k)$</li>
 </ul>
 </div>
 
@@ -557,8 +558,8 @@ and offsets vary as the decomposed tensor varies.</p>
             <div class="codehilite"><pre><span></span><span class="k">def</span> <span class="nf">SuperbasesForConditioning</span><span class="p">(</span><span class="n">cond</span><span class="p">,</span><span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">	Returns a family of superbases. </span>
-<span class="sd">	For any positive definite matrix M with condition number below the given bound,</span>
-<span class="sd">	one of these superbases will be M-obtuse.</span>
+<span class="sd">	For any positive definite matrix $M$ with condition number below the given bound,</span>
+<span class="sd">	one of these superbases will be $M$-obtuse.</span>
 <span class="sd">	(Condition number is the ratio of the largest to the smallest eigenvalue.)</span>
 
 <span class="sd">	Input : </span>
@@ -573,8 +574,8 @@ and offsets vary as the decomposed tensor varies.</p>
         </details>
 
             <div class="docstring"><p>Returns a family of superbases. 
-For any positive definite matrix M with condition number below the given bound,
-one of these superbases will be M-obtuse.
+For any positive definite matrix $M$ with condition number below the given bound,
+one of these superbases will be $M$-obtuse.
 (Condition number is the ratio of the largest to the smallest eigenvalue.)</p>
 
 <p>Input : </p>

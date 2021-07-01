@@ -1,8 +1,3 @@
-/*
-Usage : 
-pdoc -t Miscellaneous/ -o docs agd
-*/
-
 <!doctype html>
 <html lang="en">
 <head>
@@ -125,8 +120,11 @@ Hamiltonian in a manner compatible with automatic differentiation.
 (Flow computation, symplectic schemes, etc)</p>
 
 <p>Recall that Hamilton's equations read 
-dq/dt =  dH/dp
-dp/dt = -dH/dq</p>
+$$
+\frac {dq}{dt} = \frac {\partial H}{\partial p},
+\quad
+\frac {dp}{dt} = - \frac {\partial H}{\partial q}.
+$$</p>
 </div>
 
                         <details>
@@ -134,14 +132,17 @@ dp/dt = -dH/dq</p>
             <div class="codehilite"><pre><span></span><span class="c1"># Copyright 2020 Jean-Marie Mirebeau, University Paris-Sud, CNRS, University Paris-Saclay</span>
 <span class="c1"># Distributed WITHOUT ANY WARRANTY. Licensed under the Apache License, Version 2.0, see http://www.apache.org/licenses/LICENSE-2.0</span>
 
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">This module implements some basic functionality for solving ODEs derived from a </span>
 <span class="sd">Hamiltonian in a manner compatible with automatic differentiation.</span>
 <span class="sd">(Flow computation, symplectic schemes, etc)</span>
 
 <span class="sd">Recall that Hamilton&#39;s equations read </span>
-<span class="sd">dq/dt =  dH/dp</span>
-<span class="sd">dp/dt = -dH/dq</span>
+<span class="sd">$$</span>
+<span class="sd">\frac {dq}{dt} = \frac {\partial H}{\partial p},</span>
+<span class="sd">\quad</span>
+<span class="sd">\frac {dp}{dt} = - \frac {\partial H}{\partial q}.</span>
+<span class="sd">$$</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
@@ -236,11 +237,13 @@ dp/dt = -dH/dq</p>
 	<span class="k">def</span> <span class="nf">flow_cat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">qp</span><span class="p">,</span><span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">		Symplectic gradient of the hamiltonian, intended for odeint. </span>
+
 <span class="sd">		Input : </span>
-<span class="sd">			- qp : position q, impulsion p, concatenated and flattened.</span>
-<span class="sd">			- t : ignored parameter (compatibility with scipy.integrate.odeint)</span>
-<span class="sd">		Output : </span>
-<span class="sd">			- symplectic gradient, concatenated and flattened.</span>
+<span class="sd">		 - qp : position q, impulsion p, concatenated and flattened.</span>
+<span class="sd">		 - t : ignored parameter (compatibility with scipy.integrate.odeint)</span>
+
+<span class="sd">		Output :</span>
+<span class="sd">		 - symplectic gradient, concatenated and flattened.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">d</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">qp</span><span class="p">)</span><span class="o">//</span><span class="mi">2</span>
 		<span class="n">q</span> <span class="o">=</span> <span class="n">qp</span><span class="p">[:</span><span class="n">d</span><span class="p">]</span>
@@ -260,17 +263,18 @@ dp/dt = -dH/dq</p>
 	<span class="k">def</span> <span class="nf">integrate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">q</span><span class="p">,</span><span class="n">p</span><span class="p">,</span><span class="n">scheme</span><span class="p">,</span><span class="n">niter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">dt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">T</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">path</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">		Solves Hamilton&#39;s equations by running the scheme niter times.</span>
+
 <span class="sd">		Inputs : </span>
-<span class="sd">			- q,p : Initial position and impulsion.</span>
-<span class="sd">			- scheme : ODE integration scheme. (string or callable)</span>
-<span class="sd">			</span>
-<span class="sd">			- niter,dt,T : number of steps, time step, and total time</span>
+<span class="sd">		 - q,p : Initial position and impulsion.</span>
+<span class="sd">		 - scheme : ODE integration scheme. (string or callable)</span>
+<span class="sd">		 - niter,dt,T : number of steps, time step, and total time</span>
 <span class="sd">			  (exactly two among the three must be specified)</span>
-<span class="sd">			- path : wether to return the intermediate steps. </span>
-<span class="sd">			   (If positive number, period of intermediate steps to return)</span>
+<span class="sd">		 - path : wether to return the intermediate steps. </span>
+<span class="sd">			   (If a positive number, period of intermediate steps to return)</span>
+<span class="sd">		</span>
 <span class="sd">		Output : </span>
-<span class="sd">			- q,p if path is False. </span>
-<span class="sd">			Otherwise [q0,...,qn],[p0,...,pn],[t0,..tn], with n=niter, tn=T.</span>
+<span class="sd">		 - q,p if path is False. </span>
+<span class="sd">		  Otherwise [q0,...,qn],[p0,...,pn],[t0,..tn], with n=niter, tn=T.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">scheme</span><span class="p">,</span><span class="nb">str</span><span class="p">):</span>
 			<span class="n">schemes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nonsymplectic_schemes</span><span class="p">()</span>
@@ -573,11 +577,13 @@ up to prescribed tolerance, or the maximum number of iterations is reached.</p>
 	<span class="k">def</span> <span class="nf">flow_cat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">qp</span><span class="p">,</span><span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">		Symplectic gradient of the hamiltonian, intended for odeint. </span>
+
 <span class="sd">		Input : </span>
-<span class="sd">			- qp : position q, impulsion p, concatenated and flattened.</span>
-<span class="sd">			- t : ignored parameter (compatibility with scipy.integrate.odeint)</span>
-<span class="sd">		Output : </span>
-<span class="sd">			- symplectic gradient, concatenated and flattened.</span>
+<span class="sd">		 - qp : position q, impulsion p, concatenated and flattened.</span>
+<span class="sd">		 - t : ignored parameter (compatibility with scipy.integrate.odeint)</span>
+
+<span class="sd">		Output :</span>
+<span class="sd">		 - symplectic gradient, concatenated and flattened.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">d</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">qp</span><span class="p">)</span><span class="o">//</span><span class="mi">2</span>
 		<span class="n">q</span> <span class="o">=</span> <span class="n">qp</span><span class="p">[:</span><span class="n">d</span><span class="p">]</span>
@@ -597,17 +603,18 @@ up to prescribed tolerance, or the maximum number of iterations is reached.</p>
 	<span class="k">def</span> <span class="nf">integrate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">q</span><span class="p">,</span><span class="n">p</span><span class="p">,</span><span class="n">scheme</span><span class="p">,</span><span class="n">niter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">dt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">T</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">path</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">		Solves Hamilton&#39;s equations by running the scheme niter times.</span>
+
 <span class="sd">		Inputs : </span>
-<span class="sd">			- q,p : Initial position and impulsion.</span>
-<span class="sd">			- scheme : ODE integration scheme. (string or callable)</span>
-<span class="sd">			</span>
-<span class="sd">			- niter,dt,T : number of steps, time step, and total time</span>
+<span class="sd">		 - q,p : Initial position and impulsion.</span>
+<span class="sd">		 - scheme : ODE integration scheme. (string or callable)</span>
+<span class="sd">		 - niter,dt,T : number of steps, time step, and total time</span>
 <span class="sd">			  (exactly two among the three must be specified)</span>
-<span class="sd">			- path : wether to return the intermediate steps. </span>
-<span class="sd">			   (If positive number, period of intermediate steps to return)</span>
+<span class="sd">		 - path : wether to return the intermediate steps. </span>
+<span class="sd">			   (If a positive number, period of intermediate steps to return)</span>
+<span class="sd">		</span>
 <span class="sd">		Output : </span>
-<span class="sd">			- q,p if path is False. </span>
-<span class="sd">			Otherwise [q0,...,qn],[p0,...,pn],[t0,..tn], with n=niter, tn=T.</span>
+<span class="sd">		 - q,p if path is False. </span>
+<span class="sd">		  Otherwise [q0,...,qn],[p0,...,pn],[t0,..tn], with n=niter, tn=T.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">scheme</span><span class="p">,</span><span class="nb">str</span><span class="p">):</span>
 			<span class="n">schemes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nonsymplectic_schemes</span><span class="p">()</span>
@@ -961,11 +968,13 @@ Set to None for a Hamiltonian acting on scalars.</p>
             <div class="codehilite"><pre><span></span>	<span class="k">def</span> <span class="nf">flow_cat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">qp</span><span class="p">,</span><span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">		Symplectic gradient of the hamiltonian, intended for odeint. </span>
+
 <span class="sd">		Input : </span>
-<span class="sd">			- qp : position q, impulsion p, concatenated and flattened.</span>
-<span class="sd">			- t : ignored parameter (compatibility with scipy.integrate.odeint)</span>
-<span class="sd">		Output : </span>
-<span class="sd">			- symplectic gradient, concatenated and flattened.</span>
+<span class="sd">		 - qp : position q, impulsion p, concatenated and flattened.</span>
+<span class="sd">		 - t : ignored parameter (compatibility with scipy.integrate.odeint)</span>
+
+<span class="sd">		Output :</span>
+<span class="sd">		 - symplectic gradient, concatenated and flattened.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">d</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">qp</span><span class="p">)</span><span class="o">//</span><span class="mi">2</span>
 		<span class="n">q</span> <span class="o">=</span> <span class="n">qp</span><span class="p">[:</span><span class="n">d</span><span class="p">]</span>
@@ -985,12 +994,20 @@ Set to None for a Hamiltonian acting on scalars.</p>
 
         </details>
 
-            <div class="docstring"><p>Symplectic gradient of the hamiltonian, intended for odeint. 
-Input : 
-        - qp : position q, impulsion p, concatenated and flattened.
-        - t : ignored parameter (compatibility with scipy.integrate.odeint)
-Output : 
-        - symplectic gradient, concatenated and flattened.</p>
+            <div class="docstring"><p>Symplectic gradient of the hamiltonian, intended for odeint. </p>
+
+<p>Input : </p>
+
+<ul>
+<li>qp : position q, impulsion p, concatenated and flattened.</li>
+<li>t : ignored parameter (compatibility with scipy.integrate.odeint)</li>
+</ul>
+
+<p>Output :</p>
+
+<ul>
+<li>symplectic gradient, concatenated and flattened.</li>
+</ul>
 </div>
 
 
@@ -1008,17 +1025,18 @@ Output :
             <div class="codehilite"><pre><span></span>	<span class="k">def</span> <span class="nf">integrate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">q</span><span class="p">,</span><span class="n">p</span><span class="p">,</span><span class="n">scheme</span><span class="p">,</span><span class="n">niter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">dt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">T</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">path</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">		Solves Hamilton&#39;s equations by running the scheme niter times.</span>
+
 <span class="sd">		Inputs : </span>
-<span class="sd">			- q,p : Initial position and impulsion.</span>
-<span class="sd">			- scheme : ODE integration scheme. (string or callable)</span>
-<span class="sd">			</span>
-<span class="sd">			- niter,dt,T : number of steps, time step, and total time</span>
+<span class="sd">		 - q,p : Initial position and impulsion.</span>
+<span class="sd">		 - scheme : ODE integration scheme. (string or callable)</span>
+<span class="sd">		 - niter,dt,T : number of steps, time step, and total time</span>
 <span class="sd">			  (exactly two among the three must be specified)</span>
-<span class="sd">			- path : wether to return the intermediate steps. </span>
-<span class="sd">			   (If positive number, period of intermediate steps to return)</span>
+<span class="sd">		 - path : wether to return the intermediate steps. </span>
+<span class="sd">			   (If a positive number, period of intermediate steps to return)</span>
+<span class="sd">		</span>
 <span class="sd">		Output : </span>
-<span class="sd">			- q,p if path is False. </span>
-<span class="sd">			Otherwise [q0,...,qn],[p0,...,pn],[t0,..tn], with n=niter, tn=T.</span>
+<span class="sd">		 - q,p if path is False. </span>
+<span class="sd">		  Otherwise [q0,...,qn],[p0,...,pn],[t0,..tn], with n=niter, tn=T.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">scheme</span><span class="p">,</span><span class="nb">str</span><span class="p">):</span>
 			<span class="n">schemes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nonsymplectic_schemes</span><span class="p">()</span>
@@ -1050,20 +1068,25 @@ Output :
 
         </details>
 
-            <div class="docstring"><p>Solves Hamilton's equations by running the scheme niter times.
-Inputs : 
-        - q,p : Initial position and impulsion.
-        - scheme : ODE integration scheme. (string or callable)</p>
+            <div class="docstring"><p>Solves Hamilton's equations by running the scheme niter times.</p>
 
-<pre><code>    - niter,dt,T : number of steps, time step, and total time
-      (exactly two among the three must be specified)
-    - path : wether to return the intermediate steps. 
-       (If positive number, period of intermediate steps to return)
-</code></pre>
+<p>Inputs : </p>
 
-<p>Output : 
-        - q,p if path is False. 
-        Otherwise [q0,...,qn],[p0,...,pn],[t0,..tn], with n=niter, tn=T.</p>
+<ul>
+<li>q,p : Initial position and impulsion.</li>
+<li>scheme : ODE integration scheme. (string or callable)</li>
+<li>niter,dt,T : number of steps, time step, and total time
+      (exactly two among the three must be specified)</li>
+<li>path : wether to return the intermediate steps. 
+       (If a positive number, period of intermediate steps to return)</li>
+</ul>
+
+<p>Output : </p>
+
+<ul>
+<li>q,p if path is False. 
+Otherwise [q0,...,qn],[p0,...,pn],[t0,..tn], with n=niter, tn=T.</li>
+</ul>
 </div>
 
 

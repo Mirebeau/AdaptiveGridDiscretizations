@@ -1,8 +1,3 @@
-/*
-Usage : 
-pdoc -t Miscellaneous/ -o docs agd
-*/
-
 <!doctype html>
 <html lang="en">
 <head>
@@ -154,7 +149,7 @@ pdoc -t Miscellaneous/ -o docs agd
 	<span class="k">return</span> <span class="n">solution</span>
 
 <span class="k">class</span> <span class="nc">RecurseRewind</span><span class="p">:</span>
-	<span class="sd">&quot;&quot;&quot;</span>
+	<span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">	This class is designed to iterate a function, and then roll back the iterations, </span>
 <span class="sd">	with a limited memory usage. For that purpose appropriate keypoints are stored,</span>
 <span class="sd">	 in a multilevel manner.</span>
@@ -162,8 +157,10 @@ pdoc -t Miscellaneous/ -o docs agd
 <span class="sd">	 - next : method to compute the next step.</span>
 <span class="sd">	 - initial : initial value</span>
 <span class="sd">	 - params : passed to next, in addition to current value</span>
-<span class="sd">	 - base : storage cost is O(n*base) for O(base**n) iterations, </span>
-<span class="sd">	  evaluating O(n * base**n) times the next function</span>
+<span class="sd">	 - base : base $b$ used to internally represent the iteration counter, which balances </span>
+<span class="sd">	 a tradeoff between memory usage and computational cost. Iterating $O(b^n)$ times</span>
+<span class="sd">	  and then rewinding these iterations, has a storage cost of $O(n*b)$ and a </span>
+<span class="sd">	  computational cost of $O(n * b^n)$ function evaluations.</span>
 
 <span class="sd">	members:</span>
 <span class="sd">	 - reversed : wether __next__ should advance or rewind the iterations</span>
@@ -326,7 +323,7 @@ The vector field is linearly interpolated, and the Euler midpoint scheme is used
                 <details>
             <summary>View Source</summary>
             <div class="codehilite"><pre><span></span><span class="k">class</span> <span class="nc">RecurseRewind</span><span class="p">:</span>
-	<span class="sd">&quot;&quot;&quot;</span>
+	<span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">	This class is designed to iterate a function, and then roll back the iterations, </span>
 <span class="sd">	with a limited memory usage. For that purpose appropriate keypoints are stored,</span>
 <span class="sd">	 in a multilevel manner.</span>
@@ -334,8 +331,10 @@ The vector field is linearly interpolated, and the Euler midpoint scheme is used
 <span class="sd">	 - next : method to compute the next step.</span>
 <span class="sd">	 - initial : initial value</span>
 <span class="sd">	 - params : passed to next, in addition to current value</span>
-<span class="sd">	 - base : storage cost is O(n*base) for O(base**n) iterations, </span>
-<span class="sd">	  evaluating O(n * base**n) times the next function</span>
+<span class="sd">	 - base : base $b$ used to internally represent the iteration counter, which balances </span>
+<span class="sd">	 a tradeoff between memory usage and computational cost. Iterating $O(b^n)$ times</span>
+<span class="sd">	  and then rewinding these iterations, has a storage cost of $O(n*b)$ and a </span>
+<span class="sd">	  computational cost of $O(n * b^n)$ function evaluations.</span>
 
 <span class="sd">	members:</span>
 <span class="sd">	 - reversed : wether __next__ should advance or rewind the iterations</span>
@@ -418,8 +417,10 @@ __init__ args: </p>
 <li>next : method to compute the next step.</li>
 <li>initial : initial value</li>
 <li>params : passed to next, in addition to current value</li>
-<li>base : storage cost is O(n*base) for O(base<strong>n) iterations, 
-evaluating O(n * base</strong>n) times the next function</li>
+<li>base : base $b$ used to internally represent the iteration counter, which balances 
+a tradeoff between memory usage and computational cost. Iterating $O(b^n)$ times
+and then rewinding these iterations, has a storage cost of $O(n*b)$ and a 
+computational cost of $O(n * b^n)$ function evaluations.</li>
 </ul>
 
 <p>members:</p>

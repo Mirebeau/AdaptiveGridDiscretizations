@@ -1,8 +1,3 @@
-/*
-Usage : 
-pdoc -t Miscellaneous/ -o docs agd
-*/
-
 <!doctype html>
 <html lang="en">
 <head>
@@ -195,7 +190,7 @@ and related objects : rotations, quaternions, Pauli matrices, etc</p>
 <span class="k">def</span> <span class="nf">pauli</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">,</span><span class="n">c</span><span class="p">,</span><span class="n">d</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">	Pauli matrix. Symmetric if d is None, Hermitian otherwise.</span>
-<span class="sd">	Determinant is a^2-b^2-c^2-d^2</span>
+<span class="sd">	Determinant is $a^2-b^2-c^2-d^2$</span>
 <span class="sd">	&quot;&quot;&quot;</span>
 	<span class="k">if</span> <span class="n">d</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="k">return</span> <span class="n">ad</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">a</span><span class="o">+</span><span class="n">b</span><span class="p">,</span><span class="n">c</span><span class="p">],[</span><span class="n">c</span><span class="p">,</span><span class="n">a</span><span class="o">-</span><span class="n">b</span><span class="p">]])</span>
 	<span class="k">else</span><span class="p">:</span> <span class="k">return</span> <span class="n">ad</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">a</span><span class="o">+</span><span class="n">b</span><span class="p">,</span><span class="n">c</span><span class="o">+</span><span class="mi">1</span><span class="n">j</span><span class="o">*</span><span class="n">d</span><span class="p">],[</span><span class="n">c</span><span class="o">-</span><span class="mi">1</span><span class="n">j</span><span class="o">*</span><span class="n">d</span><span class="p">,</span><span class="n">a</span><span class="o">-</span><span class="n">b</span><span class="p">]])</span>
@@ -369,7 +364,7 @@ Also returns the intermediate quaternion.</p>
             <div class="codehilite"><pre><span></span><span class="k">def</span> <span class="nf">pauli</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">,</span><span class="n">c</span><span class="p">,</span><span class="n">d</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">	Pauli matrix. Symmetric if d is None, Hermitian otherwise.</span>
-<span class="sd">	Determinant is a^2-b^2-c^2-d^2</span>
+<span class="sd">	Determinant is $a^2-b^2-c^2-d^2$</span>
 <span class="sd">	&quot;&quot;&quot;</span>
 	<span class="k">if</span> <span class="n">d</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="k">return</span> <span class="n">ad</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">a</span><span class="o">+</span><span class="n">b</span><span class="p">,</span><span class="n">c</span><span class="p">],[</span><span class="n">c</span><span class="p">,</span><span class="n">a</span><span class="o">-</span><span class="n">b</span><span class="p">]])</span>
 	<span class="k">else</span><span class="p">:</span> <span class="k">return</span> <span class="n">ad</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">a</span><span class="o">+</span><span class="n">b</span><span class="p">,</span><span class="n">c</span><span class="o">+</span><span class="mi">1</span><span class="n">j</span><span class="o">*</span><span class="n">d</span><span class="p">],[</span><span class="n">c</span><span class="o">-</span><span class="mi">1</span><span class="n">j</span><span class="o">*</span><span class="n">d</span><span class="p">,</span><span class="n">a</span><span class="o">-</span><span class="n">b</span><span class="p">]])</span>
@@ -378,7 +373,7 @@ Also returns the intermediate quaternion.</p>
         </details>
 
             <div class="docstring"><p>Pauli matrix. Symmetric if d is None, Hermitian otherwise.
-Determinant is a^2-b^2-c^2-d^2</p>
+Determinant is $a^2-b^2-c^2-d^2$</p>
 </div>
 
 

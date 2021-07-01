@@ -1,8 +1,3 @@
-/*
-Usage : 
-pdoc -t Miscellaneous/ -o docs agd
-*/
-
 <!doctype html>
 <html lang="en">
 <head>
@@ -76,28 +71,6 @@ pdoc -t Miscellaneous/ -o docs agd
 <a href="./../agd.html">agd</a><wbr>.LinearPDE    </h1>
 
                         <div class="docstring"><p>This module is DEPRECATED, but kept for compatibility.</p>
-
-<p>Constructs a linear operator sparse matrix, given as input </p>
-
-<ul>
-<li>an array of psd matrices, denoted diff</li>
-<li>an array of vectors (optionnal), denoted omega</li>
-<li>an array of scalars (optionnal),</li>
-</ul>
-
-<p>additional parameters</p>
-
-<ul>
-<li>a grid scale </li>
-<li>boundary conditions, possibly axis by axis 
-    ('Periodic', 'Reflected', 'Neumann', 'Dirichlet') </li>
-<li>divergence form or not</li>
-</ul>
-
-<p>The discretized operator is - div(diff * grad u) + <omega, grad u> + mult*u 
-replace the first term with Tr(diff * hess u) in non-divergence form.</p>
-
-<p>Returns : a list of triplets, for building a coo matrix</p>
 </div>
 
                         <details>
@@ -107,22 +80,6 @@ replace the first term with Tr(diff * hess u) in non-divergence form.</p>
 
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">This module is DEPRECATED, but kept for compatibility.</span>
-
-<span class="sd"> Constructs a linear operator sparse matrix, given as input </span>
-<span class="sd">- an array of psd matrices, denoted diff</span>
-<span class="sd">- an array of vectors (optionnal), denoted omega</span>
-<span class="sd">- an array of scalars (optionnal),</span>
-
-<span class="sd">additional parameters</span>
-<span class="sd">- a grid scale </span>
-<span class="sd">- boundary conditions, possibly axis by axis </span>
-<span class="sd">	(&#39;Periodic&#39;, &#39;Reflected&#39;, &#39;Neumann&#39;, &#39;Dirichlet&#39;) </span>
-<span class="sd">- divergence form or not</span>
-
-<span class="sd">The discretized operator is - div(diff * grad u) + &lt;omega, grad u&gt; + mult*u </span>
-<span class="sd">replace the first term with Tr(diff * hess u) in non-divergence form.</span>
-
-<span class="sd">Returns : a list of triplets, for building a coo matrix</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
@@ -136,7 +93,30 @@ replace the first term with Tr(diff * hess u) in non-divergence form.</p>
 		<span class="n">boundaryConditions</span><span class="o">=</span><span class="s1">&#39;Periodic&#39;</span><span class="p">,</span> 
 		<span class="n">divergenceForm</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
 		<span class="n">intrinsicDrift</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-	
+	<span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">	Constructs a linear operator sparse matrix, given as input </span>
+<span class="sd">	- an array `diff` of symmetric positive definite matrices, </span>
+<span class="sd">		with shape $(d,d,n_1,...,n_d)$ where $d$ is the domain dimension.</span>
+<span class="sd">	- an array `omega` of vectors (optionnal), with shape $(d,n_1,...,n_d)$.</span>
+<span class="sd">	- an array of scalars (optionnal), with shape $(n_1,...,n_d)$.</span>
+
+<span class="sd">	additional parameters</span>
+<span class="sd">	- a grid scale </span>
+<span class="sd">	- boundary conditions, possibly axis by axis </span>
+<span class="sd">		(&#39;Periodic&#39;, &#39;Reflected&#39;, &#39;Neumann&#39;, &#39;Dirichlet&#39;) </span>
+<span class="sd">	- divergence form or not</span>
+
+<span class="sd">	The discretized operator is</span>
+<span class="sd">	$$</span>
+<span class="sd">	 {-} \mathrm{div}(D \nabla u) + &lt; \\omega, \nabla u&gt; + mult*u,</span>
+<span class="sd">	$$</span>
+<span class="sd">	denoting $D:=$`diff` and $\\omega:=$`omega`.</span>
+
+<span class="sd">	Replace the first term with $\mathrm{Tr}(D \nabla^2 u)$ in the </span>
+<span class="sd">	non-divergence form case.</span>
+<span class="sd">	</span>
+<span class="sd">	Returns : a list of triplets, for building a coo matrix</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 	<span class="c1"># ----- Get the domain shape -----</span>
 	<span class="n">bounds</span> <span class="o">=</span> <span class="n">diff</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
 	<span class="n">dim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">bounds</span><span class="p">)</span>
@@ -276,7 +256,30 @@ replace the first term with Tr(diff * hess u) in non-divergence form.</p>
 		<span class="n">boundaryConditions</span><span class="o">=</span><span class="s1">&#39;Periodic&#39;</span><span class="p">,</span> 
 		<span class="n">divergenceForm</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
 		<span class="n">intrinsicDrift</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-	
+	<span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">	Constructs a linear operator sparse matrix, given as input </span>
+<span class="sd">	- an array `diff` of symmetric positive definite matrices, </span>
+<span class="sd">		with shape $(d,d,n_1,...,n_d)$ where $d$ is the domain dimension.</span>
+<span class="sd">	- an array `omega` of vectors (optionnal), with shape $(d,n_1,...,n_d)$.</span>
+<span class="sd">	- an array of scalars (optionnal), with shape $(n_1,...,n_d)$.</span>
+
+<span class="sd">	additional parameters</span>
+<span class="sd">	- a grid scale </span>
+<span class="sd">	- boundary conditions, possibly axis by axis </span>
+<span class="sd">		(&#39;Periodic&#39;, &#39;Reflected&#39;, &#39;Neumann&#39;, &#39;Dirichlet&#39;) </span>
+<span class="sd">	- divergence form or not</span>
+
+<span class="sd">	The discretized operator is</span>
+<span class="sd">	$$</span>
+<span class="sd">	 {-} \mathrm{div}(D \nabla u) + &lt; \\omega, \nabla u&gt; + mult*u,</span>
+<span class="sd">	$$</span>
+<span class="sd">	denoting $D:=$`diff` and $\\omega:=$`omega`.</span>
+
+<span class="sd">	Replace the first term with $\mathrm{Tr}(D \nabla^2 u)$ in the </span>
+<span class="sd">	non-divergence form case.</span>
+<span class="sd">	</span>
+<span class="sd">	Returns : a list of triplets, for building a coo matrix</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 	<span class="c1"># ----- Get the domain shape -----</span>
 	<span class="n">bounds</span> <span class="o">=</span> <span class="n">diff</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
 	<span class="n">dim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">bounds</span><span class="p">)</span>
@@ -388,7 +391,36 @@ replace the first term with Tr(diff * hess u) in non-divergence form.</p>
 
         </details>
 
-    
+            <div class="docstring"><p>Constructs a linear operator sparse matrix, given as input </p>
+
+<ul>
+<li>an array <code>diff</code> of symmetric positive definite matrices, 
+    with shape $(d,d,n_1,...,n_d)$ where $d$ is the domain dimension.</li>
+<li>an array <code>omega</code> of vectors (optionnal), with shape $(d,n_1,...,n_d)$.</li>
+<li>an array of scalars (optionnal), with shape $(n_1,...,n_d)$.</li>
+</ul>
+
+<p>additional parameters</p>
+
+<ul>
+<li>a grid scale </li>
+<li>boundary conditions, possibly axis by axis 
+    ('Periodic', 'Reflected', 'Neumann', 'Dirichlet') </li>
+<li>divergence form or not</li>
+</ul>
+
+<p>The discretized operator is
+$$
+ {-} \mathrm{div}(D \nabla u) + &lt; \omega, \nabla u> + mult*u,
+$$
+denoting $D:=$<code>diff</code> and $\omega:=$<code>omega</code>.</p>
+
+<p>Replace the first term with $\mathrm{Tr}(D \nabla^2 u)$ in the 
+non-divergence form case.</p>
+
+<p>Returns : a list of triplets, for building a coo matrix</p>
+</div>
+
 
                 </section>
     </main>
