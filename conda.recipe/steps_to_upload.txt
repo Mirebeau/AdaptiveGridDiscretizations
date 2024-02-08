@@ -1,0 +1,27 @@
+-- Preliminaries --
+# cd to directory containing AdaptiveGridDiscretizations
+
+python Miscellaneous/TestVersion.py # --new_version=???
+python Miscellaneous/TestTocs.py # --update 
+python Miscellaneous/TestMarkdown.py
+
+-- Anaconda ---
+
+# Run in the command line
+
+conda env create --file AdaptiveGridDiscretizations/Miscellaneous/agd-hfm_dev.yaml
+conda activate agd-hfm_dev
+anaconda login --username $ANACONDA_LOGIN --password $ANACONDA_PASSWORD
+conda-build AdaptiveGridDiscretizations/
+anaconda upload --force $PATH_TO_AGD.tar.bz2 --user agd-lbr
+
+# For testing
+conda install --force agd -c agd-lbr
+
+-- Pip --
+
+python conda.recipe/setup.py bdist_wheel
+
+python -m twine upload dist/*
+
+# Virer agd.egg-info, build et dist

@@ -1,0 +1,24 @@
+# conda env create -f environment.yml
+name: agd-hfm_dev_312
+channels:
+  - conda-forge
+  - plotly
+dependencies:
+  - python>=3.12
+#  - numba
+  - matplotlib
+  - notebook
+  - scipy
+  - nbformat
+  - ffmpeg
+  - twine
+  - plotly
+
+# The following ones are for upload
+#  - conda-build
+#  - conda-verify
+#  - anaconda-client
+
+# Not used anymore
+#  - nbdime
+#  - ipywidgets

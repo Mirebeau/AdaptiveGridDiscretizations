@@ -1,0 +1,25 @@
+package:
+  name: agd
+  version: 0.2.5
+  
+source:
+  path: ../
+
+build:
+  noarch: python
+  
+requirements:
+  channels:
+   - conda-forge
+  host:
+   - python
+  run:
+   - python
+   - numpy
+   - scipy
+#   - itertools
+#   - importlib
+#   - functools
+#   - os
+#   - math
+#   - copy

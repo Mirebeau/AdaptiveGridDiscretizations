@@ -1,0 +1,17 @@
+name: agd-hfm
+channels:
+  - conda-forge
+  - agd-lbr
+#  - plotly
+dependencies:
+#  - mayavi # Incompatibility found with scipy
+  - python 
+  - jupyter
+  - agd
+  - hfm
+  - matplotlib
+  - notebook
+  - scipy
+  - ffmpeg
+#  - plotly
+
