@@ -142,10 +142,11 @@ if __name__ == '__main__':
 	def keep(filepath):
 		"""Wether to keep the file with specified file path"""
 		split = os.path.split(filepath)
-		if any(e==filepath or e in split for e in excluded): 
-			excluded.remove(e)
-			excluded_found.append(e)
-			return False
+		for e in excluded:
+			if e==filepath or e in split:
+				excluded.remove(e)
+				excluded_found.append(e)
+				return False
 		if include_all: return True
 		for e in included:
 			if e==filepath or e in split:
