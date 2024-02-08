@@ -52,8 +52,9 @@ savefig.pad_inches = 0
 savefig.dpi = 300
 
 def open_local_or_web(func,filepath,local_prefix="../",
-	web_prefix="https://github.com/Mirebeau/AdaptiveGridDiscretizations/blob/master/",
-	web_suffix="?raw=true"):
+	# Using data stored on the gh-pages (github pages) branch
+	web_prefix='https://mirebeau.github.io/AdaptiveGridDiscretizations',
+	web_suffix=''):
 	try: return func(local_prefix+filepath)
 	except FileNotFoundError:
 		try : return func(filepath)  # Retry without the local prefix...
@@ -69,20 +70,6 @@ def imread(*args,**kwargs):
 	"""
 	import PIL
 	return np.array(open_local_or_web(PIL.Image.open,*args,**kwargs))
-
-
-# def imread(filepath,local_prefix="../",
-# 	web_prefix="https://github.com/Mirebeau/AdaptiveGridDiscretizations/blob/master/",
-# 	web_suffix="?raw=true"):
-# 	"""Reads the image into a numpy array. Tries to find it locally and on the web."""
-# 	import PIL
-# 	try: im = PIL.Image.open(local_prefix+filepath)
-# 	except FileNotFoundError:
-# 		try : im = PIL.Image.open(filepath)  # Retry without the local prefix...
-# 		except FileNotFoundError:
-# 			import urllib.request
-# 			im = PIL.Image.open(urllib.request.urlopen(web_prefix+filepath+web_suffix))
-# 	return np.array(im)
 
 def animation_curve(X,Y,**kwargs):
 	"""Animates a sequence of curves Y[0],Y[1],... with X as horizontal axis"""
