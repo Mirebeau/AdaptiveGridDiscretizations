@@ -90,7 +90,7 @@ VolumeFilenames = {
 #Part : Static problems
 	"Elliptic","EllipticAsymmetric",
 #Part : Linear elasticity
-	"ElasticEnergy","ElasticWave",
+	"ElasticEnergy","ElasticWave","HighOrderWaves","WaveExamples",
 #Part : Primal dual optimization
 	"Prox_MinCut",
 #Part : Applications

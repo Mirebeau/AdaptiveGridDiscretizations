@@ -195,13 +195,13 @@ def TestTocs(dirname):
 	filepath = os.path.join(dirname,"Summary.ipynb")
 	data = Load(filepath)
 	toc = TocTools.displayTOCs(dirname[10:],dirname+"/").splitlines(True)
-	if UpdateToc(filepath,data,toc): Dump(filepath,data)
+	if UpdateToc(filepath,data,toc): Dump(filepath,data,False)
 
 def TestTocss():
 	filepath = "Summary.ipynb"
 	data = Load(filepath)
 	toc = TocTools.displayTOCss().splitlines(True)
-	if UpdateToc(filepath,data,toc): Dump(filepath,data)
+	if UpdateToc(filepath,data,toc): Dump(filepath,data,False)
 
 def Main(update=False,check_raise=False,show=False,GPU_config=None,todo=False,remove_images=False):
 	Dump.update = update
