@@ -7,7 +7,6 @@ This repository contains
 - a [basic documentation](https://mirebeau.github.io/AdaptiveGridDiscretizations/agd.html),
 generated with [pdoc](https://pdoc.dev/).
 
-
 ### The AGD library
 
 The recommended ways to install are
@@ -18,6 +17,9 @@ or alternatively (but this option does not include the GPU eikonal solver)
 ```console
 conda install agd -c agd-lbr
 ```
+
+### Reboot of the git history (february 8th 2024)
+The whole notebooks, including images and videos, were previously saved in the git history, which as a result had grown to approx 750MB. After some unsuccessful attempts with BFG, I eventually had to delete and recreate the repository.
 
 ### The notebooks
 
