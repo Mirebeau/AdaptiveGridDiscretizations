@@ -114,7 +114,7 @@ def TestNotebook(dirname,filename):
 		data = json.load(data_file)
 	cache={'execution_count':1}
 	for cell in data["cells"]:
-		where = f" in file {filepath}, expected cell number {cache['execution_count']}"
+		where = f"{filepath}, expected cell number {cache['execution_count']}"
 		if cell['cell_type']=='markdown': TestMarkdownCell(where,cell,cache,dirname)
 #		if cell['cell_type']=='code': TestCodeCell(where,cell,cache)
 

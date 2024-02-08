@@ -114,6 +114,8 @@ google_drive_link = {
 	"Notebooks_FMM/DubinsState.ipynb":"https://drive.google.com/file/d/1-bxfUthYYId6ZC6NXDatNDC6vc6mACKs/view?usp=sharing",
 	"Notebooks_FMM/ElasticaVariants.ipynb":"https://drive.google.com/file/d/1-ceaexLEVcaJFpS1fXoo4WQQBMhdvXAv/view?usp=sharing",
 	"Notebooks_Repro/Voronoi_Benchmark.ipynb":"https://drive.google.com/file/d/1-jfJAZ4M_oduQFedETOwAgC-_E1yxjFq/view?usp=sharing",
+	"Notebooks_Div/HighOrderWaves.ipynb":"https://drive.google.com/file/d/1-l7-EHLDPv3pYhMl2U82jt_qx28Nunfc/view?usp=sharing",
+	"Notebooks_Div/WaveExamples.ipynb":"https://drive.google.com/file/d/1-uy1ifEVrt6nRmxz-rOTxMJ-2rHpciUn/view?usp=sharing",
 	}
 
 

@@ -1,6 +1,6 @@
 package:
   name: agd
-  version: 0.2.5
+  version: 0.2.8
   
 source:
   path: ../
