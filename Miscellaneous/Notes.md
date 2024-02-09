@@ -29,8 +29,9 @@ The suffix should be the cudatoolkit version number.
 
 In a terminal in AdaptiveGridDiscretizations directory
 
-Build documentation :
-pdoc -t Miscellaneous/ -o docs agd
+Build documentation (on a machine with cupy installed):
+pip install pdoc
+pdoc -t Miscellaneous/ -o ../AdaptiveGridDiscretizations_help/docs agd
 
 View documentation in interactive mode : 
 pdoc -t Miscellaneous/ agd

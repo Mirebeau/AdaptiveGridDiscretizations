@@ -32,6 +32,7 @@ def Main_GPU(): # Not used presently (although many notebooks require a GPU)
 			os.path.join(showcase_dir,filepath+'.ipynb'))
 
 def Main(new_version=None,gpu=False,same_version=False):
+	print(">>> Do not forget to update documentation (on a machine with cupy) : pdoc -t Miscellaneous/ -o ../AdaptiveGridDiscretizations_help/docs agd <<<")
 	if gpu: return Main_GPU()
 	# Routine checks. Code must be checked independently
 	TestTocs.Main(check_raise=True)
