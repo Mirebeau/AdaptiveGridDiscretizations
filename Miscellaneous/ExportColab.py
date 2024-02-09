@@ -144,7 +144,10 @@ def Links(filename):
 
 def ToColab(filename,output_dir):
 	if filename.startswith('Notebooks_GPU') and filename.endswith('_Repro'): return
-	with open(filename+'.ipynb', encoding='utf8') as data_file:
+
+	filename_dir,filename_notebook = os.path.split(filename)
+	filename_out = os.path.join(filename_dir,"test_results",filename_notebook+"_out.ipynb")
+	with open(filename_out, encoding='utf8') as data_file:
 		data=json.load(data_file)
 
 	if 'Summary' not in filename:
