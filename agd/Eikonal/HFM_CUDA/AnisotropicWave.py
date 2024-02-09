@@ -45,12 +45,22 @@ def _mk_dt_max(dt_max_22, order_x):
 	dt_mult_t = {1:2, 2:2, 4:1.28596}
 	return lambda order_t=2, order_x=order_x : dt_max_22 * dt_mult_x[order_x] * dt_mult_t[order_t]
 
-def AcousticHamiltonian_Sparse(ρ,D,dx=1.,order_x=2,shape_dom=None,bc='Periodic',
+def AcousticHamiltonian_Sparse(ρ,D,dx=1,order_x=2,shape_dom=None,bc='Periodic',
 	rev_ad=0,save_weights=False):
-	"""
-	Sparse matrix based implementation of the Hamiltonian of the acoustic wave equation.
+	r"""
+	Sparse matrix based implementation of the Hamiltonian of the acoustic wave equation,
+	namely : 
+	$$
+		\frac 1 2 \int_X \frac {p^2} ρ + <\nabla q,D,\nabla q> dx
+	$$
+	- ρ : density. Array of shape (n1,...,nd) or just a scalar
+	- D : dual-metric. Array of shape (d,d,n1,...,nd) or just (d,d)
+	- dx (optional) : grid scale.
+	- order_x (optional) : consistency order of the scheme, in space.
+	- shape_dom (optional) : shape (n1,...,nd) of the domain (usually inferred from ρ,D) 
 	- bc : boundary conditions, see bc_to_padding.keys()
 	- rev_ad (optional) : Implement reverse autodiff for the decomposition weights and inverse density
+	- save_weights : save the weights of the Selling decomposition of D, accessible as .weights field
 	"""
 	padding = bc_to_padding[bc]
 	if shape_dom is None: shape_dom = fd.common_shape((ρ,D),depths=(0,2))
@@ -79,19 +89,30 @@ def AcousticHamiltonian_Sparse(ρ,D,dx=1.,order_x=2,shape_dom=None,bc='Periodic'
 	H.dt_max = _mk_dt_max(dx * np.sqrt(np.min(rm_ad(ρ)/rm_ad(λ).sum(axis=0))), order_x)
 	return H
 
-def ElasticHamiltonian_Sparse(M,C,dx,order_x=2,S=None,shape_dom=None,bc='Periodic',
+def ElasticHamiltonian_Sparse(M,C,dx=1,order_x=2,S=None,shape_dom=None,bc='Periodic',
 	rev_ad=0,save_weights=False):
-	"""
+	r"""
 	Sparse matrix based implementation of the Hamiltonian of the elastic wave equation, namely
-	(1/2) int_X M(x,p(x),p(x)) + C(x,ε(x),ε(x)) dx
-	where ε = grad(q) + grad(q)^T - S q is the stress tensor, and X is the domain.
+	$$
+		\frac 1 2 \int_X < p,M,p > + <ε,C,ε> dx,
+	$$
+		where X is the domain, and the strain tensor is defined by 
+	$$
+		2 ε = \nabla q + \nabla q^T - S q.
+	$$
 
 	- M : (metric) array of positive definite matrices, shape (d,d,n1,...,nd),
 		Also accepts (1,1,n1,...,nd) for isotropic metric. Ex: M = (1/ρ)[None,None]
 	- C : (hooke tensor in voigt notation) array of positive definite matrices,
 		shape (s,s,n1,...,nd) where s = d (d+1)/2
+	- dx (optional) : grid scale.
+	- order_x (optional) : consistency order of the scheme, in space.
+	- S (optional) : see strain tensor expression, array of shape (d,d,d,n1,...,nd)
+	- shape_dom (optional) : shape (n1,...,nd), usually inferred from other parameters.
 	- bc : boundary conditions, see bc_to_padding.keys()
 	- rev_ad (optional) : Implement reverse autodiff for the decomposition weights and M.
+	- save_weights (optional) : save the weights of the Hooke tensor decomposition, as a 
+	   field of the Hamiltonian.
 	"""
 	padding = bc_to_padding[bc]
 	if shape_dom is None: shape_dom = fd.common_shape((M,C),depths=(2,2))
@@ -135,14 +156,16 @@ def ElasticHamiltonian_Sparse(M,C,dx,order_x=2,S=None,shape_dom=None,bc='Periodi
 	return H
 
 def AcousticChgVar(q,p,ρ,D,ϕ,X):
-	"""
+	r"""
 	Change of variables in the acoustic wave equation.
 	- q,p,ρ,D (callable) : problem data
 	- ϕ : change of variables
 	- X : points where to evaluate 
 	returns
 	- tq,tp,tρ,tD,ϕ(X) (arrays) : coordinate changed problem data, obtained as 
-		q(ϕ), p(ϕ) J, ρ(ϕ) J, Φ^-1 D(ϕ) Φ^-t J
+	$$
+		q(ϕ), p(ϕ) J, ρ(ϕ) J, Φ^{-1} D(ϕ) Φ^{-T} J.
+	$$
 	"""
 	X_ad = ad.Dense.identity(constant=X,shape_free=(len(X),))
 	ϕ_ad = ϕ_fun(X_ad)
@@ -164,9 +187,15 @@ def ElasticChgVar(q,p,M,C,S,ϕ,X):
 	- X : points where to evaluate
 	returns
 	- tq,tp,tM,tC,tS,ϕ(X) (arrays) : coordinate changed problem data, obtained as 
-	Φ^t q(ϕ), Φ^-1 p(ϕ) J, Φ^t M(ϕ) Φ / J, (Φ^t ε(ϕ) Φ,)
+	$$
+	Φ^t q(ϕ), Φ^{-1} p(ϕ) J, Φ^t M(ϕ) Φ / J, (Φ^t ε(ϕ) Φ,)
+	$$
+	$$
 	∑_{i'j'k'l'} C_{i'j'k'l'}(ϕ) Ψ^{i'}_i Ψ^{j'}_j Ψ^{k'}_k Ψ^{l'}_l  J,
-	∑_{i'j'} Φ^i_{i'} Φ^j_{j'} S^{i'j'}_{k'}(ϕ) Ψ_k^{k'} + ∑_{k'} ∂^{ij} ϕ_{k'} Ψ_k^{k'}
+	$$
+	$$
+	∑_{i'j'} Φ^i_{i'} Φ^j_{j'} S^{i'j'}_{k'}(ϕ) Ψ_k^{k'} + ∑_{k'} ∂^{ij} ϕ_{k'} Ψ_k^{k'}.
+	$$
 	"""
 	X_ad = ad.Dense2.identity(constant=X,shape_free=(len(X),))
 	ϕ_ad = ϕ_fun(X_ad)
@@ -197,17 +226,30 @@ def ElasticChgVar(q,p,M,C,S,ϕ,X):
 # ------- Implementations based on GPU kernels -------
 
 class AcousticHamiltonian_Kernel(QuadraticHamiltonianBase):
-	"""
+	r"""
 	The Hamiltonian of an anisotropic acoustic wave equation, implemented with GPU kernels,
-	whose geometry is defined by a generic Riemannianian metric field.
+	whose geometry is defined by a generic Riemannianian (dual-)metric field.
 	The Hamiltonian is a sum of squares of finite differences, via Selling's decomposition.
 
 	The Mathematical expression of the Hamiltonian is 
-	(1/2) int_X iρ(x) p(x)^2 + D(x,grad q(x), grad q(x)) dx
+	$$
+	\frac 1 2 \int_X \frac {p^2} ρ + <\nabla q,D,\nabla q> dx
+	$$
 	where X is the domain, and D the is the (dual-)metric.
-	"""
 
-	def __init__(self,ρ,D,dx=1.,
+	- ρ : density. Array of shape (n1,...,nd) or just a scalar
+	- D : dual-metric. Array of shape (d,d,n1,...,nd) or just (d,d)
+	- dx (optional) : grid scale.
+	- order_x (optional) : consistency order of the scheme, in space.
+	- shape_dom (optional) : shape (n1,...,nd) of the domain (usually inferred from ρ,D)
+	- rev_ad (optional) : Number of channels for reverse autodiff of the decomposition weights and inverse density
+	- block_size (optional) : number of threads per GPU block.
+	"""
+#	- bc : boundary conditions, see bc_to_padding.keys()
+#	- iρ (optional) : inverse density, used internally, otherwise computed as 1/ρ
+
+
+	def __init__(self,ρ,D,dx=1,
 		order_x=2,shape_dom=None,periodic=False,
 		flattened=False,rev_ad=0,iρ=None,
 		block_size=256,traits=None,**kwargs):
@@ -302,7 +344,9 @@ class AcousticHamiltonian_Kernel(QuadraticHamiltonianBase):
 		"""Alias for the inverse density"""
 		return self.iρ
 	@property
-	def size_ad(self): return self._size_ad
+	def size_ad(self): 
+		"""Number of automatic differentiation components, for forward or reverse AD"""
+		return self._size_ad
 	@property
 	def way_ad(self):
 		"""0 : no AD. 1 : forward AD. -1 : reverse AD"""
@@ -333,9 +377,13 @@ class AcousticHamiltonian_Kernel(QuadraticHamiltonianBase):
 	@property
 	def int_t(self): return np.int32
 	@property
-	def float_t(self): return self.traits['Scalar']
+	def float_t(self): 
+		"""Floating point type used by the GPU"""
+		return self.traits['Scalar']
 	@property
-	def order_x(self): return 4 if self.traits['fourth_order_macro'] else 2
+	def order_x(self): 
+		"""Spatial consistency order of the finite differences scheme"""
+		return 4 if self.traits['fourth_order_macro'] else 2
 
 	def Expl_p(self,q,p,δ):
 		"""
@@ -399,7 +447,7 @@ class WaveHamiltonianBase(QuadraticHamiltonianBase):
 	A base class for GPU implementations of Hamiltonians of wave equations.
 	Warning : position and impulsion arrays are padded and reshaped in a GPU friendly format.
 	__init__ arguments 
-	- constant values : used as padding reshape function
+	- constant values : default padding in the reshape function
 	"""
 
 	def __init__(self,shape_dom,traits=None,periodic=False,constant_values=0,**kwargs):
@@ -486,7 +534,7 @@ class WaveHamiltonianBase(QuadraticHamiltonianBase):
 		return self._periodic
 
 	def SetCst(self,name,value,dtype):
-		"""Set a constant un the cuda module"""
+		"""Set a constant in the cuda module"""
 		for module in self._modules:
 			SetModuleConstant(module,name,value,dtype)
 
@@ -525,27 +573,38 @@ class WaveHamiltonianBase(QuadraticHamiltonianBase):
 		return fd.block_squeeze(value,self.shape_dom)
 
 class ElasticHamiltonian_Kernel(WaveHamiltonianBase):
-	"""
+	r"""
 	The Hamiltonian of an anisotropic elastic wave equation, implemented with GPU kernels,
 	whose geometry is defined by a generic Hooke tensor field.
 	The Hamiltonian is a sum of squares of finite differences, via Voronoi's decomposition.
 	Dirichlet boundary conditions are applied, see also optional damping layers.
 
 	The Mathematical expression of the Hamiltonian is 
-	(1/2) int_X M(x,p(x),p(x)) + C(x,ε(x),ε(x)) dx
-	where ε = grad(q) + grad(q)^T - S q is the stress tensor, and X is the domain.
-
+	$$
+		\frac 1 2 \int_X < p,M,p > + <ε,C,ε> dx,
+	$$
+	where X is the domain, and the strain tensor is defined by
+	$$ 
+		2 ε = \nabla q + \nabla q^T.
+	$$
 	- M : (metric) array of positive definite matrices, shape (d,d,n1,...,nd),
 		Also accepts (1,1,n1,...,nd) for isotropic metric. Ex: M = (1/ρ)[None,None]
 	- C : (hooke tensor in voigt notation) array of positive definite matrices,
 		shape (s,s,n1,...,nd) where s = d (d+1)/2
 		Reuse decomposition from previous run : C = H_prev.C_for_reuse
+	- dx (optional) : grid scale.
+	- order_x (optional) : consistency order of the scheme, in space.
+	- shape_dom (optional) : shape (n1,...,nd), usually inferred from other parameters.
+	- rev_ad (optional) : Implement reverse autodiff for the decomposition weights and M.
+	- kwargs : passed to WaveHamiltonianBase
 
 	Warning : accessing some of this object's properties has a significant memory and 
-	computational cost, because all data is converted to a GPU kernel friendly format.
+	computational cost, because all data is reshaped and padded in a GPU kernel friendly format.
 	"""
-	def __init__(self,M,C,dx=1.,order_x=2,shape_dom=None,
-		traits=None,rev_ad=0,**kwargs):
+#	- bc : boundary conditions, see bc_to_padding.keys()
+
+	def __init__(self,M,C,dx=1,order_x=2,shape_dom=None,
+		rev_ad=0,traits=None,**kwargs):
 		if cp is None: raise ImportError("Cupy library needed for this class")
 		fwd_ad = M.size_ad if ad.is_ad(M) else 0
 		if fwd_ad>0 and rev_ad>0:
@@ -649,7 +708,9 @@ class ElasticHamiltonian_Kernel(WaveHamiltonianBase):
 
 	# Traits
 	@property
-	def size_ad(self): return self._size_ad #return self._traits['size_ad_macro']
+	def size_ad(self): 
+		"""Number of independent components for forward or reverse automatic differentiation."""
+		return self._size_ad 
 	@property
 	def way_ad(self):
 		"""0 : no AD. 1 : forward AD. -1 : reverse AD"""
@@ -696,7 +757,7 @@ class ElasticHamiltonian_Kernel(WaveHamiltonianBase):
 	# PDE parameters
 	@property
 	def weights(self):
-		"""Weights, obtained from Voronoi's decomposition of the Hooke tensors."""
+		r"""Weights, obtained from Voronoi's decomposition of the Hooke tensors."""
 		return self.unshape(self._weights)
 	@property	
 	def offsets(self):
