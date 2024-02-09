@@ -31,7 +31,7 @@ def Main_GPU(): # Not used presently (although many notebooks require a GPU)
 		shutil.copyfile(os.path.join(dirname,'test_results',filename+'_out.ipynb'),
 			os.path.join(showcase_dir,filepath+'.ipynb'))
 
-def Main(new_version=None,gpu=False):
+def Main(new_version=None,gpu=False,same_version=False):
 	if gpu: return Main_GPU()
 	# Routine checks. Code must be checked independently
 	TestTocs.Main(check_raise=True)
@@ -55,6 +55,8 @@ def Main(new_version=None,gpu=False):
 	# New version number
 	if 'new_version' in kwargs:
 		new_version = kwargs['new_version']
+	elif 'same_version' in kwargs:
+		new_version = TestVersion.Main()
 	else:
 		old_version = TestVersion.Main()
 		old_version = old_version.split('.')
