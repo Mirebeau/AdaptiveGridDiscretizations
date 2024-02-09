@@ -4,7 +4,7 @@
 This repository contains
 - the agd library (Adaptive Grid Discretizations), written in Python&reg; and cuda&reg;
 - a series of *jupyter notebooks* in the Python&reg; language (online [static](http://nbviewer.jupyter.org/urls/rawgithub.com/Mirebeau/AdaptiveGridDiscretizations_showcase/master/Summary.ipynb) and [interactive](https://colab.research.google.com/notebook#fileId=1exIN-55tUG1LFlgoHM582k8o8zy6H46f&offline=true&sandboxMode=true) view), reproducing my research in Anisotropic PDE discretizations and their applications.
-- a [basic documentation](https://mirebeau.github.io/AdaptiveGridDiscretizations/agd.html),
+- a [basic documentation](https://mirebeau.github.io/AdaptiveGridDiscretizations_help/docs/agd.html),
 generated with [pdoc](https://pdoc.dev/).
 
 ### The AGD library
