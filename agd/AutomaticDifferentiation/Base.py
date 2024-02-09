@@ -14,7 +14,7 @@ from . import functional
 try: 
 	import cupy as cp
 	_cp_ndarray = cp.ndarray
-except ModuleNotFoundError: 
+except (ImportError,ModuleNotFoundError): 
 	cp=None
 	class _cp_ndarray: pass
 
