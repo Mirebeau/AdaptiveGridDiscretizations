@@ -112,7 +112,7 @@ class SeparableHamiltonianBase(HamiltonianBase):
 		Merge two implicit time steps for the impulsion p, with a damping step in between.
 		"""
 		# If there is no damping, then the two explicit time steps can be merged
-		if (self.damp_p is damp_None and self.damp_q is damp_None and self.Impl2_p_merged 
+		if (self._damp_p is damp_None and self._damp_q is damp_None and self.Impl2_p_merged 
 		and self.read_p is read_None and self.incr_q is incr_None): # Could allow read_p easily
 			self.read_q(self,q) # Read position before (non-existent) damp
 			p = self.Expl_p(q,p,δ_before+δ_after)
@@ -212,21 +212,21 @@ class QuadraticHamiltonianBase(SeparableHamiltonianBase):
 		# We are computing α p - δ_after B β q - δ_before α B q, 
 		# Where α = exp(-δ_total damp_p) and β = exp(-δ_total damp_q) 
 
-		if (self.damp_q is damp_None and self.damp_p is not damp_None and self.Impl2_p_merged # β=1
+		if (self._damp_q is damp_None and self._damp_p is not damp_None and self.Impl2_p_merged # β=1
 		and self.incr_q is incr_None and self.read_p is read_None): 
 			# Factorization : α p - (δ_after + δ_before α) B q
 			self.read_q(self,q) # Read position before damp
 			dp = self._DqH(q)
-			α = np.exp(-δ_total*self.damp_p)
+			α = np.exp(-δ_total*self._damp_p)
 			p = α*p - (δ_after + δ_before*α) * dp
 			self.incr_p(self,p)
 			return q,p
 
-		if (self.damp_p is damp_None and self.damp_q is not damp_None and self.Impl2_p_merged # α=1
+		if (self._damp_p is damp_None and self._damp_q is not damp_None and self.Impl2_p_merged # α=1
 		and self.read_p is read_None and self.incr_p is incr_None): 
 			# Factorization : p - B (δ_after β + δ_before) q
 			self.read_q(self,q)
-			β = np.exp(-δ_total*self.damp_q)
+			β = np.exp(-δ_total*self._damp_q)
 			qnew = q*β
 			self.incr_q(self,qnew)
 			p = self.Expl_p(δ_after*qnew+δ_before*q,p,1) # Using Expl for reverse AD
@@ -324,7 +324,7 @@ class QuadraticHamiltonianBase(SeparableHamiltonianBase):
 				if xp is not np:
 					q.coef = np.moveaxis(xp.ascontiguousarray(np.moveaxis(q.coef,-1,self.ndim)),self.ndim,-1)
 #				q.coef.reshape((-1,size_ad))[ph_ind] += ph_grad[rev_iter-1] 
-				assert not check_val or np.allclose(q.value * np.exp(-δ*(H.damp_p+H.damp_q)), qph_eval(rev_iter)[0])
+				assert not check_val or np.allclose(q.value * np.exp(-δ*(H._damp_p+H._damp_q)), qph_eval(rev_iter)[0])
 				q.value = qph_eval(rev_iter)[0]
 			def incr_p(H,p):
 				rev_iter = niter-1-H.current_iter
@@ -336,7 +336,7 @@ class QuadraticHamiltonianBase(SeparableHamiltonianBase):
 				if xp is not np:
 					p.coef = np.moveaxis(xp.ascontiguousarray(np.moveaxis(p.coef,-1,self.ndim)),self.ndim,-1)
 #				p.coef.reshape((-1,size_ad))[qh_ind] -= qh_grad[rev_iter-1] 
-				assert not check_val or np.allclose(p.value * np.exp(-δ*(H.damp_p+H.damp_q)), qph_eval(rev_iter)[1])
+				assert not check_val or np.allclose(p.value * np.exp(-δ*(H._damp_p+H._damp_q)), qph_eval(rev_iter)[1])
 				p.value = qph_eval(rev_iter)[1]
 
 			if qh_ind is not None: H_rev.incr_p = incr_p
@@ -347,6 +347,7 @@ class QuadraticHamiltonianBase(SeparableHamiltonianBase):
 			# H_rev.rev_reset() 
 
 			# Setup for time-reversed propagation
+			# TODO : possible optimization, by avoiding copies of damp_p, damp_q
 			H_rev.damp_q,H_rev.damp_p = - H_fwd.damp_p,- H_fwd.damp_q
 			q0_rev,p0_rev = H_rev.Sympl_p(qf_rev,pf_rev,-δ,niter,order)
 
