@@ -316,12 +316,26 @@ class QuadraticHamiltonianBase(SeparableHamiltonianBase):
 
 			def incr_q(H,q):
 				rev_iter = niter-1-H.current_iter
-				q.coef.reshape((-1,size_ad))[ph_ind] += ph_grad[rev_iter-1] 
+				# TODO : issue with GPU version. reshapes makes a copy. Fix coming soon
+				coef = q.coef.reshape((-1,size_ad))
+				coef[ph_ind] += ph_grad[rev_iter-1] 
+				q.coef = coef.reshape(q.coef.shape)
+				xp = ad.cupy_generic.get_array_module(q.coef)
+				if xp is not np:
+					q.coef = np.moveaxis(xp.ascontiguousarray(np.moveaxis(q.coef,-1,self.ndim)),self.ndim,-1)
+#				q.coef.reshape((-1,size_ad))[ph_ind] += ph_grad[rev_iter-1] 
 				assert not check_val or np.allclose(q.value * np.exp(-δ*(H.damp_p+H.damp_q)), qph_eval(rev_iter)[0])
 				q.value = qph_eval(rev_iter)[0]
 			def incr_p(H,p):
 				rev_iter = niter-1-H.current_iter
-				p.coef.reshape((-1,size_ad))[qh_ind] -= qh_grad[rev_iter-1] 
+				# TODO Issue with GPU version : reshape makes a copy. Fix coming soon.	
+				coef = p.coef.reshape((-1,size_ad))
+				coef[qh_ind] -= qh_grad[rev_iter-1] 
+				p.coef = coef.reshape(p.coef.shape)
+				xp = ad.cupy_generic.get_array_module(p.coef)
+				if xp is not np:
+					p.coef = np.moveaxis(xp.ascontiguousarray(np.moveaxis(p.coef,-1,self.ndim)),self.ndim,-1)
+#				p.coef.reshape((-1,size_ad))[qh_ind] -= qh_grad[rev_iter-1] 
 				assert not check_val or np.allclose(p.value * np.exp(-δ*(H.damp_p+H.damp_q)), qph_eval(rev_iter)[1])
 				p.value = qph_eval(rev_iter)[1]
 

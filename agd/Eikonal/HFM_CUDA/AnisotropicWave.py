@@ -244,15 +244,16 @@ class AcousticHamiltonian_Kernel(QuadraticHamiltonianBase):
 	- shape_dom (optional) : shape (n1,...,nd) of the domain (usually inferred from ρ,D)
 	- rev_ad (optional) : Number of channels for reverse autodiff of the decomposition weights and inverse density
 	- block_size (optional) : number of threads per GPU block.
+	- save_weights (optional) : save the weights and offsets of Selling's decomposition of D.
 	"""
 #	- bc : boundary conditions, see bc_to_padding.keys()
 #	- iρ (optional) : inverse density, used internally, otherwise computed as 1/ρ
 
 
 	def __init__(self,ρ,D,dx=1,
-		order_x=2,shape_dom=None,periodic=False,
+		order_x=2,shape_dom=None,bc='Periodic',
 		flattened=False,rev_ad=0,iρ=None,
-		block_size=256,traits=None,**kwargs):
+		block_size=256,traits=None,save_weights=False,**kwargs):
 		if cp is None: raise ImportError("Cupy library needed for this class")
 		super(AcousticHamiltonian_Kernel,self).__init__(**kwargs)
 
@@ -266,6 +267,7 @@ class AcousticHamiltonian_Kernel(QuadraticHamiltonianBase):
 
 		fwd_ad = ρ.size_ad if ad.is_ad(ρ) else 0
 		self._size_ad = max(rev_ad,fwd_ad)
+		periodic = {'Periodic':True,'Dirichlet':False}[bc]
 
 		# Init the GPU kernel
 		traits_default = {
@@ -295,13 +297,13 @@ class AcousticHamiltonian_Kernel(QuadraticHamiltonianBase):
 		self.dt_max = _mk_dt_max(dx/np.sqrt(
 			np.max(rm_ad(self.iρ)*rm_ad(λ).sum(axis=0))), order_x)
 		λ = fd.as_field(λ,shape_dom,depth=1)
-		self.weights = ad.Base.ascontiguousarray(np.moveaxis(λ,0,-1))
+		self._weights = ad.Base.ascontiguousarray(np.moveaxis(λ,0,-1))
 		λ=None
 
 		if self.way_ad<0: # Reverse autodiff
-			self.weights  = ad.Dense.denseAD(self.weights)
+			self._weights  = ad.Dense.denseAD(self._weights)
 			self.iρ = ad.Dense.denseAD(self.iρ)
-		for arr in (self.weights,self.iρ): 
+		for arr in (self._weights,self.iρ): 
 			self.check_ad(arr) if self.size_ad>0 else self.check(arr)
 
 		# Generate the cuda module
@@ -333,9 +335,10 @@ class AcousticHamiltonian_Kernel(QuadraticHamiltonianBase):
 			SetModuleConstant(module,'size_tot',np.prod(self.shape_dom),self.int_t)
 
 		# Get the indices of the scheme neighbors
-		self._ineigh = cp.full((*self.weights.shape,order_x),-2**30,dtype=self.int_t)
+		self._ineigh = cp.full((*self._weights.shape,order_x),-2**30,dtype=self.int_t)
 		e = cp.ascontiguousarray(fd.as_field(e,shape_dom,depth=2))
 		get_indices(*self._sizes_oi,(e,self._ineigh))
+		if save_weights: self.offsets = e
 		e=None
 		self.check(self._ineigh)
 
@@ -343,6 +346,10 @@ class AcousticHamiltonian_Kernel(QuadraticHamiltonianBase):
 	def M(self): 
 		"""Alias for the inverse density"""
 		return self.iρ
+	@property 
+	def weights(self):
+		"""The weights of Selling's decomposition of D."""
+		return np.moveaxis(self._weights,-1,0)
 	@property
 	def size_ad(self): 
 		"""Number of automatic differentiation components, for forward or reverse AD"""
@@ -356,7 +363,7 @@ class AcousticHamiltonian_Kernel(QuadraticHamiltonianBase):
 		Reset the accumulators for reverse autodiff 
 		Namely (self.metric.coef and self.weights.coef)
 		"""
-		self.weights.coef[:]=0
+		self._weights.coef[:]=0
 		self.iρ.coef[:]=0
 
 	@property	
@@ -370,7 +377,7 @@ class AcousticHamiltonian_Kernel(QuadraticHamiltonianBase):
 	@property	
 	def decompdim(self):
 		"""Length of quadratic form decomposition."""
-		return self.weights.shape[-1]
+		return self._weights.shape[-1]
 
 	@property
 	def traits(self): return self._traits
@@ -395,13 +402,13 @@ class AcousticHamiltonian_Kernel(QuadraticHamiltonianBase):
 		if ad.is_ad(q): # Use automatic differentiation, forward or reverse
 			SetModuleConstant(self._modules[1],'DqH_mult',mult,self.float_t)
 			self.check_ad(q); self.check_ad(p)
-			self._DqH_Kernel_ad(*self._sizes_oi,(self.weights.value,self._ineigh,
-				q.value,self.weights.coef,q.coef,p.coef,p.value))
+			self._DqH_Kernel_ad(*self._sizes_oi,(self._weights.value,self._ineigh,
+				q.value,self._weights.coef,q.coef,p.coef,p.value))
 		else: # No automatic differentiation
 			SetModuleConstant(self._modules[0],'DqH_mult',mult,self.float_t)
 			self.check(q); self.check(p)
 			self._DqH_Kernel(*self._sizes_oi,
-				(ad.remove_ad(self.weights),self._ineigh,q,p))
+				(ad.remove_ad(self._weights),self._ineigh,q,p))
 		return p
 
 	def Expl_q(self,q,p,δ): 
@@ -603,8 +610,8 @@ class ElasticHamiltonian_Kernel(WaveHamiltonianBase):
 	"""
 #	- bc : boundary conditions, see bc_to_padding.keys()
 
-	def __init__(self,M,C,dx=1,order_x=2,shape_dom=None,
-		rev_ad=0,traits=None,**kwargs):
+	def __init__(self,M,C,dx=1,order_x=2,shape_dom=None,bc='Periodic',
+		rev_ad=0,traits=None,save_weights=True,**kwargs):
 		if cp is None: raise ImportError("Cupy library needed for this class")
 		fwd_ad = M.size_ad if ad.is_ad(M) else 0
 		if fwd_ad>0 and rev_ad>0:
@@ -620,16 +627,21 @@ class ElasticHamiltonian_Kernel(WaveHamiltonianBase):
 		traits = traits_default
 
 		# Flatten the symmetric matrix arrays, if necessary
-		if (M.ndim==2 or M.shape[0] in (1,M.ndim-2)) and M.shape[0]==M.shape[1]: 
+		if (M.ndim==2 or M.shape[0] in (1,M.ndim-2)) and M.shape[0]==M.shape[1]:
+			assert np.allclose(M,np.moveaxis(M,0,1))
 			M = Metrics.misc.flatten_symmetric_matrix(M)
 		if isinstance(C,tuple): self._weights,self._offsets,shape_dom = C # Reuse decomposition
 		elif (C.ndim==2 or C.shape[0]==_triangular_number(C.ndim-2)) and C.shape[0]==C.shape[1]: 
+			assert np.allclose(C,np.moveaxis(C,0,1))
 			C = Metrics.misc.flatten_symmetric_matrix(C)
 
 		# Get the domain shape
 		if shape_dom is None: shape_dom = M.shape[1:] if isinstance(C,tuple) else \
 			fd.common_shape((M,C),depths=(1,1))
-		super(ElasticHamiltonian_Kernel,self).__init__(shape_dom,traits,**kwargs)
+		if np.ndim(bc)==0: bc = (bc,)*len(shape_dom)
+		periodic = tuple({'Periodic':True,'Dirichlet':False}[bci] for bci in bc)
+
+		super(ElasticHamiltonian_Kernel,self).__init__(shape_dom,traits,periodic,**kwargs)
 
 		if self.ndim not in (1,2,3):
 			raise ValueError("Only domains of dimension 1, 2 and 3 are supported")
@@ -795,17 +807,19 @@ class ElasticHamiltonian_Kernel(WaveHamiltonianBase):
 		return full_hooke
 				
 	@property
-	def metric(self):
+	def M(self):
 		"""
 		The metric tensor, input 'M'. Defines the norm for measuring momentum. 
 		Usually metric = Id/ρ .
 		"""
-		return Metrics.misc.expand_symmetric_matrix(self.unshape(self._metric))
+		res = Metrics.misc.expand_symmetric_matrix(self.unshape(self._metric))
+		return res
+
 
 	@property
 	def iρ(self):
 		"""Inverse density. Alias for the metric M used to define the kinetic energy."""
-		return self.metric
+		return self.M
 
 	def Expl_p(self,q,p,δ):
 		"""

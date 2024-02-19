@@ -478,13 +478,17 @@ FWD(Scalar m_ad[metricdim];
 	
 	for(int i=0; i<ndim; ++i){mp_ad_t[nstart_p_ad + size_i * i] += dmp[i] FWD(+ dmp1[i]);}
 
-REV(ISOTROPIC_METRIC(Scalar dm_ad=0. , );
+REV(ISOTROPIC_METRIC(
+	Scalar dm_ad=0.;
+	for(int i=0; i<ndim; ++i) dm_ad+=dp_ad[i]*p[i];
+	metric_ad_t[nstart_m_ad] += dm_ad;
+	, // ANISOTROPIC_METRIC
 	for(int i=0,k=0; i<ndim; ++i)
 		for(int j=0; j<=i; ++j,++k){
-			ISOTROPIC_METRIC( dm_ad , metric_ad_t[nstart_m_ad + size_i*k] )
-			+= (i==j) ? dp_ad[i]*p[i] : (dp_ad[i]*p[j] + dp_ad[j]*p[i]);} // for j
-	ISOTROPIC_METRIC(metric_ad_t[nstart_m_ad] += dm_ad, );
-	)// REV
+			// Caution : the 0.5 is takes into account the Frobenius scalar product
+			metric_ad_t[nstart_m_ad + size_i*k] 
+			+= (i==j) ? dp_ad[i]*p[i] : 0.5*(dp_ad[i]*p[j] + dp_ad[j]*p[i]);} // for j
+	) )// ISOTROPIC_METRIC //  REV
 	}) // for ad // AD
 
 } // DpH
