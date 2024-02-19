@@ -237,7 +237,7 @@ class QuadraticHamiltonianBase(SeparableHamiltonianBase):
 
 		return super().Impl2_p(q,p,δ_before,δ_total,δ_after)
 
-	def seismogram_with_backprop(self,q,p,δ,niter,order=2,qh_ind=None,ph_ind=None):
+	def seismogram_with_backprop(self,q,p,δ,niter,order=2,qh_ind=None,ph_ind=None,**kwargs):
 		"""
 		Computes niter time steps of a symplectic scheme, collects the values at given indices along
 		the way (the seismogram), and allows to backpropagate the results.
@@ -245,6 +245,7 @@ class QuadraticHamiltonianBase(SeparableHamiltonianBase):
 		Inputs : 
 		- qh_ind,ph_ind : indices at which to collect the values of q and p, 
 			in the flattened arrays. IMPORTANT : no duplicate values in either qh_ind or ph_ind.
+		- kwargs : passed to Sympl_p
 
 		Outputs : 
 		- (qf,pf) : final values of q and p
@@ -274,16 +275,18 @@ class QuadraticHamiltonianBase(SeparableHamiltonianBase):
 		# of Impl2_p merged steps (at best, expecting a factor 2 computational cost reduction)
 		def next(qp): # A single time step, including a preliminary damping
 			q,p = H_fwd.Damp_qp(*qp,δ)
-			q,p = H_fwd.Sympl_p(q,p,δ,order=order)
-			if initial and qh_ind is not None: qh.append(q.reshape(-1)[qh_ind].copy())
-			if initial and ph_ind is not None: ph.append(p.reshape(-1)[ph_ind].copy())
+			q,p = H_fwd.Sympl_p(q,p,δ,order=order,**kwargs)
+			if initial and qh_ind is not None: qh.append(q[*qh_ind].copy())
+				#qh.append(q.reshape(-1)[qh_ind].copy())
+			if initial and ph_ind is not None: ph.append(p[*ph_ind].copy())
+				#ph.append(p.reshape(-1)[ph_ind].copy())
 			return q,p
 		# A single negative damping step should be fine...
 		qph_eval = RecurseRewind(next,self.Damp_qp(q,p,-δ))
 
 		# Perform forward propagation
 		qf,pf = qph_eval(niter)
-		# We drop the last element, for consistency with backprop. Recover it as qf[q_ind] 
+		# We drop the last element, for consistency with backprop. Recover it as qf[*q_ind] 
 		qh = ad.array(qh[:-1]); ph = ad.array(ph[:-1]) 
 
 		# Remove seismogram extraction
@@ -298,8 +301,9 @@ class QuadraticHamiltonianBase(SeparableHamiltonianBase):
 			- check_ind : check that the seismogram indices do not contain duplicates
 			"""
 			# Data checks
-			if check_ind:
-				assert np.unique(qh_ind).size==qh_ind.size and np.unique(ph_ind).size==ph_ind.size
+			for ind in (qh_ind,ph_ind):
+				assert not check_ind or np.unique(np.ravel_multi_index(ind,qf.shape)).size==ind[0].size
+#				assert np.unique(qh_ind).size==qh_ind.size and np.unique(ph_ind).size==ph_ind.size
 			if ad.is_ad(qf) or ad.is_ad(pf) or ad.is_ad(qh) or ad.is_ad(ph): 
 				raise ValueError("Please choose between forward and reverse autodiff")
 			size_ad = max(x.size//y.size for x,y in 
@@ -316,26 +320,12 @@ class QuadraticHamiltonianBase(SeparableHamiltonianBase):
 
 			def incr_q(H,q):
 				rev_iter = niter-1-H.current_iter
-				# TODO : issue with GPU version. reshapes makes a copy. Fix coming soon
-				coef = q.coef.reshape((-1,size_ad))
-				coef[ph_ind] += ph_grad[rev_iter-1] 
-				q.coef = coef.reshape(q.coef.shape)
-				xp = ad.cupy_generic.get_array_module(q.coef)
-				if xp is not np:
-					q.coef = np.moveaxis(xp.ascontiguousarray(np.moveaxis(q.coef,-1,self.ndim)),self.ndim,-1)
-#				q.coef.reshape((-1,size_ad))[ph_ind] += ph_grad[rev_iter-1] 
+				q.coef[*ph_ind] += ph_grad[rev_iter-1] 
 				assert not check_val or np.allclose(q.value * np.exp(-δ*(H._damp_p+H._damp_q)), qph_eval(rev_iter)[0])
 				q.value = qph_eval(rev_iter)[0]
 			def incr_p(H,p):
 				rev_iter = niter-1-H.current_iter
-				# TODO Issue with GPU version : reshape makes a copy. Fix coming soon.	
-				coef = p.coef.reshape((-1,size_ad))
-				coef[qh_ind] -= qh_grad[rev_iter-1] 
-				p.coef = coef.reshape(p.coef.shape)
-				xp = ad.cupy_generic.get_array_module(p.coef)
-				if xp is not np:
-					p.coef = np.moveaxis(xp.ascontiguousarray(np.moveaxis(p.coef,-1,self.ndim)),self.ndim,-1)
-#				p.coef.reshape((-1,size_ad))[qh_ind] -= qh_grad[rev_iter-1] 
+				p.coef[*qh_ind] -= qh_grad[rev_iter-1] 
 				assert not check_val or np.allclose(p.value * np.exp(-δ*(H._damp_p+H._damp_q)), qph_eval(rev_iter)[1])
 				p.value = qph_eval(rev_iter)[1]
 
@@ -347,9 +337,8 @@ class QuadraticHamiltonianBase(SeparableHamiltonianBase):
 			# H_rev.rev_reset() 
 
 			# Setup for time-reversed propagation
-			# TODO : possible optimization, by avoiding copies of damp_p, damp_q
 			H_rev.damp_q,H_rev.damp_p = - H_fwd.damp_p,- H_fwd.damp_q
-			q0_rev,p0_rev = H_rev.Sympl_p(qf_rev,pf_rev,-δ,niter,order)
+			q0_rev,p0_rev = H_rev.Sympl_p(qf_rev,pf_rev,-δ,niter,order,**kwargs)
 
 			return -p0_rev.coef,q0_rev.coef
 

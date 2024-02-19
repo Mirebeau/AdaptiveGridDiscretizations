@@ -901,5 +901,86 @@ class ElasticHamiltonian_Kernel(WaveHamiltonianBase):
 		assert x.dtype in (self.float_t,self.int_t,self.offsetpack_t)
 		assert x.ndim in (2*self.ndim,2*self.ndim+1)
 
+
+#----------- reshape optional argument ----------
+	def Sympl_p(self,q,p,*args,reshape=True,**kwargs):
+		"""
+		See super().Sympl_p for a detailed description.
+		- reshape (optional, default=False) : convert q,p to GPU friendly format
+		"""
+		if reshape: q,p = self.reshape(q),self.reshape(p)
+		q,p = super().Sympl_p(q,p,*args,**kwargs)
+		if reshape: q,p = self.unshape(q),self.unshape(p)
+		return q,p
+
+	def _reshape_ind(self,ind):
+		if ind is None: return ind
+		assert len(ind)==1+self.ndim
+		comp,ind = ind[0],ind[1:]
+		for i,s in zip(ind,self.shape_dom): assert np.all(0<=i) and np.all(i<s)
+		ind_o = tuple(i//s for i,s in zip(ind,self.shape_i))
+		ind_i = tuple(i%s  for i,s in zip(ind,self.shape_i))
+		return *ind_o,comp,*ind_i
+		
+	def _reshape_grad(self,grad):
+		if grad is None: return grad
+		assert grad.shape == (self.ndim,*self.shape_dom,self.size_ad)
+		grad = self.reshape(np.moveaxis(grad,-1,0).reshape((self.size_ad*self.ndim,*grad.shape[1:-1])))
+		grad = grad.reshape((*self.shape_o,self.size_ad,self.ndim,*self.shape_i))
+		return np.moveaxis(grad,self.ndim,-1)
+	def _unshape_grad(self,grad):
+		assert grad.shape == (*self.shape_o,self.ndim,*self.shape_i,self.size_ad)
+		grad = np.moveaxis(grad,-1,self.ndim).reshape((*self.shape_o,self.size_ad*self.ndim,*self.shape_i))
+		grad = self.unshape(grad).reshape((self.size_ad,self.ndim,*self.shape_dom))
+		return np.moveaxis(grad,0,-1)
+
+	def seismogram(self,q,p,*args,qh_ind=None,ph_ind=None,reshape=True,**kwargs):
+		"""
+		See super().seismogram for a detailed description.
+		- reshape (optional, default=True) : convert q,p,qh_ind,ph_ind to GPU friendly format
+		"""
+		if reshape: 
+			q = self.reshape(q)
+			p = self.reshape(p)
+			qh_ind = self._reshape_ind(qh_ind)
+			ph_ind = self._reshape_ind(ph_ind)
+		qf,pf,qh,ph = super().seismogram(q,p,*args,qh_ind=qh_ind,ph_ind=ph_ind,reshape=False,**kwargs)
+		if reshape:
+			qf = self.unshape(qf)
+			pf = self.unshape(pf)
+		return qf,pf,qh,ph
+
+	def seismogram_with_backprop(self,q,p,*args,qh_ind=None,ph_ind=None,reshape=True,**kwargs):
+		"""
+		See super().seismogram for a detailed description
+		- reshape (optional, default=True) : convert q,p,qh_ind,ph_ind,qf_grad,ph_grad to GPU friendly format
+		"""
+		if reshape:
+			q = self.reshape(q)
+			p = self.reshape(p)
+			qh_ind = self._reshape_ind(qh_ind)
+			ph_ind = self._reshape_ind(ph_ind)
+		qf,pf,qh,ph,_backprop = super().seismogram_with_backprop(q,p,*args,qh_ind=qh_ind,ph_ind=ph_ind,reshape=False,**kwargs)
+		if reshape:
+			qf = self.unshape(qf)
+			pf = self.unshape(pf)
+
+		def backprop(qf_grad=None,pf_grad=None,**kwargs):
+			if reshape:
+				qf_grad = self._reshape_grad(qf_grad)
+				pf_grad = self._reshape_grad(pf_grad)
+			q0_grad,p0_grad = _backprop(qf_grad,pf_grad,**kwargs)
+			return self._unshape_grad(q0_grad),self._unshape_grad(p0_grad)
+
+		return qf,pf,qh,ph,backprop
+
+
+
+
+
+
+
+
+
 # Utility functions
 def _triangular_number(n): return (n*(n+1))//2

@@ -311,14 +311,19 @@ class HamiltonianBase:
 		from .backtrack import RecurseRewind
 		return RecurseRewind(next,self.Damp_qp(q,p,-δ)) # A single negative damping step should be fine...
 
-	def seismogram(self,q,p,δ,niter,order=2,qh_ind=None,ph_ind=None):
+	def seismogram(self,*args,qh_ind=None,ph_ind=None,**kwargs):
+		"""
+		Computes niter time steps of a symplectic scheme, collects the values at given indices along
+		the way (the seismogram), and allows to backpropagate the results.
+		- args,kwargs : passed to Sympl_p
+		"""
 
 		H_fwd = copy(self)
 		H_fwd.read_q = H_fwd.read_p = read_None; H_fwd.incr_q = H_fwd.incr_p = incr_None
 		qh = []; ph = []; initial=True 
-		if qh_ind is not None: H_fwd.read_q = lambda _,q : qh.append(q.reshape(-1)[qh_ind])
-		if ph_ind is not None: H_fwd.read_p = lambda _,p : ph.append(p.reshape(-1)[ph_ind])
-		qf,pf = H_fwd.Sympl_p(q,p,δ,niter,order)
+		if qh_ind is not None: H_fwd.read_q = lambda _,q : qh.append(q[*qh_ind].copy())
+		if ph_ind is not None: H_fwd.read_p = lambda _,p : ph.append(p[*ph_ind].copy())
+		qf,pf = H_fwd.Sympl_p(*args,**kwargs)
 
 		return qf,pf,ad.asarray(qh),ad.asarray(ph)
 
