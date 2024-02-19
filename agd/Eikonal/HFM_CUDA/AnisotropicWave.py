@@ -29,6 +29,7 @@ try: # These features require a GPU, but are optional.
 except ImportError:
 	cp = None
 
+
 # ------ Reference implementations using sparse matrices -------
 # These implementations can be used to check the validity of the GPU kernels. 
 # Additionally, they support automatic differentiation (ad.Dense.denseAD_Lin operators).
@@ -974,13 +975,12 @@ class ElasticHamiltonian_Kernel(WaveHamiltonianBase):
 
 		return qf,pf,qh,ph,backprop
 
-
-
-
-
-
-
-
-
 # Utility functions
 def _triangular_number(n): return (n*(n+1))//2
+
+WaveHamiltonian = {
+("Acoustic","Sparse"):AcousticHamiltonian_Sparse, 
+("Elastic", "Sparse"):ElasticHamiltonian_Sparse, 
+("Acoustic","Kernel"):AcousticHamiltonian_Kernel, 
+("Elastic", "Kernel"):ElasticHamiltonian_Kernel,
+} 
