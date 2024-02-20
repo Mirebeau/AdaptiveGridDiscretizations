@@ -12,12 +12,12 @@ from agd.Interpolation import UniformGridInterpolation
 from agd.Plotting import savefig,quiver,Tissot; #savefig.dirName = 'Images/ElasticityDirichlet'
 norm = ad.Optimization.norm
 mica,_ = Hooke.mica 
+cupy_get = ad.cupy_generic.cupy_get # Turn a cupy array into a numpy array
 
-#import copy
 import numpy as np; xp=np; allclose=np.allclose; π = np.pi
 from matplotlib import pyplot as plt
 from matplotlib.colors import AsinhNorm
-from scipy.ndimage import gaussian_filter
+from scipy import ndimage
 from numpy.random import rand
 
 if xp is np: # Use CPU sparse matrix solvers
@@ -26,6 +26,7 @@ if xp is np: # Use CPU sparse matrix solvers
 else: # Use GPU kernels
     AcousticHamiltonian = aw.AcousticHamiltonian_Kernel
     ElasticHamiltonian = aw.ElasticHamiltonian_Kernel
+    Tissot = ad.cupy_generic.cupy_get_args(Tissot,iterables=(Riemann,)) # Allow GPU data
 
 def heaviside(x):
     """Smoothed heaviside function, with a transition over [-1,1]"""
@@ -90,11 +91,15 @@ def sensitivity_to_ρ(H_rev):
     return -(H_rev.iρ*H_rev.iρ.value**2).coef
 
 def sensitivity_to_D(H_rev,offsets=None):
+    """Assumes Selling/Voronoi decomposition"""
     from agd.Metrics import misc # import flatten_symmetric_matrix as fltsym
     if offsets is None:offsets = H_rev.offsets
     eet_flat = misc.flatten_symmetric_matrix(lp.outer_self(offsets)).astype(H_rev.weights.dtype)
     # Could be made more efficient and accurate, since the inverses are essentially known
-    res = lp.solve_AV(lp.transpose(eet_flat)[...,None],H_rev.weights.coef)
+    eet_mat = lp.transpose(eet_flat)[...,None]
+    if not ad.cupy_generic.from_cupy(H_rev.weights.value): res = lp.solve_AV(eet_mat,H_rev.weights.coef) 
+    else: # Cupy appears to have stricter broadcasting rules here
+    	res = lp.solve_AV(np.broadcast_to(eet_mat,(*eet_mat.shape[:-1],H_rev.weights.size_ad)),H_rev.weights.coef)
     res = misc.expand_symmetric_matrix(res)/2 
     for i in range(len(res)): res[i,i]*=2 # Normalization accounts for duplication of off-diagonal coefficients
     return res
@@ -102,10 +107,12 @@ def sensitivity_to_D(H_rev,offsets=None):
 def sensitivity_to_M(H_rev): 
     return H_rev.M.coef
     
-def sensitivity_to_C(H_rev): 
+def sensitivity_to_C(H_rev):
+    """Assumes Selling/Voronoi decomposition"""
+    if hasattr(H_rev,'offsets'): return sensitivity_to_D(H_rev,H_rev.offsets)
+    # If no offsets, we use the matrix offsets and take care of Voigt notation
     m = H_rev.moffsets 
     vdim = len(m)
-    # Take care of Voigt notation
     if vdim==1:   return sensitivity_to_D(H_rev,m[0])
     elif vdim==2: return sensitivity_to_D(H_rev,(m[0,0],m[1,1],m[0,1]))
     elif vdim==3: return sensitivity_to_D(H_rev,(m[0,0],m[1,1],m[2,2],m[1,2],m[0,2],m[0,1]))
@@ -116,98 +123,115 @@ def MakeRandomTensor(dim, shape=tuple(), relax=0.05):
     identity = np.eye(dim).reshape((dim,dim)+(1,)*len(shape))
     return D+lp.trace(D)*relax*identity
 
+def rand(*args): 
+    return np.random.rand(*args)
+
 def rand_ad(x,size_ad,sym=False):
     x_coef = rand(*x.shape,size_ad)
     if sym: x_coef = (x_coef+lp.transpose(x_coef))/2
     return ad.Dense.denseAD(x,x_coef)
-    
-def check_ad(vdim,nX,wavetype,order_x=2,order_t=2,bc='Neumann',niter=4,size_fwd=2,size_rev=2):
-    """
-    - size_fwd : number of independent symbolic perturbations of the inputs
-    - size_rev : number of objective functions at the target
-    """
-    print(f"Testing {vdim=}, {nX=}, {wavetype=}, {order_x=}, {order_t=}, {niter=}, {bc=}, {size_fwd=}, {size_rev=}, ",end='')
+
+def check_ad_rand(vdim,nX,wavetype,niter,size_fwd,size_rev):
+    """Generate random parameters for check_ad"""
     np.random.seed(42)
-    size_ad = 2
     shape = (nX,)*vdim
-    dt = 0.1
-    dx = 0.5
     if wavetype=='Acoustic':
-        Hamiltonian = aw.AcousticHamiltonian_Sparse
         ρ = 0.2+rand(*shape); ρ /= np.max(ρ)
         D = MakeRandomTensor(vdim,shape,0.2); D/=np.max(D)
 	#	D[:] = np.eye(vdim).reshape((vdim,vdim)+(1,)*vdim); print("Alternative : D = Id")
         params = (ρ,D)
         q0,p0 = rand(*shape), rand(*shape)
     elif wavetype=='Elastic': 
-        Hamiltonian = aw.ElasticHamiltonian_Sparse
-	#	ρ = 0.2+rand(*shape); ρ /= np.max(ρ); M = ρ[None,None]
+#        ρ = 0.2+rand(*shape); ρ /= np.max(ρ); M = ρ[None,None]
         M = MakeRandomTensor(vdim,shape,0.3); M /= np.max(M)
         symdim = (vdim*(vdim+1))//2
         C = MakeRandomTensor(symdim,shape,0.2); C/=np.max(C)
-        params = (M,C)
+        np.random.seed(54)
         q0,p0 = rand(vdim,*shape),rand(vdim,*shape)
+#        M = np.ones_like(M); C*=0; q0*=0; p0*=0; p0[0]=1
+        params = (M,C)
     else: raise ValueError("Unrecognized wave type")
 
-    params_fwd = [rand_ad(x,size_ad,sym) for x,sym in zip(params,(False,True,True))]
+    params_fwd = tuple(rand_ad(x,size_fwd,sym) for x,sym in zip(params,(wavetype=='Elastic',True)))
     q0_fwd = rand_ad(q0,size_fwd); p0_fwd = rand_ad(p0,size_fwd)
 
-    qh_ind = np.random.choice(q0.size,8,replace=False) # Fails if there are duplicates
-    ph_ind = np.random.choice(p0.size,7,replace=False)
+	# Using random.choice without replacement, otherwise fails.
+    qh_ind = np.unravel_index(np.random.choice(q0.size,8,replace=False),q0.shape)
+    ph_ind = np.unravel_index(np.random.choice(p0.size,7,replace=False),p0.shape)
     
-#    q0_fwd.coef*=0
-#    p0_fwd.coef*=0
-#    params_fwd[0].coef*=0
-#    params_fwd[1].coef*=0
-    
-    H_fwd = Hamiltonian(*params_fwd,dx,bc=bc,order_x=order_x,save_weights=True)
-    H_rev = Hamiltonian(*params    ,dx,bc=bc,order_x=order_x,rev_ad = size_rev)
+    damp_p = rand(*shape); damp_q = rand(*shape)
+    qf_grad = rand(*q0.shape,size_rev); pf_grad = rand(*p0.shape,size_rev)
+    qh_grad = rand(niter-1,qh_ind[0].size,size_rev); ph_grad = rand(niter-1,ph_ind[0].size,size_rev)
 
-    H_fwd.damp_p = rand(*shape); H_fwd.damp_q = rand(*shape)
+    return params,params_fwd,q0,q0_fwd,p0,p0_fwd,qh_ind,ph_ind,damp_p,damp_q,qf_grad,pf_grad,qh_grad,ph_grad
+
+def check_ad_run(wavetype,order_x,order_t,bc,niter,size_rev,data,implem):
+    Hamiltonian = aw.WaveHamiltonian[(wavetype,implem)] 
+    dt = 0.1
+    dx = 1
+    params,params_fwd,q0,q0_fwd,p0,p0_fwd,qh_ind,ph_ind,damp_p,damp_q,qf_grad,pf_grad,qh_grad,ph_grad = data
+    tols={'atol':1e-6,'rtol':1e-6} if ad.cupy_generic.from_cupy(q0) else {}
+
+    traits = {"traits":{'shape_i':(4,)*len(q0)}} if Hamiltonian is aw.ElasticHamiltonian_Kernel else {}
+    H_fwd = Hamiltonian(*params_fwd,dx,bc=bc,order_x=order_x,save_weights=True,**traits)
+    H_rev = Hamiltonian(*params    ,dx,bc=bc,order_x=order_x,save_weights=True,rev_ad=size_rev,**traits)
+
+    H_fwd.damp_p = damp_p; H_fwd.damp_q = damp_q
     H_rev.damp_p = H_fwd.damp_p; H_rev.damp_q = H_fwd.damp_q
     
-    qf_fwd,pf_fwd,qh_fwd,ph_fwd = H_fwd.seismogram(q0_fwd,p0_fwd,dt,niter,order_t,qh_ind,ph_ind)
-    qf,pf,qh,ph,backprop = H_rev.seismogram_with_backprop(q0,p0,dt,niter,order_t,qh_ind,ph_ind)
+    qf_fwd,pf_fwd,qh_fwd,ph_fwd = H_fwd.seismogram(q0_fwd,p0_fwd,dt,niter,order_t,qh_ind=qh_ind,ph_ind=ph_ind)
+    qf,pf,qh,ph,backprop = H_rev.seismogram_with_backprop(q0,p0,dt,niter,order_t,qh_ind=qh_ind,ph_ind=ph_ind)
 
-    assert np.allclose(qf_fwd.value,qf)
-    assert np.allclose(pf_fwd.value,pf)
-    assert np.allclose(ad.remove_ad(qh_fwd),qh)
-    assert np.allclose(ad.remove_ad(ph_fwd),ph)
+    assert np.allclose(qf_fwd.value,qf,**tols)
+    assert np.allclose(pf_fwd.value,pf,**tols)
+    assert np.allclose(ad.remove_ad(qh_fwd),qh,**tols)
+    assert np.allclose(ad.remove_ad(ph_fwd),ph,**tols)
 
-    qf_grad,pf_grad,qh_grad,ph_grad = [rand(*x.shape,size_rev) for x in (qf,pf,qh,ph)]
-#    qf_grad*=0
-#    pf_grad*=0
-#    qh_grad*=0
-#    ph_grad*=0
-    
-    q0_grad,p0_grad = backprop(qf_grad,pf_grad,qh_grad,ph_grad)
+    q0_grad,p0_grad = backprop(qf_grad=qf_grad,pf_grad=pf_grad,qh_grad=qh_grad,ph_grad=ph_grad)
 
+    qh_fwd = ad.Dense.denseAD(qh_fwd); ph_fwd = ad.Dense.denseAD(ph_fwd) 
     grad1 = fwd_grad(qf_fwd, pf_fwd, qh_fwd, ph_fwd, qf_grad, pf_grad, qh_grad, ph_grad)
     grad2 = rev_grad(q0_fwd, p0_fwd, H_fwd, q0_grad, p0_grad, H_rev)
-    assert np.allclose(grad1,grad2)
+    #print("\n",grad1,"\n",grad2,"\n",grad2/grad1)
+    assert allclose(grad1,grad2)
 
     if wavetype=='Acoustic':
         ρ_ξ = sensitivity_to_ρ(H_rev)
         D_ξ = sensitivity_to_D(H_rev)
         ρ_fwd,D_fwd = params_fwd
-        assert np.allclose(gram(ρ_ξ,ρ_fwd.coef), gram(H_rev.iρ.coef,H_fwd.iρ.coef))
-        assert np.allclose(gram(D_ξ,D_fwd.coef), gram(H_rev.weights.coef,H_fwd.weights.coef))
+        assert np.allclose(gram(ρ_ξ,ρ_fwd.coef), gram(H_rev.iρ.coef,H_fwd.iρ.coef),**tols)
+        assert np.allclose(gram(D_ξ,D_fwd.coef), gram(H_rev.weights.coef,H_fwd.weights.coef),**tols)
     elif wavetype=='Elastic':
         M_ξ = sensitivity_to_M(H_rev)
         C_ξ = sensitivity_to_C(H_rev)
         M_fwd,C_fwd = params_fwd
-        assert np.allclose(gram(M_ξ,M_fwd.coef), gram(H_rev.M.coef,H_fwd.M.coef))
-        assert np.allclose(gram(C_ξ,C_fwd.coef), gram(H_rev.weights.coef,H_fwd.weights.coef))
+        assert np.allclose(gram(M_ξ,M_fwd.coef), gram(H_rev.M.coef,H_fwd.M.coef),**tols)
+        assert np.allclose(gram(C_ξ,C_fwd.coef), gram(H_rev.weights.coef,H_fwd.weights.coef),**tols)
 
+    return qf_fwd,pf_fwd,qh_fwd,ph_fwd,q0_grad,p0_grad
+
+def check_ad(vdim,nX,wavetype,order_x=2,order_t=2,bc='Neumann',niter=4,size_fwd=2,size_rev=2):
+    """
+    - size_fwd : number of independent symbolic perturbations of the inputs
+    - size_rev : number of objective functions at the target
+    """
+    if xp is not np and bc=='Neumann': bc='Periodic'
+    print(f"Testing {vdim=}, {nX=}, {wavetype=}, {order_x=}, {order_t=}, {niter=}, {bc=}, {size_fwd=}, {size_rev=}, gpu={xp is not np}, ",end='')
+    data = check_ad_rand(vdim,nX,wavetype,niter,size_fwd,size_rev) # Generate random parameters
+
+    res_Sparse = check_ad_run(wavetype,order_x,order_t,bc,niter,size_rev,data,"Sparse")
+    if xp is not np: # Also check the GPU implementation
+        data = ad.cupy_generic.cupy_set(data,iterables=(tuple,))
+        res_Kernel = check_ad_run(wavetype,order_x,order_t,bc,niter,size_rev,data,"Kernel")
+        for x,y in zip(res_Sparse,res_Kernel): assert np.allclose(x,y,atol=1e-6,rtol=1e-6)
     print("passed.")
-
-    
 
 def some_check_ad():
     check_ad(1,10,'Acoustic')
     check_ad(2,7,'Acoustic',order_t=4,bc='Neumann')
     check_ad(2,6,'Acoustic',order_t=4,bc='Dirichlet',niter=10)
     check_ad(3,5,'Acoustic',order_x=4)
+#    return
     check_ad(1,9,'Elastic',order_t=4)
     check_ad(2,6,'Elastic',order_x=4,bc='Dirichlet')
     check_ad(2,8,'Elastic',order_x=2)
@@ -227,25 +251,25 @@ layer_heights = xp.array([
     [0.5,0.5,0.55,0.6,0.6],  # Height of middle layer
     [0.3,0.2,0.35,0.45,0.35] # Height of bottom layer
 ])
-layer_heights_X = np.linspace(-1,1,layer_heights.shape[1],endpoint=True)
+layer_heights_X = xp.linspace(-1,1,layer_heights.shape[1],endpoint=True)
 
 # Thickness of the transition
 layer_δ = 0.05
 
 # Materials for the acoustic wave
-layer_ρ = np.array((1.5,1,2,2.5))
-layer_D = np.array(([[1**2,0],[0,1**2]],[[2**2,0],[0,1**2]],[[3**2,0],[0,2**2]],[[2**2,0],[0,1.5**2]]))
+layer_ρ = xp.array((1.5,1,2,2.5))
+layer_D = xp.array(([[1**2,0],[0,1**2]],[[2**2,0],[0,1**2]],[[3**2,0],[0,2**2]],[[2**2,0],[0,1.5**2]]))
 
 # Materials for the elastic wave
 materials = [Hooke.from_ThomsenElastic(Thomsen.ThomsenData[key]) for key in 
              ("Pierre shale - 1", "Mesaverde (4946) immature sandstone", 
               "Mesaverde (5501) clayshale", "Mesaverde sandstone (1958)") ]
-layer_C = [hk.extract_xz().hooke for (hk,ρ) in materials]
-layer_C = np.array(layer_C)/np.max(layer_C) # normalization
+layer_C = xp.array([hk.extract_xz().hooke for (hk,ρ) in materials])
+layer_C = layer_C/np.max(layer_C) # normalization
 
 def LayeredMedium(X,heights,δ, ρs,Ds):
     shape = X.shape[1:]
-    heights_X = np.linspace(-1,1,heights.shape[1],endpoint=True)
+    heights_X = xp.linspace(-1,1,heights.shape[1],endpoint=True)
     height_fun = UniformGridInterpolation(heights_X[None],heights,order=2)
     height_val = height_fun(X[0].reshape((-1,*shape))).reshape((len(heights),*shape))
     heav = heaviside( (X[1,None]-height_val)/δ )
@@ -265,7 +289,7 @@ def decomp_OS(M):
     a,b,c = S2[0,0],S2[0,1],S2[1,1]
     h,d = (a+c)/2, np.sqrt(((a-c)/2)**2+b**2)
     λ=h+d; μ = h-d # Eigenvalues of S^2
-    eye = np.eye(2).reshape((2,2)+(1,)*a.ndim)
+    eye = xp.eye(2).reshape((2,2)+(1,)*a.ndim)
     S = (S2+np.sqrt(λ*μ)*eye)/(np.sqrt(λ)+np.sqrt(μ)) # Square root of matrix
     iS = lp.inverse(S,avoid_np_linalg_inv=True) # np.linalg.inv is incredibly slow
     return lp.dot_AA(M,iS),S
@@ -305,14 +329,14 @@ def DeformedLayeredMedium(ϕ,X,*args,grad_ad=True,**kwargs):
 
 def TopographicTransform(heights):
     """Vertical shift, interpolated according to data"""
-    heights_X = np.linspace(-1,1,len(heights),endpoint=True)
+    heights_X = xp.linspace(-1,1,len(heights),endpoint=True)
     height_fun = UniformGridInterpolation(heights_X[None],heights,order=2)
     def ϕ(X): 
         X = ad.array(X)
         return ad.array((X[0],X[1]-height_fun(X[None,0],interior=True)))
     return ϕ
 
-topo_heights = 0.7*np.array([0, 0.3, 0.1, 0, -0.2, -0.1]) # vertical shifts to interpolate
+topo_heights = 0.7*xp.array([0, 0.3, 0.1, 0, -0.2, -0.1]) # vertical shifts to interpolate
 
 def inclusion(support0,medium0,medium1):
     """
@@ -326,13 +350,13 @@ def inclusion(support0,medium0,medium1):
     return ρ0*support0+ρ1*support1, D0*support0+D1*support1   
 
 inc_ρ = 1.2
-inc_D = np.eye(2)
+inc_D = xp.eye(2)
 inc_radius = 0.25
 inc_center = [-0.5,0.3]
 
 shift_θ = π/3
 shift_amplitude = 0.25
-shift_origin    = np.array([0.4,0.6])
+shift_origin    = xp.array([0.4,0.6])
 
 def make_medium(X,
     # Layered medium
