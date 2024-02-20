@@ -17,6 +17,7 @@ Optional arguments :
 	--show, the tables of contents are shown
 	--GPU_config=True/False, turn on or off gpu config (cell tagged GPU_config)
 	--check_raise, raise an exception if toc is incorrect
+	--remove_images, remove images and videos from the notebook output cells
 	--help, show this message
 """
 
