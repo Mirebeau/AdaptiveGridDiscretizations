@@ -61,7 +61,8 @@ def open_local_or_web(func,filepath,local_prefix="../",
 		except FileNotFoundError:
 			import urllib
 			return func(urllib.request.urlopen(web_prefix+filepath+web_suffix))
-
+#https://www.tutorialspoint.com/how-to-open-an-image-from-the-url-in-pil
+#https://stackoverflow.com/questions/8779197/how-to-link-files-directly-from-github-raw-github-com
 
 def imread(*args,**kwargs):
 	"""

@@ -56,6 +56,15 @@ class HamiltonianBase:
 		self.incr_q = incr_None; self.incr_p = incr_None
 		self.current_iter = None 
 
+	@property
+	def damp_q(self): return self._damp_q
+	@property
+	def damp_p(self): return self._damp_p
+	@damp_q.setter
+	def damp_q(self,value): self._damp_q = value
+	@damp_p.setter
+	def damp_p(self,value): self._damp_p = value
+
 	def H(self,q,p):
 		"""Evaluates the Hamiltonian, at a given position and impulsion."""
 		raise NotImplementedError
@@ -178,12 +187,12 @@ class HamiltonianBase:
 		p *= exp(-δ*damp_p); q *= exp(-δ*damp_q)
 		Please set damp_q and damp_p as appropriate.
 		"""
-		if self.damp_q is not damp_None:
+		if self._damp_q is not damp_None:
 			if self.preserve_q: q = self._mk_copy(q)
-			q *= np.exp(-δ*self.damp_q) # Maybe we can avoid recomputing these exponentials
-		if self.damp_p is not damp_None:
+			q *= np.exp(-δ*self._damp_q) # Maybe we can avoid recomputing these exponentials
+		if self._damp_p is not damp_None:
 			if self.preserve_p: p = self._mk_copy(p)
-			p *= np.exp(-δ*self.damp_p)
+			p *= np.exp(-δ*self._damp_p)
 		return q,p
 
 	def Impl_p(self,q,p,δ):
@@ -302,14 +311,19 @@ class HamiltonianBase:
 		from .backtrack import RecurseRewind
 		return RecurseRewind(next,self.Damp_qp(q,p,-δ)) # A single negative damping step should be fine...
 
-	def seismogram(self,q,p,δ,niter,order=2,qh_ind=None,ph_ind=None):
+	def seismogram(self,*args,qh_ind=None,ph_ind=None,**kwargs):
+		"""
+		Computes niter time steps of a symplectic scheme, collects the values at given indices along
+		the way (the seismogram), and allows to backpropagate the results.
+		- args,kwargs : passed to Sympl_p
+		"""
 
 		H_fwd = copy(self)
 		H_fwd.read_q = H_fwd.read_p = read_None; H_fwd.incr_q = H_fwd.incr_p = incr_None
 		qh = []; ph = []; initial=True 
-		if qh_ind is not None: H_fwd.read_q = lambda _,q : qh.append(q.reshape(-1)[qh_ind])
-		if ph_ind is not None: H_fwd.read_p = lambda _,p : ph.append(p.reshape(-1)[ph_ind])
-		qf,pf = H_fwd.Sympl_p(q,p,δ,niter,order)
+		if qh_ind is not None: H_fwd.read_q = lambda _,q : qh.append(q[*qh_ind].copy())
+		if ph_ind is not None: H_fwd.read_p = lambda _,p : ph.append(p[*ph_ind].copy())
+		qf,pf = H_fwd.Sympl_p(*args,**kwargs)
 
 		return qf,pf,ad.asarray(qh),ad.asarray(ph)
 
