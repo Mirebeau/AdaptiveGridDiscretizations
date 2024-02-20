@@ -205,6 +205,9 @@ class QuadraticHamiltonianBase(SeparableHamiltonianBase):
 		if order==4: return self.HRuth4_p(q,p,δ)
 		raise ValueError(f"Found {order=}, while expecting 1,2 or 4.")
 
+	def H(self,q,p):
+		A,B,_,dot = self._ABC(1) # δ is irrelevant here
+		return 0.5*dot(A(p),p) + 0.5*dot(B(q),q)
 
 	def Impl2_p(self,q,p,δ_before,δ_total,δ_after):
 		"""Merge two implicit time steps for the impulsion p, with a damping step in between."""
@@ -218,8 +221,10 @@ class QuadraticHamiltonianBase(SeparableHamiltonianBase):
 			self.read_q(self,q) # Read position before damp
 			dp = self._DqH(q)
 			α = np.exp(-δ_total*self._damp_p)
-			p = α*p - (δ_after + δ_before*α) * dp
-			self.incr_p(self,p)
+			#p = α*p - (δ_after + δ_before*α) * dp # Equivalent, but destroys the c_contiguity in elastic wave
+			if self.preserve_p: p = self._mk_copy(p)
+			p *= α; dp *= δ_after + δ_before*α; p -= dp
+			self.incr_p(self,p) # Increment after damp
 			return q,p
 
 		if (self._damp_p is damp_None and self._damp_q is not damp_None and self.Impl2_p_merged # α=1
@@ -366,10 +371,6 @@ class QuadraticHamiltonian(QuadraticHamiltonianBase):
 		self.dMp_has = False
 		self.dMq_has = False
 	
-	def H(self,q,p):
-		A,B,C,dot = self._ABC(1) # δ is irrelevant here
-		return 0.5*dot(A(p),p) + 0.5*dot(B(q),q)
-
 	def _D_H(self,x,M,dM__has):
 		if ad.is_ad(x) and dM__has: raise ValueError("Cannot accumulate reverse AD without dt")
 		return np.reshape(ad.apply_linear_mapping(M,self.flat(x)),np.shape(x))

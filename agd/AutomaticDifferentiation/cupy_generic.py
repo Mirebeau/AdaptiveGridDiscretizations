@@ -173,7 +173,6 @@ def cupy_friendly(arg):
 		return allclose
 
 	if isinstance(arg,types.FunctionType):
-
 		if arg in cupy_alt_overloads: 
 			alt,exception = cupy_alt_overloads[arg] 
 			print("Adding (partial) support for (old versions of) cupy"

@@ -153,9 +153,8 @@ class _spline_univariate:
 		"""
 		A piecewise quadratic spline function, defined over [-1,2]
 		"""
-		x=ad.asarray(xa-xs)
+		x=ad.asarray(xa-xs.astype(xa.dtype))
 		result = np.zeros_like(x)
-
 
 		# Which spline segment to use
 		seg = ad.asarray(np.floor(x+1))
@@ -252,12 +251,19 @@ class _spline_univariate:
 		if self.periodic: raise ValueError("Periodic interpolation is not supported for degree > 1")
 		assert len(values)==self.shape
 
-		def solver(vals): return scipy.linalg.solve_banded(*self._band(),vals,
+		def _solver(vals): 
+			return scipy.linalg.solve_banded(*self._band(),vals,
 				overwrite_ab=True,overwrite_b=overwrite_values)
 
-		if ad.is_ad(values): return values.apply_linear_operator(solver)
-#			raise ValueError("AD interpolation is not supported for degree > 1")
+		def solver(vals): 
+			if ad.cupy_generic.from_cupy(vals):
+				# Cupy 13.0 does not implement a banded solver
+				print("Interpolation, performance warning : banded solve performed on CPU") 
+				import cupy as cp
+				return cp.asarray(_solver(vals.get()),dtype=vals.dtype)
+			return _solver(vals)
 
+		if ad.is_ad(values): return values.apply_linear_operator(solver)
 		return solver(values)
 		
 def _banded_transpose(lu,t):
@@ -390,6 +396,8 @@ class UniformGridInterpolation:
 	def __call__(self,x,interior=None):
 		"""
 		Interpolates the data at the position x.
+		- interior : set to true if all values are inside the interpolation domain,
+		false if some are outside (extrapolation), or None for autodetect
 		"""
 		x=ad.asarray(x)
 		assert len(x)==self.vdim
@@ -450,7 +458,7 @@ class UniformGridInterpolation:
 		coef[out]=0.
 		ondim = len(self.oshape)
 		coef = np.moveaxis(coef,range(-ondim,0),range(ondim))
-		
+
 		# Spline weights
 		weight = self.spline(y,ys)
 		return (coef*weight).sum(axis=ondim)

@@ -683,11 +683,15 @@ class ElasticHamiltonian_Kernel(WaveHamiltonianBase):
 		self.check(self._offsets)
 
 
-		if self.isotropic_metric: # TODO : case where M is anisotropic, see Sparse variant
+		if self.isotropic_metric: 
 			self.dt_max = _mk_dt_max(dx/(self.ndim*np.sqrt(np.nanmax(
 				ad.remove_ad(self._metric).squeeze(axis=self.ndim)
 				*ad.remove_ad(self._weights).sum(axis=self.ndim)))),
 			order_x=order_x)
+		else:
+			# TODO : case where M is anisotropic, see Sparse variant. 
+			# Use the largest eigenvalue of M
+			pass
 
 		self.shape_free = (*self.shape_o,self.ndim,*self.shape_i)
 		self._sizes_oi = (self.size_o,),(self.size_i,)
@@ -904,13 +908,13 @@ class ElasticHamiltonian_Kernel(WaveHamiltonianBase):
 
 
 #----------- reshape optional argument ----------
-	def Sympl_p(self,q,p,*args,reshape=True,**kwargs):
+	def Sympl_p(self,q,p,δ,niter=1,order=2,reshape=True):
 		"""
 		See super().Sympl_p for a detailed description.
 		- reshape (optional, default=False) : convert q,p to GPU friendly format
 		"""
 		if reshape: q,p = self.reshape(q),self.reshape(p)
-		q,p = super().Sympl_p(q,p,*args,**kwargs)
+		q,p = super().Sympl_p(q,p,δ,niter,order)
 		if reshape: q,p = self.unshape(q),self.unshape(p)
 		return q,p
 
@@ -974,6 +978,34 @@ class ElasticHamiltonian_Kernel(WaveHamiltonianBase):
 			return self._unshape_grad(q0_grad),self._unshape_grad(p0_grad)
 
 		return qf,pf,qh,ph,backprop
+
+	def H_p(self,q,p,*args,reshape=True,**kwargs):
+		"""
+		See super().H_p for a detailed description
+		- reshape (optional, default=True) : convert q,p to GPU friendly format
+		"""		
+		if reshape: q = self.reshape(q); p = self.reshape(p)
+		return super().H_p(q,p,*args,**kwargs)
+
+	def H(self,q,p,reshape=True):
+		"""
+		See super().H for a detailed description
+		- reshape (optional, default=True) : convert q,p to GPU friendly format
+		"""		
+		if reshape: q = self.reshape(q); p = self.reshape(p)
+		return super().H(q,p)
+
+	def Damp_qp(self,q,p,δ,reshape=False):
+		"""
+		See super().damp_qp for a detailed description
+		- reshape (optional, default=False) : convert q,p to GPU friendly format
+		"""		
+		if reshape: q = self.reshape(q); p = self.reshape(p)
+		q,p = super().Damp_qp(q,p,δ)
+		if reshape: q = self.unshape(q); p = self.unshape(p)
+		return q,p
+
+
 
 # Utility functions
 def _triangular_number(n): return (n*(n+1))//2
