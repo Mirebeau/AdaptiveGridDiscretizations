@@ -257,8 +257,8 @@ class _spline_univariate:
 
 		def solver(vals): 
 			if ad.cupy_generic.from_cupy(vals):
-				# Cupy 13.0 does not implement a banded solver
-				print("Interpolation, performance warning : banded solve performed on CPU") 
+				# Cupy 13.0 does not implement a banded solver. Warn ? 
+				#print("Interpolation, performance warning : banded solve performed on CPU") 
 				import cupy as cp
 				return cp.asarray(_solver(vals.get()),dtype=vals.dtype)
 			return _solver(vals)

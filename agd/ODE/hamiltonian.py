@@ -307,7 +307,7 @@ class QuadraticHamiltonianBase(SeparableHamiltonianBase):
 			"""
 			# Data checks
 			for ind in (qh_ind,ph_ind):
-				assert not check_ind or np.unique(np.ravel_multi_index(ind,qf.shape)).size==ind[0].size
+				assert not check_ind or ind is None or np.unique(np.ravel_multi_index(ind,qf.shape)).size==ind[0].size
 #				assert np.unique(qh_ind).size==qh_ind.size and np.unique(ph_ind).size==ph_ind.size
 			if ad.is_ad(qf) or ad.is_ad(pf) or ad.is_ad(qh) or ad.is_ad(ph): 
 				raise ValueError("Please choose between forward and reverse autodiff")

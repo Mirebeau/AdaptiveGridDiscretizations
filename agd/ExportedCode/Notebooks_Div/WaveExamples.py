@@ -267,9 +267,9 @@ materials = [Hooke.from_ThomsenElastic(Thomsen.ThomsenData[key]) for key in
 layer_C = xp.array([hk.extract_xz().hooke for (hk,ρ) in materials])
 layer_C = layer_C/np.max(layer_C) # normalization
 
-def LayeredMedium(X,heights,δ, ρs,Ds,xp=xp):
+def LayeredMedium(X,heights,δ, ρs,Ds,caster=lambda x:x):
     shape = X.shape[1:]
-    heights_X = xp.linspace(-1,1,heights.shape[1],endpoint=True)
+    heights_X = caster(xp.linspace(-1,1,heights.shape[1],endpoint=True))
     height_fun = UniformGridInterpolation(heights_X[None],heights,order=2)
     height_val = height_fun(X[0].reshape((-1,*shape))).reshape((len(heights),*shape))
     heav = heaviside( (X[1,None]-height_val)/δ )
@@ -279,7 +279,7 @@ def LayeredMedium(X,heights,δ, ρs,Ds,xp=xp):
     D_ = sum(ϕ * np.expand_dims(D,axis=(-2,-1)) for ϕ,D in zip(partition,Ds))
     return ρ_,D_
 
-def decomp_OS(M,xp=xp):
+def decomp_OS(M,caster=lambda x:x):
     """
     Compute the orthogonal x symmetric decomposition 
     of a 2x2 matrix, in a way that is compatible with AD.
@@ -289,7 +289,7 @@ def decomp_OS(M,xp=xp):
     a,b,c = S2[0,0],S2[0,1],S2[1,1]
     h,d = (a+c)/2, np.sqrt(((a-c)/2)**2+b**2)
     λ=h+d; μ = h-d # Eigenvalues of S^2
-    eye = xp.eye(2).reshape((2,2)+(1,)*a.ndim)
+    eye = caster(xp.eye(2)).reshape((2,2)+(1,)*a.ndim)
     S = (S2+np.sqrt(λ*μ)*eye)/(np.sqrt(λ)+np.sqrt(μ)) # Square root of matrix
     iS = lp.inverse(S,avoid_np_linalg_inv=True) # np.linalg.inv is incredibly slow
     return lp.dot_AA(M,iS),S
@@ -306,7 +306,7 @@ def grad(arr,X):
         g.append(np.moveaxis(da,0,i-vdim))
     return ad.array(g)                 
 
-def DeformedLayeredMedium(ϕ,X,*args,grad_ad=True,xp=xp,**kwargs):
+def DeformedLayeredMedium(ϕ,X,*args,grad_ad=True,caster=lambda x:x,**kwargs):
     """
     Transforms a layered medium according to provided diffeomorphism ϕ.
     (Material is rotated, but not stretched.)
@@ -321,15 +321,15 @@ def DeformedLayeredMedium(ϕ,X,*args,grad_ad=True,xp=xp,**kwargs):
         ϕ_val = ϕ(X)
         ϕ_grad = grad(ϕ_val,X)
         
-    O,_ = decomp_OS(lp.transpose(ϕ_grad),xp=xp)
-    ρ,C = LayeredMedium(ϕ_val,*args,xp=xp,**kwargs)
+    O,_ = decomp_OS(lp.transpose(ϕ_grad),caster=caster)
+    ρ,C = LayeredMedium(ϕ_val,*args,caster=caster,**kwargs)
     if len(C)==vdim: C = Riemann(C).inv_transform(O).m
     else: C = Hooke(C).inv_transform(O).hooke
     return ρ,C
 
-def TopographicTransform(heights,xp=xp):
+def TopographicTransform(heights,caster=lambda x:x):
     """Vertical shift, interpolated according to data"""
-    heights_X = xp.linspace(-1,1,len(heights),endpoint=True)
+    heights_X = caster(xp.linspace(-1,1,len(heights),endpoint=True))
     height_fun = UniformGridInterpolation(heights_X[None],heights,order=2)
     def ϕ(X): 
         X = ad.array(X)
@@ -379,20 +379,28 @@ def make_medium(X,
     shift_amplitude = shift_amplitude,
     shift_origin = shift_origin,
     grad_ad=True,
-    xp=xp,
+    caster=lambda x:x, # Optionally change array type 
 ):
     layer_heights,layer_ρM,layer_DC,topo_heights,inc_ρM,inc_DC,shift_origin = \
-        map(xp.asarray,(layer_heights,layer_ρM,layer_DC,topo_heights,inc_ρM,inc_DC,shift_origin))
+        map(caster,(layer_heights,layer_ρM,layer_DC,topo_heights,inc_ρM,inc_DC,shift_origin))
     shape = X.shape[1:]
-    ϕ = TopographicTransform(topo_heights,xp=xp)
-    layer_medium = DeformedLayeredMedium(ϕ,X,layer_heights,layer_δ,layer_ρM,layer_DC,grad_ad=grad_ad,xp=xp)
+    ϕ = TopographicTransform(topo_heights,caster=caster)
+    layer_medium = DeformedLayeredMedium(ϕ,X,layer_heights,layer_δ,layer_ρM,layer_DC,grad_ad=grad_ad,caster=caster)
     
     inc_support = heaviside( (inc_radius - norm( X-fd.as_field(inc_center,shape),axis=0))/layer_δ)
+    # if ad.is_ad(inc_support): 
+    # 	r = norm( X-fd.as_field(inc_center,shape),axis=0)
+    # 	print(f"{r.shape=}")
+    # 	plt.contourf(*X.get(),r.value.get())
+    # 	plt.show()
+    # 	plt.title("inc_support")
+    # 	plt.contourf(*X.get(),inc_support.value.get())
+    # 	plt.show()
     inc_layer_medium = inclusion(inc_support,(inc_ρM,inc_DC),layer_medium)
 
     s_o,s_d = [fd.as_field(e,shape) for e in (shift_origin,(np.cos(shift_θ),np.sin(shift_θ)))]
     shift_medium = DeformedLayeredMedium(ϕ,X-s_d*shift_amplitude,layer_heights,
-                                         layer_δ,layer_ρM,layer_DC,grad_ad=grad_ad,xp=xp)
+                                         layer_δ,layer_ρM,layer_DC,grad_ad=grad_ad,caster=caster)
     shift_support = heaviside(lp.det((X-s_o,s_d))/layer_δ)
     
     final_medium = inclusion(shift_support,shift_medium,inc_layer_medium)
@@ -412,6 +420,16 @@ def damping_layer(X,k=None,ω=None,α=2,r=500,c=None,l=None):
     l_damp = α*np.log(r)/k # Damping width
     ω_damp = ω/α # Damping strength
     return ω_damp * layer(l_damp,X)
+
+def gf(x,σ,filter=ndimage.gaussian_filter):
+    """Gaussian filter, also applying to denseAD variables."""
+    if np.isscalar(σ): σ = (σ,)*x.ndim
+    if isinstance(x,ad.Dense.denseAD): return ad.Dense.denseAD(gf(x.value,σ,filter),gf(x.coef,(*σ,0),filter))
+    else: return filter(x,σ)
+
+def gf2(x,*args,**kwargs): 
+    """Half squared norm of a lowpass filtering of x. Gradient is gf."""
+    return 0.5*np.sum(x*gf(x,*args,**kwargs))
 
 def mk_obj(qf_ref,pf_ref,qh_ref,ph_ref,  qf_w,pf_w,qh_w,ph_w,  σ):
     """Construct a basic objective functional and its gradient"""
