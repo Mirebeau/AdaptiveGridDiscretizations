@@ -197,7 +197,4 @@ anisotropic_diffusion_step(const Scalar * __restrict__ uold_t, Scalar * __restri
 	atomicAdd(unew_t+n_t,uinc);
 }
 
-__global__
-
-
 } // extern "C"
