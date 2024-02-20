@@ -267,7 +267,7 @@ materials = [Hooke.from_ThomsenElastic(Thomsen.ThomsenData[key]) for key in
 layer_C = xp.array([hk.extract_xz().hooke for (hk,ρ) in materials])
 layer_C = layer_C/np.max(layer_C) # normalization
 
-def LayeredMedium(X,heights,δ, ρs,Ds):
+def LayeredMedium(X,heights,δ, ρs,Ds,xp=xp):
     shape = X.shape[1:]
     heights_X = xp.linspace(-1,1,heights.shape[1],endpoint=True)
     height_fun = UniformGridInterpolation(heights_X[None],heights,order=2)
@@ -279,7 +279,7 @@ def LayeredMedium(X,heights,δ, ρs,Ds):
     D_ = sum(ϕ * np.expand_dims(D,axis=(-2,-1)) for ϕ,D in zip(partition,Ds))
     return ρ_,D_
 
-def decomp_OS(M):
+def decomp_OS(M,xp=xp):
     """
     Compute the orthogonal x symmetric decomposition 
     of a 2x2 matrix, in a way that is compatible with AD.
@@ -306,7 +306,7 @@ def grad(arr,X):
         g.append(np.moveaxis(da,0,i-vdim))
     return ad.array(g)                 
 
-def DeformedLayeredMedium(ϕ,X,*args,grad_ad=True,**kwargs):
+def DeformedLayeredMedium(ϕ,X,*args,grad_ad=True,xp=xp,**kwargs):
     """
     Transforms a layered medium according to provided diffeomorphism ϕ.
     (Material is rotated, but not stretched.)
@@ -321,13 +321,13 @@ def DeformedLayeredMedium(ϕ,X,*args,grad_ad=True,**kwargs):
         ϕ_val = ϕ(X)
         ϕ_grad = grad(ϕ_val,X)
         
-    O,_ = decomp_OS(lp.transpose(ϕ_grad))
-    ρ,C = LayeredMedium(ϕ_val,*args,**kwargs)
+    O,_ = decomp_OS(lp.transpose(ϕ_grad),xp=xp)
+    ρ,C = LayeredMedium(ϕ_val,*args,xp=xp,**kwargs)
     if len(C)==vdim: C = Riemann(C).inv_transform(O).m
     else: C = Hooke(C).inv_transform(O).hooke
     return ρ,C
 
-def TopographicTransform(heights):
+def TopographicTransform(heights,xp=xp):
     """Vertical shift, interpolated according to data"""
     heights_X = xp.linspace(-1,1,len(heights),endpoint=True)
     height_fun = UniformGridInterpolation(heights_X[None],heights,order=2)
@@ -378,18 +378,21 @@ def make_medium(X,
     shift_θ = shift_θ,
     shift_amplitude = shift_amplitude,
     shift_origin = shift_origin,
-    grad_ad=True
+    grad_ad=True,
+    xp=xp,
 ):
+    layer_heights,layer_ρM,layer_DC,topo_heights,inc_ρM,inc_DC,shift_origin = \
+        map(xp.asarray,(layer_heights,layer_ρM,layer_DC,topo_heights,inc_ρM,inc_DC,shift_origin))
     shape = X.shape[1:]
-    ϕ = TopographicTransform(topo_heights)
-    layer_medium = DeformedLayeredMedium(ϕ,X,layer_heights,layer_δ,layer_ρM,layer_DC,grad_ad=grad_ad)
+    ϕ = TopographicTransform(topo_heights,xp=xp)
+    layer_medium = DeformedLayeredMedium(ϕ,X,layer_heights,layer_δ,layer_ρM,layer_DC,grad_ad=grad_ad,xp=xp)
     
     inc_support = heaviside( (inc_radius - norm( X-fd.as_field(inc_center,shape),axis=0))/layer_δ)
     inc_layer_medium = inclusion(inc_support,(inc_ρM,inc_DC),layer_medium)
 
     s_o,s_d = [fd.as_field(e,shape) for e in (shift_origin,(np.cos(shift_θ),np.sin(shift_θ)))]
     shift_medium = DeformedLayeredMedium(ϕ,X-s_d*shift_amplitude,layer_heights,
-                                         layer_δ,layer_ρM,layer_DC,grad_ad=grad_ad)
+                                         layer_δ,layer_ρM,layer_DC,grad_ad=grad_ad,xp=xp)
     shift_support = heaviside(lp.det((X-s_o,s_d))/layer_δ)
     
     final_medium = inclusion(shift_support,shift_medium,inc_layer_medium)
