@@ -84,7 +84,7 @@ def RemoveImages(filepath,data):
 					nvideos+=1
 					outputs_to_remove.append(output)
 		for output in outputs_to_remove: cell['outputs'].remove(output)
-	if nimages+nvideos>0: nprint(f"{filepath=}, {nimages=}, {nvideos=}")
+	if nimages+nvideos>0: print(f"{filepath=}, {nimages=}, {nvideos=}")
 	return nimages+nvideos>0
 
 RemoveImages.run = False
