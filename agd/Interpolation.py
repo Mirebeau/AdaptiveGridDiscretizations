@@ -5,8 +5,11 @@
 This file implements some spline interpolation methods, on uniform grids,
 in a manner compatible with automatic differentiation.
 
-If none of the involved arrays use automatic differentiation, and if the options are 
-compatible, then a bypass through ndimage may be used.
+If you do not need to differentiate the interpolated value w.r.t. the position,
+ then using map_coordinates is in general more efficient.
+
+The boundary conditions in UniformGridInterpolation are unreliable and unspecified. 
+Please interpolate in the domain interior (at least one pixel away from the boundary).
 """
 
 
@@ -16,8 +19,11 @@ import scipy.linalg
 
 from . import AutomaticDifferentiation as ad
 
-#TODO : use a smaller stencil (3 pts instead of 4) for 2nd degree interpolation 
-# when far from the boundary, in non-periodic mode. (Introduce interior nodes.)
+# UniformGridInterpolation : boundary conditions.
+# TODO : there are some issues with extrapolation in degree 2 and higher
+# TODO : the not_a_knot boundary conditions is incorrect
+# TODO : overall, this class should be avoided as much as possible 
+# It is only needed when one needs to only useful to differentiate the output w.r.t x
 
 def origin_scale_shape(grid):
 	"""
@@ -49,28 +55,44 @@ def map_coordinates(input,coordinates,*args,
 	Additional inputs : 
 	- grid (optional) : reference coordinate system, which must be uniform
 	- origin,scale (optional) : obtained from origin_scale_shape(grid)
-	- depth : depth of interpolated objects 0->scalar, 1->vector, 2->matrix
+	- depth : depth of interpolated objects 0->scalar, 1->vector, 2->matrix, ...
 	- order (optional) : set default 1 for better cupy/numpy reproducibility
 	"""
+	if ad.is_ad(input):
+		# Basic support for dense AD types
+		value = map_coordinates(input.value,coordinates,*args,
+			grid=grid,origin=origin,scale=scale,depth=depth,order=order,**kwargs)
+		coef = np.moveaxis(map_coordinates(np.moveaxis(input.coef,-1,0),coordinates,*args,
+			grid=grid,origin=origin,scale=scale,depth=1+depth,order=order,**kwargs),0,-1)
+		if isinstance(input, ad.Dense.denseAD): return ad.Dense.denseAD(value,coef)
+		elif isinstance(input, ad.Dense.denseAD2):
+			coef2 = np.moveaxis(map_coordinates(np.moveaxis(input.coef,(-2,-1),(0,1)),coordinates,*args,
+				grid=grid,origin=origin,scale=scale,depth=2+depth,order=order,**kwargs),(0,1),(-2,-1))
+			return ad.Dense2.denseAD2(value,coef,coef2)
+		else: 
+			raise ValueError(f"Unsupported ad type {type(input)} in map coordinates")
+
 	kwargs['order']=order
 	if ad.cupy_generic.from_cupy(input):
 		from cupyx.scipy.ndimage import map_coordinates as mc
-		def map_coordinates(arr,x,*args,**kwargs):
+		def _map_coordinates(arr,x,*args,**kwargs):
 			# Cupy (version 7.8) requires the coordinates array to be flattened
 			shape = x.shape[1:]
 			return mc(arr,x.reshape((len(x),-1)),*args,**kwargs).reshape(shape)
-	else: from scipy.ndimage import map_coordinates
+	else: from scipy.ndimage import map_coordinates as _map_coordinates
 
 	if grid is not None: origin,scale,_ = origin_scale_shape(grid)
 	assert (origin is None) == (scale is None)
-	if origin is None: return map_coordinates(input,coordinates,*args,**kwargs)
-	origin,scale = (_append_dims(e,coordinates.ndim-1) for e in (origin,scale))
-	y = (coordinates-origin)/scale
+	if origin is None: y=coordinates
+	else: 
+		origin,scale = (_append_dims(e,coordinates.ndim-1) for e in (origin,scale))
+		y = (coordinates-origin)/scale
 
-	if depth==0: return map_coordinates(input,y,*args,**kwargs)
+	if depth==0: return _map_coordinates(input,y,*args,**kwargs)
+	# In the vector case, we interpolate each component independently
 	oshape = input.shape[:depth]
 	input = input.reshape((-1,)+input.shape[depth:])
-	out = ad.array([map_coordinates(input_,y,*args,**kwargs) for input_ in input])
+	out = ad.array([_map_coordinates(input_,y,*args,**kwargs) for input_ in input])
 	out.reshape(oshape+y.shape[1:])
 	return out
 
@@ -109,7 +131,7 @@ class _spline_univariate:
 		"""
 		if   self.order==1: return range(-1,1)
 		elif self.order==2: #return range(-1,2)
-			return range(-1,2) if interior else range(-2,2)
+			return range(-1,2) if interior else range(-3,3)
 		elif self.order==3: 
 			return range(-2,2) if interior else range(-3,4)
 		assert False
@@ -118,8 +140,9 @@ class _spline_univariate:
 		"""
 		Wether the interior nodes can be used, or one should fall back to boundary nodes.
 		"""
-		if tol is None: tol = ad.precision(x) * np.max(self.shape)
-		if np.any(x<-tol) or np.any(x>self.shape-1+tol):
+
+		# We tolerate a bit of extrapolation		
+		if np.any(x<=-1) or np.any(x>=self.shape):
 			raise ValueError("Interpolating data outside domain")
 		if self.order==1 or self.periodic:
 			return np.full_like(x,True,dtype='bool')
@@ -160,9 +183,17 @@ class _spline_univariate:
 		seg = ad.asarray(np.floor(x+1))
 
 		if not self.periodic:
-			# Implements the not-a-knot boundary condition
-			pos = np.logical_and(xa<=1,xs<=3)
+			# not-a-knot boundary condition : obtain a pieceiwise quadratic polynomial f which
+			# - interpolates the values at all nodes
+			# - has f' continuous at all interior nodes
+			# - has f'' = 0 at the left boundary node
+
+			# I do not know what this code does but it is clearly buggy does not implement the condition
+			pos = np.logical_and(xa<=1,xs<=2)
 			seg[pos] = 2-xs[pos]
+			s=self.shape-1
+			pos = np.logical_and(xa>=s-1,xs>=s-2)
+			seg[pos] = s-xs[pos]
 
 		# relative interval [-1,0[
 		pos = seg==0
@@ -187,16 +218,21 @@ class _spline_univariate:
 		"""
 		x=ad.asarray(xa-xs)
 		result = np.zeros_like(x)
-		s=self.shape-1
 
 		# Which spline segment to use
 		seg = ad.asarray(np.floor(x+2))
 		if not self.periodic:
-			# Implements the not-a-knot boundary condition
+			# not-a-knot boundary condition : obtain a pieceiwise cubic polynomial f which
+			# - interpolates the values at all nodes
+			# - has f' and f'' continuous at all interior nodes
+			# - has f'' = 0 at boundary nodes
+
+			# I do not know what this code does but it is clearly buggy does not implement the condition
 			pos = np.logical_and(xa<=1,xs<=3)
 			seg[pos] = 3-xs[pos]
+			s=self.shape-1
 			pos = np.logical_and(xa>=s-1,xs>=s-3)
-			seg[pos] = self.shape-1-xs[pos]
+			seg[pos] = s-xs[pos]
 
 		def f0(y): return y**3
 		def f1(y): return 1+3*y+3*y**2-3.*y**3
@@ -355,6 +391,8 @@ class UniformGridInterpolation:
 		- order (int, tuple of ints) : spline interpolation order (<=3), along each axis.
 		- periodic (bool, tuple of bool) : wether periodic interpolation, along each axis.
 		"""
+#		print("agd.Interpolation.UniformGridInterpolation is deprecated")
+
 		if isinstance(grid,dict):
 			self.shape  = grid['shape']
 			self.origin = ad.asarray(grid['origin'])
