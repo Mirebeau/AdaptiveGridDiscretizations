@@ -44,7 +44,7 @@ def _mk_dt_max(dt_max_22, order_x):
 	"""
 	dt_mult_x = {2:1/2, 4:1/np.sqrt(6)}
 	dt_mult_t = {1:2, 2:2, 4:1.28596}
-	return lambda order_t=2, order_x=order_x : dt_max_22 * dt_mult_x[order_x] * dt_mult_t[order_t]
+	return lambda order_t=2, order_x=order_x : float(dt_max_22 * dt_mult_x[order_x] * dt_mult_t[order_t])
 
 def AcousticHamiltonian_Sparse(ρ,D,dx=1,order_x=2,shape_dom=None,bc='Periodic',
 	rev_ad=0,save_weights=False):
@@ -264,7 +264,6 @@ class AcousticHamiltonian_Kernel(QuadraticHamiltonianBase):
 		self.shape_free = shape_dom
 		size_dom = np.prod(shape_dom)
 		self._sizes_oi = (int(np.ceil(size_dom/block_size)),),(block_size,)
-		self.dx = dx
 
 		fwd_ad = ρ.size_ad if ad.is_ad(ρ) else 0
 		self._size_ad = max(rev_ad,fwd_ad)
@@ -282,6 +281,7 @@ class AcousticHamiltonian_Kernel(QuadraticHamiltonianBase):
 			'fwd_macro':fwd_ad>0,
 		}
 		self._traits = traits_default if traits is None else {**traits_default,**traits}
+		self.dx = self.float_t(dx)
 
 		# Setup the problem data
 		dtype32 = (self.float_t==np.float32)
@@ -648,7 +648,7 @@ class ElasticHamiltonian_Kernel(WaveHamiltonianBase):
 			raise ValueError("Only domains of dimension 1, 2 and 3 are supported")
 
 		self._offsetpack_t = np.int32
-		self.dx = dx
+		self.dx = self.float_t(dx)
 
 		# Voronoi decomposition of the Hooke tensor
 		if not isinstance(C,tuple): # Decomposition was bypassed by feeding weights, offsets
