@@ -60,23 +60,36 @@ class Taylor2: # second order Taylor expansions of classical functions
 	def arctanh(x): y=1./(1-x**2); return (np.arctanh(x),y,2.*x*y**2)
 
 def _tuple_first(a): 	return a[0] if isinstance(a,tuple) else a
-def _getitem(a,where):  return a if (where is True and not isndarray(a)) else a[where]
 
 def add(a,b,out=None,where=True): 
 	if out is None: return a+b if is_ad(a) else b+a
-	else: result=_tuple_first(out); result[where]=a[where]+_getitem(b,where); return result # Common failure : a+=b where b is an AD variable and a is not
+	# Note : if result is a, then optimizations are possible, implemented in __imul__, etc
+	result=_tuple_first(out)
+	# Note : if where is True, then result[where]=a[where]+b[where] also works, but has very bad cupy performance
+	if where is True: result[:]=a+b # Common failure : a+=b where b is an AD variable and a is not
+	else: result[where]=a[where]+b[where]
+	return result
 
 def subtract(a,b,out=None,where=True):
 	if out is None: return a-b if is_ad(a) else b.__rsub__(a) 
-	else: result=_tuple_first(out); result[where]=a[where]-_getitem(b,where); return result # Common failure : a-=b where b is an AD variable and a is not
+	result=_tuple_first(out)
+	if where is True: result[:]=a-b # Common failure : a-=b where b is an AD variable and a is not
+	else: result[where]=a[where]-b[where]
+	return result
 
 def multiply(a,b,out=None,where=True):
 	if out is None: return a*b if is_ad(a) else b*a
-	else: result=_tuple_first(out); result[where]=a[where]*_getitem(b,where); return result # Common failure : a*=b where b is an AD variable and a is not
+	result=_tuple_first(out)
+	if where is True: result[:]=a*b # Common failure : a*=b where b is an AD variable and a is not
+	else: result[where]=a[where]*b[where]
+	return result
 
 def true_divide(a,b,out=None,where=True): 
 	if out is None: return a/b if is_ad(a) else b.__rtruediv__(a)
-	else: result=_tuple_first(out); result[where]=a[where]/_getitem(b,where); return result # Common failure : a/=b where b is an AD variable and a is not
+	result=_tuple_first(out)
+	if where is True: result[:]=a/b # Common failure : a/=b where b is an AD variable and a is not
+	else: result[where]=a[where]/b[where]
+	return result
 
 def maximum(a,b): return np.where(a>b,a,b)
 def minimum(a,b): return np.where(a<b,a,b)
