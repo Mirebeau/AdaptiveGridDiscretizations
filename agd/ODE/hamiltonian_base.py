@@ -61,9 +61,21 @@ class HamiltonianBase:
 	@property
 	def damp_p(self): return self._damp_p
 	@damp_q.setter
-	def damp_q(self,value): self._damp_q = value
+	def damp_q(self,value): self._damp_q = value; self._damp_q_nexp = (np.nan,np.nan)
 	@damp_p.setter
-	def damp_p(self,value): self._damp_p = value
+	def damp_p(self,value): self._damp_p = value; self._damp_p_nexp = (np.nan,np.nan)
+
+	def damp_q_nexp(self,δ):
+		"""exp(-δ*damp_q)"""
+		# Caching the negative exponantial of the damping factor : (damp,δ,exp(-δ*damp))
+		if δ!=self._damp_q_nexp[0]: self._damp_q_nexp = (δ,np.exp(-δ*self._damp_q))
+		return self._damp_q_nexp[1]
+	def damp_p_nexp(self,δ):
+		"""exp(-δ*damp_p)"""
+		# Caching the negative exponantial of the damping factor : (damp,δ,exp(-δ*damp))
+		if δ!=self._damp_p_nexp[0]: self._damp_p_nexp = (δ,np.exp(-δ*self._damp_p))
+		return self._damp_p_nexp[1]
+
 
 	def H(self,q,p):
 		"""Evaluates the Hamiltonian, at a given position and impulsion."""
@@ -189,10 +201,10 @@ class HamiltonianBase:
 		"""
 		if self._damp_q is not damp_None:
 			if self.preserve_q: q = self._mk_copy(q)
-			q *= np.exp(-δ*self._damp_q) # Maybe we can avoid recomputing these exponentials
+			q *= self.damp_q_nexp(δ)
 		if self._damp_p is not damp_None:
 			if self.preserve_p: p = self._mk_copy(p)
-			p *= np.exp(-δ*self._damp_p)
+			p *= self.damp_p_nexp(δ)
 		return q,p
 
 	def Impl_p(self,q,p,δ):
@@ -320,7 +332,7 @@ class HamiltonianBase:
 
 		H_fwd = copy(self)
 		H_fwd.read_q = H_fwd.read_p = read_None; H_fwd.incr_q = H_fwd.incr_p = incr_None
-		qh = []; ph = []; initial=True 
+		qh = []; ph = []
 		if qh_ind is not None: H_fwd.read_q = lambda _,q : qh.append(q[*qh_ind].copy())
 		if ph_ind is not None: H_fwd.read_p = lambda _,p : ph.append(p[*ph_ind].copy())
 		qf,pf = H_fwd.Sympl_p(*args,**kwargs)

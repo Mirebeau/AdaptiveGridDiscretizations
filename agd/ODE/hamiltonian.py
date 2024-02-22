@@ -220,9 +220,12 @@ class QuadraticHamiltonianBase(SeparableHamiltonianBase):
 			# Factorization : α p - (δ_after + δ_before α) B q
 			self.read_q(self,q) # Read position before damp
 			dp = self._DqH(q)
-			α = np.exp(-δ_total*self._damp_p)
-			#p = α*p - (δ_after + δ_before*α) * dp # Equivalent, but destroys the c_contiguity in elastic wave
+			α = self.damp_p_nexp(δ_total) # α = np.exp(-δ_total*self._damp_p)
 			if self.preserve_p: p = self._mk_copy(p)
+			# Note : The next step is rather slow on the GPU (data loaded multiple times, ops should be fused ...)
+			# For AcousticWave in 2D, it is as expensive as the scheme itself. Should be 
+			# fused (but difficulities with AD), or incorporated in the kernel via subclassing ...
+			#p = α*p - (δ_after + δ_before*α) * dp # Equivalent, but destroys the c_contiguity in elastic wave
 			p *= α; dp *= δ_after + δ_before*α; p -= dp
 			self.incr_p(self,p) # Increment after damp
 			return q,p
@@ -231,7 +234,7 @@ class QuadraticHamiltonianBase(SeparableHamiltonianBase):
 		and self.read_p is read_None and self.incr_p is incr_None): 
 			# Factorization : p - B (δ_after β + δ_before) q
 			self.read_q(self,q)
-			β = np.exp(-δ_total*self._damp_q)
+			β = self.damp_q_nexp(δ_total) # β = np.exp(-δ_total*self._damp_q)
 			qnew = q*β
 			self.incr_q(self,qnew)
 			p = self.Expl_p(δ_after*qnew+δ_before*q,p,1) # Using Expl for reverse AD
@@ -282,9 +285,7 @@ class QuadraticHamiltonianBase(SeparableHamiltonianBase):
 			q,p = H_fwd.Damp_qp(*qp,δ)
 			q,p = H_fwd.Sympl_p(q,p,δ,order=order,**kwargs)
 			if initial and qh_ind is not None: qh.append(q[*qh_ind].copy())
-				#qh.append(q.reshape(-1)[qh_ind].copy())
 			if initial and ph_ind is not None: ph.append(p[*ph_ind].copy())
-				#ph.append(p.reshape(-1)[ph_ind].copy())
 			return q,p
 		# A single negative damping step should be fine...
 		qph_eval = RecurseRewind(next,self.Damp_qp(q,p,-δ))
