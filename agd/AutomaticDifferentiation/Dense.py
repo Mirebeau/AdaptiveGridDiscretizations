@@ -79,6 +79,55 @@ class denseAD(Base.baseAD):
 		else:
 			return self.new(self.value/other,(1./other)*self.coef) 
 
+# We need the in-place arithmetic, apparently, since going through Base.multiply, etc,
+# gives bad performance on the GPU. 
+	def __imul__(self,other):
+		if self.is_ad(other):
+			if other.size_ad==0: self*=other.value
+			else:
+				if self.size_ad==0: self.coef=self.value[...,None]*other.coef
+				else: self.coef*=other.value[...,None]; self.coef+=self.value[...,None]*other.coef
+				self.value*=other.value
+		elif self.size_ad==0:
+			self.value*=other
+			self.coef=np.zeros_like(self.value,shape=self.value.shape+(0,))
+		elif self.isndarray(other):
+			self.value*=other
+			self.coef*=other[...,None]
+		else: # Multiplication by a scalar
+			self.value*=other
+			self.coef*=other
+		return self
+
+	def __iadd__(self,other):
+		if self.is_ad(other):
+			if other.size_ad==0: self+=other.value
+			else:
+				if self.size_ad==0: self.coef = other.coef # coef may need broadcasting
+				else: self.coef += other.coef
+				self.value+=other.value
+		else: self.value+=other.value # coef may need broadcasting
+		if self.coef.shape[:-1]!=self.value.shape: 
+			self.coef = np.broadcast_to(self.coef,self.value.shape+self.coef.shape[-1])
+		return self
+
+
+#	def __isub__(self,other): self+=-other; return self
+	def __isub__(self,other):
+		if self.is_ad(other):
+			if other.size_ad==0: self -= other.value
+			else:
+				if self.size_ad==0: self.coef = -other.coef # coef may need broadcasting
+				else: self.coef -= other.coef
+				self.value -= other.value
+		else: self.value -= other.value # coef may need broadcasting
+		if self.coef.shape[:-1]!=self.value.shape: 
+			self.coef = np.broadcast_to(self.coef,self.value.shape+self.coef.shape[-1])
+		return self
+
+	def __itruediv__(self,other): self*=1./other; return self
+
+# Arithmric operations on the right
 	__rmul__ = __mul__
 	__radd__ = __add__
 	def __rsub__(self,other):     return -(self-other)
