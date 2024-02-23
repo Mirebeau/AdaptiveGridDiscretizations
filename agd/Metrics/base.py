@@ -292,13 +292,14 @@ class Base:
 		g = self.gradient(v)
 		return lp.dot_VV(g,v)*g
 
-	def set_interpolation(self,grid,**kwargs):
+	def set_interpolation(self,grid,order=1,**kwargs):
 		"""
 		Sets interpolation_data, required to specialize the norm 
 		at a given position.
 
 		Inputs:
-		 - grid (optional). Coordinate system (required on first call). 
+		 - grid. Coordinate system (required on first call).
+		 - order (optional,default=1). Interpolation order. First order always preserves positivity. 
 		 - kwargs. Passed to UniformGridInterpolation (includes order)
 		"""
 		vdim = len(grid)
@@ -307,7 +308,7 @@ class Base:
 
 		def make_interp(value):
 			if hasattr(value,'shape') and value.shape[-vdim:]==grid.shape[1:]:
-				return Interpolation.UniformGridInterpolation(grid,value,**kwargs)
+				return Interpolation.UniformGridInterpolation(grid,value,order=order,**kwargs)
 			return value
 
 		self.interpolation_data = tuple(make_interp(value) for value in self)

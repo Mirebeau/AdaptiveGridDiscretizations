@@ -5,7 +5,7 @@
 import itertools
 import copy
 import numpy as np
-from ..Interpolation import map_coordinates,origin_scale_shape #UniformGridInterpolation
+from ..Interpolation import ndimage_map_coordinates
 
 def odeint_array(f,y,t,grid,t_delay=0,t_substeps=2,order=1,**kwargs):
 	"""
@@ -20,15 +20,13 @@ def odeint_array(f,y,t,grid,t_delay=0,t_substeps=2,order=1,**kwargs):
 	- t_delay : number of time steps to drop initially 
 	- t_substeps : number of substeps
 	- order : passed to odeint_array
-	- **kwargs : passed to UniformGridInterpolation
 	"""
 	nt = len(t)
 	solution = np.full_like(y,np.nan,shape=(nt,*y.shape))
 	y0 = copy.copy(y)
 	fit = iter(f)
-	origin,scale,_ = origin_scale_shape(grid)
 	def I(values,positions): # Interpolation
-		return map_coordinates(values,positions,origin=origin,scale=scale,
+		return ndimage_map_coordinates(values,positions,grid=grid,
 			depth=1,order=order,**kwargs)
 
 	f1 = next(fit)
