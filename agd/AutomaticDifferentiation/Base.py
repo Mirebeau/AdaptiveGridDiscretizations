@@ -462,3 +462,15 @@ def roll(array,shift,axis=None):
 
 @implements(np.allclose)
 def allclose(a,b,*args,**kwargs): return a.allclose(b,*args,**kwargs)
+
+@implements(np.flip)
+def flip(m,axis=None):
+	if isinstance(axis,numbers.Integral): 
+		if axis<0: axis+=m.ndim
+		return m[*(slice(None),)*axis,::-1]
+	elif axis is None: 
+		return flip(m,range(m.ndim))
+	else: 
+		for ax in axis: m = flip(m,ax)
+		return m
+	raise ValueError(f"Unsupported axis type in flip, {type(axis)=}")
