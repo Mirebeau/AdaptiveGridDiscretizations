@@ -106,13 +106,12 @@ class denseAD(Base.baseAD):
 				if self.size_ad==0: self.coef = other.coef # coef may need broadcasting
 				else: self.coef += other.coef
 				self.value+=other.value
-		else: self.value+=other.value # coef may need broadcasting
+		else: self.value+=other # Note : coef may need broadcasting
 		if self.coef.shape[:-1]!=self.value.shape: 
 			self.coef = np.broadcast_to(self.coef,self.value.shape+self.coef.shape[-1])
 		return self
 
 
-#	def __isub__(self,other): self+=-other; return self
 	def __isub__(self,other):
 		if self.is_ad(other):
 			if other.size_ad==0: self -= other.value
@@ -120,7 +119,7 @@ class denseAD(Base.baseAD):
 				if self.size_ad==0: self.coef = -other.coef # coef may need broadcasting
 				else: self.coef -= other.coef
 				self.value -= other.value
-		else: self.value -= other.value # coef may need broadcasting
+		else: self.value -= other # Note : coef may need broadcasting
 		if self.coef.shape[:-1]!=self.value.shape: 
 			self.coef = np.broadcast_to(self.coef,self.value.shape+self.coef.shape[-1])
 		return self
