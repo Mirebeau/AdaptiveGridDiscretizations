@@ -195,7 +195,7 @@ class UniformGridInterpolation:
 	AD types for position.
 	"""
 
-	def __init__(self,grid,values,order=1,mode='reflect'):
+	def __init__(self,grid,values,order=1,mode='reflect',check_grid=False):
 		"""
 		- grid (ndarray) : must be a uniform grid. E.g. np.meshgrid(aX,aY,indexing='ij')
 		 where aX,aY have uniform spacing. Alternatively, provide only the axes.
