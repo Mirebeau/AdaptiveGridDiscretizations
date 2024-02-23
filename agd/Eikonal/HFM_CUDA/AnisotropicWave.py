@@ -728,9 +728,13 @@ class ElasticHamiltonian_Kernel(WaveHamiltonianBase):
 	@property
 	def damp_p(self): return self._damp_p if np.isscalar(self._damp_p) else self.unshape(self._damp_p)[0]
 	@damp_q.setter
-	def damp_q(self,value): self._damp_q = value if np.isscalar(value) else self.reshape(value[None])
+	def damp_q(self,value): 
+		self._damp_q = value if np.isscalar(value) else self.reshape(value[None])
+		self._damp_q_nexp = (np.nan,np.nan)
 	@damp_p.setter
-	def damp_p(self,value): self._damp_p = value if np.isscalar(value) else self.reshape(value[None])
+	def damp_p(self,value): 
+		self._damp_p = value if np.isscalar(value) else self.reshape(value[None])
+		self._damp_p_nexp = (np.nan,np.nan)
 
 
 	# Traits
