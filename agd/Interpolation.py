@@ -134,8 +134,9 @@ def spline_weighted(c,x,order=3,overwrite_x=False):
 	c = c.reshape((-1,*dom_shape))
 	x_i = np.floor(x).astype(int_t)
 	x -= x_i # 0<=x<=1, so that we can evaluate the spline 
-	dom_shape_arr = np.array(dom_shape,dtype=int_t)[:,None,None]
-	x_i = x_i[:,None] + np.arange(1+order)[:,None] # shape (d,1+order,*p)
+	xp = ad.cupy_generic.get_array_module(x)
+	dom_shape_arr = xp.array(dom_shape,dtype=int_t)[:,None,None]
+	x_i = x_i[:,None] + xp.arange(1+order,dtype=int_t)[:,None] # shape (d,1+order,*p)
 	x_i = x_i % (2*dom_shape_arr)
 	refl = x_i>=dom_shape_arr
 	x_i[refl] = (2*dom_shape_arr-1-x_i)[refl]
@@ -157,9 +158,10 @@ def spline_coefs(c,order=3,depth=0):
 	"""
 	if order==1: return c # Bypass for first order splines (hat function)
 	assert order%2==1
+	xp = ad.cupy_generic.get_array_module(c)
 	solver = scipy.linalg.solve_circulant
 	dom_shape = c.shape[depth:]
-	spline_vals = spline_base(0,order)
+	spline_vals = xp.asarray(spline_base(0,order))
 	for i,s in enumerate(dom_shape):
 		circ = np.zeros_like(ad.remove_ad(c),shape=(2*s,))
 		circ[0] = spline_vals[-1]; circ[-order:] = spline_vals[:-1]
