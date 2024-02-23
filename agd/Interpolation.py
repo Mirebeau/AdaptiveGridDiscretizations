@@ -46,7 +46,7 @@ def _append_dims(x,ndim):
 	return np.reshape(x,x.shape+(1,)*ndim)
 
 def map_coordinates(input,coordinates,*args,
-	grid=None,origin=None,scale=None,depth=0,order=1,**kwargs):
+	grid=None,origin=None,scale=None,depth=0,**kwargs):
 	"""
 	Thin wrapper over the ndimage.map_coordinates function, which adds the possibility of 
 	rescaling the coordinates using a reference grid, and interpolating tensors.
@@ -55,24 +55,23 @@ def map_coordinates(input,coordinates,*args,
 	Additional inputs : 
 	- grid (optional) : reference coordinate system, which must be uniform
 	- origin,scale (optional) : obtained from origin_scale_shape(grid)
-	- depth : depth of interpolated objects 0->scalar, 1->vector, 2->matrix, ...
-	- order (optional) : set default 1 for better cupy/numpy reproducibility
+	- depth : depth of interpolated objects 0->scalar, 1->vector, 2->matrix, ... (geometry first)
+	- *args,**kwargs passed to scipy.ndimage.map_coordinates (or cupyx equivalent)
 	"""
 	if ad.is_ad(input):
 		# Basic support for dense AD types
 		value = map_coordinates(input.value,coordinates,*args,
-			grid=grid,origin=origin,scale=scale,depth=depth,order=order,**kwargs)
+			grid=grid,origin=origin,scale=scale,depth=depth,**kwargs)
 		coef = np.moveaxis(map_coordinates(np.moveaxis(input.coef,-1,0),coordinates,*args,
-			grid=grid,origin=origin,scale=scale,depth=1+depth,order=order,**kwargs),0,-1)
+			grid=grid,origin=origin,scale=scale,depth=1+depth,**kwargs),0,-1)
 		if isinstance(input, ad.Dense.denseAD): return ad.Dense.denseAD(value,coef)
 		elif isinstance(input, ad.Dense.denseAD2):
 			coef2 = np.moveaxis(map_coordinates(np.moveaxis(input.coef,(-2,-1),(0,1)),coordinates,*args,
-				grid=grid,origin=origin,scale=scale,depth=2+depth,order=order,**kwargs),(0,1),(-2,-1))
+				grid=grid,origin=origin,scale=scale,depth=2+depth,**kwargs),(0,1),(-2,-1))
 			return ad.Dense2.denseAD2(value,coef,coef2)
 		else: 
 			raise ValueError(f"Unsupported ad type {type(input)} in map coordinates")
 
-	kwargs['order']=order
 	if ad.cupy_generic.from_cupy(input):
 		from cupyx.scipy.ndimage import map_coordinates as mc
 		def _map_coordinates(arr,x,*args,**kwargs):
@@ -95,6 +94,9 @@ def map_coordinates(input,coordinates,*args,
 	out = ad.array([_map_coordinates(input_,y,*args,**kwargs) for input_ in input])
 	out.reshape(oshape+y.shape[1:])
 	return out
+
+# ------------------------------------------------------------------------------
+# Below : incorrect boundary conditions 
 
 class _spline_univariate:
 	"""
