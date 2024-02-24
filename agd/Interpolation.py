@@ -113,6 +113,12 @@ def spline_base(x,order=3):
 	if order==4: return (x4,1+4*x+6*x2+4*x3-4*x4,11+12*x-6*x2-12*x3+6*x4,11-12*x-6*x2+12*x3-4*x4,1-4*x+6*x2-4*x3+x4)
 	x5 = x*x4
 	if order==5: return (x5,1+5*x+10*x2+10*x3+5*x4-5*x5,26+50*x+20*x2-20*x3-20*x4+10*x5,66-60*x2+30*x4-10*x5,26-50*x+20*x2+20*x3-20*x4+5*x5,1-5*x+10*x2-10*x3+5*x4-x5)
+	# The last two are just for fun
+	x6 = x*x5
+	if order==6: return (x6,1+6*x+15*x2+20*x3+15*x4+6*x5-6*x6,57+150*x+135*x2+20*x3-45*x4-30*x5+15*x6,302+240*x-150*x2-160*x3+30*x4+60*x5-20*x6,302-240*x-150*x2+160*x3+30*x4-60*x5+15*x6,57-150*x+135*x2-20*x3-45*x4+30*x5-6*x6,1-6*x+15*x2-20*x3+15*x4-6*x5+x6)
+	x7 = x*x6
+	if order==7: return (x7,1+7*x+21*x2+35*x3+35*x4+21*x5+7*x6-7*x7,120+392*x+504*x2+280*x3-84*x5-42*x6+21*x7,1191+1715*x+315*x2-665*x3-315*x4+105*x5+105*x6-35*x7,2416-1680*x2+560*x4-140*x6+35*x7,1191-1715*x+315*x2+665*x3-315*x4-105*x5+105*x6-21*x7,120-392*x+504*x2-280*x3+84*x5-42*x6+7*x7,1-7*x+21*x2-35*x3+35*x4-21*x5+7*x6-x7)
+	raise ValueError(f"Unsupported spline degree : {order=}")
 
 def spline_weighted(c,x,order=3,overwrite_x=False,periodic=False):
 	"""
@@ -121,10 +127,10 @@ def spline_weighted(c,x,order=3,overwrite_x=False,periodic=False):
 	- x : spline evaluation position, array of shape (d,p1,...,pl)
 
 	Returns : 
-	- interpolated spline, array of shape (m1,...,mk,p1,...,pl)
+	- weighted spline, array of shape (m1,...,mk,p1,...,pl)
 	"""
 	if not overwrite_x : x = x.copy()
-	x -= (order-1)/2 # Account for shift in spline support
+	x -= (order-1)/2 # Account for shift in spline support # order//2
 	int_t = np.int32 # Integer type. Enough for applications, and GPU friendly
 	x_dim = len(x)
 	x_shape = x[0].shape
@@ -150,20 +156,22 @@ def spline_weighted(c,x,order=3,overwrite_x=False,periodic=False):
 
 def spline_coefs(c,order=3,depth=0,periodic=False):
 	"""
+	Produces coefficients such that spline weighted better approximates the values of c. For odd 
+	order, the values at the grid nodes (integer coordinates) are exactly reproduced.
+
 	Input : 
 	- c : values of the function to be interpolated
-	- order (1,3,5) : spline interpolation order, an odd order is required
+	- order (int, default=3) : spline interpolation order.
 
 	Output : 
 	- spline weights, assuming reflect boundary conditions, for use in spline_weighted
 	"""
-	if order==1: return c # Bypass for first order splines (hat function)
-	assert order%2==1
-	ord2 = order//2
+	if order<=1: return c # Bypass for (zero-th and) first order splines (hat function)
 	xp = ad.cupy_generic.get_array_module(c)
 	solver = scipy.linalg.solve_circulant
 	dom_shape = c.shape[depth:]
-	spline_vals = xp.asarray(spline_base(0,order))
+	ord2 = order//2 # Different treatment of even and odd orders in this line and the next one
+	spline_vals = xp.asarray(spline_base(((1+order)%2)/2,order))
 	if not isinstance(periodic,tuple): periodic=(periodic,)*len(dom_shape)
 	for i,(s,per) in enumerate(zip(dom_shape,periodic)):
 		c = np.moveaxis(c,depth+i,0)
@@ -205,7 +213,7 @@ class UniformGridInterpolation:
 		- grid (ndarray) : must be a uniform grid. E.g. np.meshgrid(aX,aY,indexing='ij')
 		 where aX,aY have uniform spacing. Alternatively, provide only the axes.
 		- values (ndarray) : interpolated values.
-		- order (int, tuple of ints) : spline interpolation order (<=3), along each axis.
+		- order (int, tuple of ints) : spline interpolation order, along each axis.
 		- periodic (bool, tuple of bool) : wether periodic interpolation, along each axis.
 		"""
 
