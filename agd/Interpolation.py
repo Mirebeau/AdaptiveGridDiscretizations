@@ -198,7 +198,7 @@ class UniformGridInterpolation:
 	AD types for position.
 	"""
 
-	def __init__(self,grid,values,order=1,mode='reflect',check_grid=False):
+	def __init__(self,grid,values,order=1,mode='reflect',check_grid=False,periodic=False):
 		"""
 		- grid (ndarray) : must be a uniform grid. E.g. np.meshgrid(aX,aY,indexing='ij')
 		 where aX,aY have uniform spacing. Alternatively, provide only the axes.
@@ -220,8 +220,9 @@ class UniformGridInterpolation:
 
 		assert mode=='reflect'
 		self.order = order
-		self.coefs = spline_coefs(values,order,depth=values.ndim-len(grid))
+		self.periodic = periodic
+		self.coefs = spline_coefs(values,order,depth=values.ndim-len(grid),periodic=periodic)
 
 	def __call__(self,x):
 		x = coordinates_on_grid(x,origin=self.origin,scale=self.scale)
-		return spline_weighted(self.coefs,x,self.order,overwrite_x=True)
+		return spline_weighted(self.coefs,x,self.order,overwrite_x=True,periodic=self.periodic)
