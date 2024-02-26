@@ -6,10 +6,8 @@ This file implements some spline interpolation methods, on uniform grids,
 in a manner compatible with automatic differentiation.
 
 If you do not need to differentiate the interpolated value w.r.t. the position,
- then using map_coordinates is in general more efficient.
-
-The boundary conditions in UniformGridInterpolation are unreliable and unspecified. 
-Please interpolate in the domain interior (at least one pixel away from the boundary).
+ then using ndimage_map_coordinates is in likely to be more efficient numerically (but uses only
+ float32 accuracy).
 """
 
 
@@ -19,11 +17,6 @@ import scipy.linalg
 
 from . import AutomaticDifferentiation as ad
 
-# UniformGridInterpolation : boundary conditions.
-# TODO : there are some issues with extrapolation in degree 2 and higher
-# TODO : the not_a_knot boundary conditions is incorrect
-# TODO : overall, this class should be avoided as much as possible 
-# It is only needed when one needs to only useful to differentiate the output w.r.t x
 
 def origin_scale_shape(grid):
 	"""
@@ -42,6 +35,8 @@ def origin_scale_shape(grid):
 
 
 def coordinates_on_grid(coordinates,grid=None,origin=None,scale=None):
+	"""Rescale coordinates relatively to a uniform grid : (coordinates-origin)/scale"""
+	coordinates = ad.asarray(coordinates) # Ensure coordinates are presented as array not tuple
 	if grid is not None: origin,scale,_ = origin_scale_shape(grid)
 	if origin is None and scale is None: return coordinates
 	origin,scale = (_append_dims(e,coordinates.ndim-1) for e in (origin,scale))
@@ -81,13 +76,8 @@ def ndimage_map_coordinates(input,coordinates,*args,grid=None,**kwargs):
 			return ad.Dense2.denseAD2(value,coef,coef2)
 		else: raise ValueError(f"Unsupported ad type {type(input)} in ndimage_map_coordinates")
 
-	if ad.cupy_generic.from_cupy(input):
+	if ad.cupy_generic.from_cupy(input): 
 		from cupyx.scipy.ndimage import map_coordinates as _map_coordinates
-		# from cupyx.scipy.ndimage import map_coordinates as mc
-		# def _map_coordinates(arr,x,*args,**kwargs):
-		# 	# Cupy (version 7.8) requires the coordinates array to be flattened
-		# 	shape = x.shape[1:]
-		# 	return mc(arr,x.reshape((len(x),-1)),*args,**kwargs).reshape(shape)
 	else: from scipy.ndimage import map_coordinates as _map_coordinates
 
 	depth = input.ndim-len(coordinates)
@@ -181,7 +171,7 @@ def spline_coefs(c,order=3,depth=0,periodic=False):
 		if isinstance(c,ad.Dense.denseAD):c=ad.Dense.denseAD(solver(circ,c.value), solver(circ,c.coef))
 		elif isinstance(c,ad.Dense2.denseAD2):c=ad.Dense2.denseAD2(solver(circ,c.value), solver(circ,c.coef), solver(circ,c.coef2))
 		else: c = solver(circ,c)
-		c = np.roll(c,-ord2) if per else c[ord2:ord2+s]
+		c = np.roll(c,-ord2,axis=0) if per else c[ord2:ord2+s]
 		c = np.moveaxis(c,0,depth+i)
 	return c
 

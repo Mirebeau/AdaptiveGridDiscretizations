@@ -26,8 +26,7 @@ def odeint_array(f,y,t,grid,t_delay=0,t_substeps=2,order=1,**kwargs):
 	y0 = copy.copy(y)
 	fit = iter(f)
 	def I(values,positions): # Interpolation
-		return ndimage_map_coordinates(values,positions,grid=grid,
-			depth=1,order=order,**kwargs)
+		return ndimage_map_coordinates(values,positions,grid=grid,order=order,**kwargs)
 
 	f1 = next(fit)
 	for i in range(nt-1):

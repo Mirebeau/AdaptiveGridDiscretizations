@@ -155,6 +155,7 @@ if __name__ == '__main__':
 		return False
 
 	notebook_filenames = [f for f in ListNotebooks() if keep(f)]
+	# excluded found were found in directories, maybe not in provided list
 	print(f"Notebooks to be tested : {notebook_filenames}, {excluded_found=}, excluded_notfound={excluded}")
 
 	if len(included)>0: print(f"Warning ! Could not find the following notebooks : {included}")
