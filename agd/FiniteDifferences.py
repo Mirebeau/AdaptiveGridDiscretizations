@@ -315,6 +315,7 @@ def DiffCross(u,offset0,offset1,gridScale=1.,order=2,**kwargs):
 	Centered finite differences scheme, but lacking the degenerate ellipticity property.
 	"""
 	if   order<=2: multiples,weights = ( 1,-1),(1.,1.)
+	# Note : there are other choices for order==4, and some are more compact, or more variational. 
 	elif order<=4: multiples,weights = ( 2, 1,-1,-2),(-1/12.,4/3.,4/3.,-1/12.)
 	else: raise ValueError("Unsupported order")
 	weights = np.array(weights)/(4*gridScale**2)
@@ -405,15 +406,3 @@ def UniformGridInterpolator1D(bounds,values,mode='clip',axis=-1):
 		result = np.moveaxis(result,range(position.ndim),range(-position.ndim,0))
 		return result
 	return interp
-
-# def AxesOrderingBounds(grid):
-# 	dim = len(grid)
-# 	lbounds = grid.__getitem__((slice(None),)+(0,)*dim)
-# 	ubounds = grid.__getitem__((slice(None),)+(-1,)*dim)
-
-# 	def active(i):
-# 		di = grid.__getitem__((slice(None),)+(0,)*i+(1,)+(0,)*(dim-1-i))
-# 		return np.argmax(np.abs(di-lbounds))
-# 	axes = tuple(active(i) for i in range(dim))
-
-# 	return axes,lbounds,ubounds 
