@@ -412,9 +412,11 @@ class Hooke(ImplicitBase):
 
 	def waves(self,k,ρ):
 		"""Returns the pulsation and direction of the waves with the given wave vector."""
-		m = np.moveaxis(self.contract(k),(0,1),(-2,-1))
+		m = self.contract(k)
+		m = np.moveaxis(m,(0,1),(-2,-1)) # numpy expects geometry last
 		eVal,eVec = np.linalg.eigh(m)
-		eVec = np.moveaxis(eVec,(-2,-1),(0,1))
+		eVec = np.moveaxis(eVec,(-2,-1),(0,1)) # back to geomtry first
+		eVal = np.moveaxis(eVal,-1,0)
 		return np.sqrt(eVal/ρ),eVec
 
 
