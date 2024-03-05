@@ -415,7 +415,7 @@ class Hooke(ImplicitBase):
 		m = self.contract(k)
 		m = np.moveaxis(m,(0,1),(-2,-1)) # numpy expects geometry last
 		eVal,eVec = np.linalg.eigh(m)
-		eVec = np.moveaxis(eVec,(-2,-1),(0,1)) # back to geomtry first
+		eVec = np.moveaxis(eVec,(-2,-1),(0,1)) # back to geometry first
 		eVal = np.moveaxis(eVal,-1,0)
 		return np.sqrt(eVal/ρ),eVec
 
