@@ -9,11 +9,12 @@ generated with [pdoc](https://pdoc.dev/).
 
 ### The AGD library
 
-The recommended ways to install are
+The recommended way to install is
 ```console
 pip install agd
 ```
-or alternatively (but this option does not include the GPU eikonal solver)
+
+*Deprecated conda package* (this version does not include the GPU codes, and is not maintained)
 ```console
 conda install agd -c agd-lbr
 ```
