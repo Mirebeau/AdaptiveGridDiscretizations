@@ -22,7 +22,15 @@ def savefig(fig,fileName,dirName=None,ax=None,**kwargs):
 	"""Save a figure:
 	- in a given directory, possibly set in the properties of the function. 
 	 Silently fails if dirName is None
-	- with defaulted arguments, possibly set in the properties of the function
+	- with defaulted arguments, possibly set in the properties of the function.
+
+	Example usage :
+	savefig.dirName = "MyImageDirectory" # No image is saved if this line is commented
+	fig = plt.figure()
+	ax = plt.subplot(1,2,1)
+	...
+	savefig(fig,"MyFigure") # Save to png file
+	savefig(fig,"MySubplot",ax=ax)
 	"""
 	# Choose the subplot to be saved 
 	if ax is not None:
