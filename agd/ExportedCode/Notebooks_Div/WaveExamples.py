@@ -9,7 +9,7 @@ from agd.ODE.hamiltonian import QuadraticHamiltonian
 from ... import AutomaticDifferentiation as ad
 from agd.Eikonal.HFM_CUDA import AnisotropicWave as aw
 from agd.Interpolation import map_coordinates
-from agd.Plotting import savefig,quiver,Tissot; #savefig.dirName = 'Images/ElasticityDirichlet'
+from agd.Plotting import savefig,quiver,Tissot; #savefig.dirName = 'Images/WaveExamples'
 norm = ad.Optimization.norm
 mica,_ = Hooke.mica 
 cupy_get = ad.cupy_generic.cupy_get # Turn a cupy array into a numpy array
