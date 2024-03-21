@@ -283,6 +283,7 @@ def DiffUpwind(u,offset,gridScale=1.,order=1,**kwargs):
 	if   order==1: multiples,weights = (1,0),	( 1.,-1.)
 	elif order==2: multiples,weights = (2,1,0),  (-0.5,2.,-1.5)
 	elif order==3: multiples,weights = (3,2,1,0),(1./3.,-1.5,3.,-11./6.)
+	elif order=='3b': multiples,weights = (2,1,0,-1),(-1/6.,1.,-1/2.,-1/3.) # Mostly upwind ...
 	else: raise ValueError("Unsupported order")
 	return AlignedSum(u,offset,multiples,np.array(weights)/gridScale,**kwargs)
 
@@ -365,12 +366,19 @@ def DiffEll(u,offset,gridScale=1.0,order=2,α=0.,**kwargs):
 	$$
 	if order=2. Sum the squares to approximate (<grad u,e>-α)^2. Also accepts order=4.
 	"""
-	assert order in (2,4); s2 = np.sqrt(2); s6 = np.sqrt(6)
-	if order==2: return ad.array([(-DiffUpwind(u,-offset,gridScale,**kwargs)-α)/s2,
-	                              ( DiffUpwind(u, offset,gridScale,**kwargs)-α)/s2])
-	if order==4: return ad.array([(-DiffUpwind(u,-offset,gridScale,order=2,**kwargs)-α)/s6,
-	                              (DiffCentered(u,offset,gridScale,        **kwargs)-α)*(2/s6),
-                                  ( DiffUpwind(u, offset,gridScale,order=2,**kwargs)-α)/s6])
+	s2 = np.sqrt(2); s6 = np.sqrt(6); s20 = np.sqrt(20)
+	if order<=2: return ad.array([
+		(-DiffUpwind(u,-offset,gridScale,**kwargs)-α)/s2,
+		( DiffUpwind(u, offset,gridScale,**kwargs)-α)/s2])
+	if order<=4: return ad.array([
+		(-DiffUpwind(u,-offset,gridScale,order=2,**kwargs)-α)/s6,
+		(DiffCentered(u,offset,gridScale,        **kwargs)-α)*(2/s6),
+		( DiffUpwind(u, offset,gridScale,order=2,**kwargs)-α)/s6])
+	if order<=6: return ad.array([
+		(-DiffUpwind(u,-offset,gridScale,order=3,   **kwargs)-α)/s20,
+		(-DiffUpwind(u,-offset,gridScale,order='3b',**kwargs)-α)*(3/s20),
+		( DiffUpwind(u, offset,gridScale,order='3b',**kwargs)-α)*(3/s20),
+		( DiffUpwind(u, offset,gridScale,order=3,   **kwargs)-α)/s20])
 
 # ----------- Interpolation ---------
 
