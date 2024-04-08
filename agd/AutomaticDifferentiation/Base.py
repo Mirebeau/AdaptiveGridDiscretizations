@@ -387,6 +387,12 @@ def _array_function_overload(self,func,types,args,kwargs,cupy_alt=True):
 
 # ---- overloads ----
 
+def normalize_axis(axis,ndim):
+	if isinstance(axis,tuple): return tuple((normalize_axis(ax,ndim) for ax in axis))
+	if axis<0: axis = axis+ndim
+	if not (0<=axis<ndim): raise ValueError(f"Unsupported {axis=} with {ndim=}")
+	return axis
+
 @implements(np.stack)
 def stack(elems,axis=0):
 	for e in elems: 
@@ -448,16 +454,8 @@ def mean(array, *args, **kwargs):
 
 @implements(np.roll)
 def roll(array,shift,axis=None):
-	if axis is None:
-		if array.ndim>1:
-			raise ValueError("Unsupported None axis when ndim>=2")
-		axis=0
-	elif axis<0:
-		axis+=array.ndim
-
-	if not (0<=axis<array.ndim):
-		raise ValueError(f"Unsupported axis {axis} with ndim {array.ndim}")
-
+	if axis is None: return roll(array.reshape(-1),shift,axis=0).reshape(array.shape)
+	axis = normalize_axis(axis,array.ndim)
 	return array.new(*tuple(np.roll(e,shift,axis) for e in array.as_tuple()))
 
 @implements(np.allclose)
