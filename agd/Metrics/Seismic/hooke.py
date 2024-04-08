@@ -403,7 +403,7 @@ class Hooke(ImplicitBase):
 	def contract(self,w):
 		r"""Returns the contracted tensor $\sum_{j,l}c_{ijkl} w_j w_l$."""
 		voi = self._Voigt
-		hooke,w = fd.common_field((self.hooke,w),depths=(2,1))
+		hooke,w = fd.common_field((self.hooke,w),depths=(2,1),singleton_in=True,singleton_out=True)
 		def c(i,j,k,l): return hooke[voi[i,j],voi[k,l]]
 		d = self.vdim; assert len(w)==d
 		return ad.array([[
@@ -426,7 +426,7 @@ class Hooke(ImplicitBase):
 # Reference : Lecomte, I. (1993). Finite difference calculation of first traveltimes 
 # in anisotropic media 1. Geophysical Journal International, 113(2), 318–342.
 Hooke.mica = Hooke.from_hexagonal(178.,42.4,14.5,54.9,12.2), 2.79
-Hooke.stishovite = Hooke.from_tetragonal(453,211,203,776,252,302), 4.29
+Hooke.stishovite = Hooke.from_tetragonal(453.,211.,203.,776.,252.,302.), 4.29
 Hooke.olivine = Hooke.from_orthorombic(323.7,66.4,71.6,197.6,75.6,235.1,64.6,78.7,79.0), 3.311
 
 
