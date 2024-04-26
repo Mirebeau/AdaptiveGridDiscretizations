@@ -20,8 +20,9 @@ Naming conventions :
 IMPORTANT : NO-ALIAS ASSUMPTION ! Outputs are assumed to be __restrict__.
 */
 
-void show(float x){printf("%f\n",x);}
-void show(int x)  {printf("%i\n",x);}
+void show(double x){printf("%f",x);}
+void show(float x){printf("%f",x);}
+void show(int x)  {printf("%i",x);}
 void show(char x) {show(int(x));}
 
 template<int ndim> struct GeometryT {
@@ -47,8 +48,8 @@ template<typename Tx, typename T>
 static void sub(const Tx x[ndim], T out[ndim]){for(int i=0; i<ndim; ++i) out[i]-=x[i];}
 template<typename Tk, typename T>
 static void mul(const Tk k,       T out[ndim]){for(int i=0; i<ndim; ++i) out[i]*=k;}
-template<typename T>
-static void madd(const T k, const T x[ndim], T out[__restrict__ ndim]){
+template<typename Tk,typename Tx,typename Tout>
+static void madd(const Tk k, const Tx x[ndim], Tout out[__restrict__ ndim]){
 	for(Int i=0; i<ndim; ++i){out[i]+=k*x[i];}}
 
 // Out of place operations
@@ -70,13 +71,16 @@ template<typename T>
 static T norm2(const T x[ndim]){return scal(x,x);}
 
 // -------------------- Matrix initialization ------------------
-template<typename T>
-static T coef_m(const T m[symdim], const Int i, const Int j){
-	const Int i_ = max(i,j), j_=min(i,j);
-	const Int k = (i_*(i_+1))/2+j_;
-	HFM_DEBUG(assert(0<=i && i<ndim && 0<=j && j<ndim && 0<=k && k<symdim);)
-	return m[k];
+static Int icoef_m(const Int i,const Int j){
+    const Int i_ = max(i,j), j_=min(i,j);
+    const Int k = (i_*(i_+1))/2+j_;
+    HFM_DEBUG(assert(0<=i && i<ndim && 0<=j && j<ndim && 0<=k && k<symdim);)
+    return k;
 }
+template<typename T>
+static T coef_m(const T m[symdim], const Int i, const Int j){return m[icoef_m(i,j)];}
+template<typename T>
+static T & coef_m(T m[symdim], const Int i, const Int j){return m[icoef_m(i,j)];}
 
 template<typename T>
 static void copy_mA(const T m[symdim], T a[__restrict__ ndim][ndim]){
@@ -103,8 +107,8 @@ static void identity_A(T a[ndim][ndim]){
 static void identity_M(Scalar m[symdim]){
 	for(Int i=0,k=0; i<ndim; ++i){for(Int j=0; j<=i; ++j,++k) m[k]=(i==j);} }
 
-template<typename T>
-static void self_outer(const T x[ndim],T m[symdim]){
+template<typename Tx, typename Tm>
+static void self_outer(const Tx x[ndim],Tm m[symdim]){
 	for(int i=0,k=0; i<ndim; ++i){for(int j=0; j<=i; ++j,++k) m[k]=x[i]*x[j];}}
 
 // ------------- dot products -----------
@@ -236,11 +240,11 @@ template<typename T>
 static void solve_av_overwrite(
 	T a[__restrict__ ndim][ndim], 
 	T b[__restrict__ ndim], 
-	T out[__restrict__ ndim][ndim]){
+	T out[__restrict__ ndim]){
 	// A basic Gauss pivot
 	Int i2j[ndim], j2i[ndim]; 
 	fill_kV(-1,i2j); fill_kV(-1,j2i);
-    for(int j=0; j<n; ++j){
+    for(int j=0; j<ndim; ++j){
 		// Get largest coefficient in column
 		T cMax = 0;
 		int iMax=0;
@@ -263,12 +267,12 @@ static void solve_av_overwrite(
         }
     }
     // Solve the remaining triangular system
-    for(int j=n-1; j>=0; --j){
+    for(int j=ndim-1; j>=0; --j){
         const int i=j2i[j];
         T & r = out[j];
         r=b[i];
-        for(int k=j+1; k<n; ++k){r-=out[k]*a(i,k);}
-        r/=a(i,j);
+        for(int k=j+1; k<ndim; ++k){r-=out[k]*a[i][k];}
+        r/=a[i][j];
     }
 }
 
@@ -278,6 +282,45 @@ static void solve_av(const T a[ndim][ndim],const T b[ndim],T out[__restrict__ nd
 	T a_[ndim][ndim]; copy_aA(a,a_);
 	T b_[ndim]; cast(b,b_);
 	solve_av_overwrite(a_,b_,out);
+}
+
+/// comatrix of a symmetric matrix
+template<typename T> static void
+comatrix_m(const T m[symdim], T co_m[symdim]){
+    if(ndim==1){co_m[0] = T(1);}
+    else if(ndim==2){
+        coef_m(co_m,0,0) =  coef_m(m,1,1);
+        coef_m(co_m,0,1) = -coef_m(m,0,1);
+        coef_m(co_m,1,1) =  coef_m(m,0,0);}
+    else if(ndim==3){
+        for(int i=0; i<3; ++i)
+            for(int j=0; j<=i; ++j){
+                const int i1 = (i+1)%3, i2=(i+2)%3, j1=(j+1)%3, j2=(j+2)%3;
+                coef_m(co_m,i,j) = 
+                 coef_m(m,i1,j1)*coef_m(m,i2,j2)
+                -coef_m(m,i1,j2)*coef_m(m,i2,j1);
+            }
+    }
+    else {assert(false);} // Alternatively, use the routines for square symmetric matrices
+}
+    
+template<typename T> static T
+det_m(const T m[symdim]){
+    if(ndim==1){return m[0];}
+    else if(ndim==2){return coef_m(m,0,0)*coef_m(m,1,1) - coef_m(m,0,1)*coef_m(m,1,0);}
+    else if(ndim==3){
+        return coef_m(m,0,0)*(coef_m(m,1,1)*coef_m(m,2,2)-coef_m(m,1,2)*coef_m(m,2,1))
+        +coef_m(m,0,1)*(2*coef_m(m,1,2)*coef_m(m,2,0)-coef_m(m,1,0)*coef_m(m,2,2))
+        -coef_m(m,0,2)*(coef_m(m,1,1)*coef_m(m,2,0));}
+    else {assert(false);} // Alternatively, use the routines for square symmetric matrices
+}
+    
+template<typename T> static void
+inv_m(const T m[symdim], T m_inv[symdim]){
+    comatrix_m(m, m_inv);
+    const T idet = 1/det_m(m);
+    for(int i=1; i<symdim; ++i) m_inv[i]*=idet;
+//    mul<symdim>(m_inv,1/det_m(m));
 }
 
 // ---------------------- Display --------------------
@@ -303,16 +346,16 @@ static void show_m(const T m[symdim]){
 	}
 }
 
-template<typename T>
-static void show_a(const T a[ndim][ndim]){
-	for(int i=0; i<ndim; ++i){
+template<int rdim=ndim,typename T>
+static void show_a(const T a[rdim][ndim]){
+	for(int i=0; i<rdim; ++i){
 		if(i==0) printf("{"); else printf(",");
 		for(int j=0; j<ndim; ++j){
 			if(j==0) printf("{"); else printf(",");
 			show(a[i][j]);
 			if(j==ndim-1) printf("}");
 		}
-		if(i==ndim-1) printf("}");
+		if(i==rdim-1) printf("}");
 	}
 }
 

@@ -84,3 +84,4 @@ void eigh(const Scalar m[symdim],
 	perp_v(v[0],v[1]); // The second eigenvector is obtained by rotating the first
 	trans_A(v); // For compatibility with numpy
 }
+

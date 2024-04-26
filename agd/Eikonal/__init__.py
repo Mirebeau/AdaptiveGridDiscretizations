@@ -51,6 +51,7 @@ def _VoronoiDecomposition_noAD(arr,mode=None,steps='Both',*args,**kwargs):
 		arr = arr.reshape( (dim,dim,np.prod(shape,dtype=int)) )
 		arr = np.moveaxis(misc.flatten_symmetric_matrix(arr),0,-1)
 		vdqIn ={'tensors':arr,'steps':steps}
+		if 'smooth' in kwargs: vdqIn['smooth']=kwargs['smooth']
 		vdqOut = FileIO.WriteCallRead(vdqIn, "FileVDQ", bin_dir)
 		weights = np.moveaxis(vdqOut['weights'],-1,0)
 		offsets = np.moveaxis(vdqOut['offsets'],(-1,-2),(0,1)).astype(int)

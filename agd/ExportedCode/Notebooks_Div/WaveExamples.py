@@ -28,15 +28,19 @@ else: # Use GPU kernels
     ElasticHamiltonian = aw.ElasticHamiltonian_Kernel
     Tissot = ad.cupy_generic.cupy_get_args(Tissot,iterables=(Riemann,)) # Allow GPU data
 
-def heaviside(x):
-    """Smoothed heaviside function, with a transition over [-1,1]"""
+def heaviside(x,order=4):
+    """Smoothed heaviside function, with a transition over [-1,1], with C^k regularity"""
     # Primitives of (1-x^2)^k : x - x**3/3, x - (2*x**3)/3 + x**5/5, x - x**3 + (3*x**5)/5 - x**7/7
-    def p(x): return x - (2*x**3)/3 + x**5/5
+    def p(x): 
+        if order<=0: return x
+        if order<=2: return x - x**3/3
+        if order<=4: return x - (2*x**3)/3 + x**5/5
+        if order<=6: return x - x**3 + (3*x**5)/5 - x**7/7
     return 0.5+0.5*np.where(x<=-1,-1,np.where(x>=1,1,p(x)/p(1)))
     
-def bump(x,r,δ):
+def bump(x,r,δ,**kwargs):
     """A bump over the interval [-r,r], with a transition over [r-δ,r+δ]"""
-    return heaviside((r-np.abs(x))/δ)
+    return heaviside((r-np.abs(x))/δ,**kwargs)
 
 def make_domain(radius,vdim):
     """Produces the periodic domain [-radius,radius]^2, with 25 pixels per unit"""

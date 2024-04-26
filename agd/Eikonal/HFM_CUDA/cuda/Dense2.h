@@ -62,7 +62,7 @@ template<typename Scalar> struct _Taylor1 { // first order Taylor expansions of 
 };
 
 template<typename Scalar> struct _Taylor2 { // second order Taylor expansions of elem functions
-	static void _log(const Scalar x, Scalar y[3]){y[0]=log(x); t=Scalar(1)/x; y[1]=t; y[2]=-t*t;}
+	static void _log(const Scalar x, Scalar y[3]){y[0]=log(x); const Scalar t=Scalar(1)/x; y[1]=t; y[2]=-t*t;}
 	static void _exp(const Scalar x, Scalar y[3]){Scalar e=exp(x); y[0]=e; y[1]=e; y[2]=e;}
 	static void _abs(const Scalar x, Scalar y[3]){y[0]=abs(x); y[1]=x>=0?Scalar(1):Scalar(-1); y[2]=Scalar(0);}
 	static void _sin(const Scalar x, Scalar y[3]){y[0]=sin(x); y[1]=cos(x); y[2]=-y[0];}
@@ -80,91 +80,7 @@ template<typename Scalar> struct _Taylor2 { // second order Taylor expansions of
 };
 
 /**
-A class for second order dense automatic differentiation.
-
-A element x = (a,v,m) of this class represents 
-x = a + <v,h> + <h,m h>/2 + o(|h|^2), 
-where h is an infinitesimal perturbation in dimension ndim. 
-
-Note that a is a scalar, v is a vector of dimension ndim, and m is a symmetric matrix of shape 
-(ndim,ndim) which is stored in compact format with ndim*(ndim+1)/2 entries.
-*/
-template<typename Scalar, int ndim>
-struct Dense2 : DifferentiationTypeOperators<Dense2<Scalar,ndim>,Scalar> {
-	typedef GeometryT<ndim> V;
-	static const int symdim = V::symdim;
-	typedef GeometryT<symdim> M;
-
-	Scalar a;
-	Scalar v[ndim];
-	Scalar m[symdim];
-
-	Dense2(){};
-	Dense2(Scalar a_){a=a_;V::zero(v);M::zero(m);}
-
-	void operator += (const Dense2 & y){a+=y.a; V::add(y.v,v); M::add(y.m,m);}
-	void operator -= (const Dense2 & y){a-=y.a; V::sub(y.v,v); M::sub(y.m,m);}
-	void operator *= (const Dense2 & y){
-		for(int i=0,k=0; i<ndim; ++i){for(int j=0;j<=i; ++j,++k){
-			m[k]=y.a*m[k]+a*y.m[k]+y.v[i]*v[j]+y.v[j]*v[i];}}
-		for(int i=0; i<ndim;++i){v[i]=y.a*v[i]+a*y.v[i];}
-		a = a*y.a;
-	}
-	void operator /= (const Dense2 & y){*this*=y.Inverse();}
-	Dense2 Inverse() const {
-		const Scalar ai = 1./a, ai2=ai*ai;
-		Dense2 r;
-		r.a = ai;
-		V::mul(-ai2,v,r.v);
-		V::self_outer(v,r.m);
-		M::mul(2*ai,r.m);
-		M::sub(m,r.m);
-		M::mul(ai2,r.m);
-		return r;
-	}
-	Dense2 operator - () const {Dense2 y; y.a=-a; V::neg(v,y.v); M::neg(m,y.m); return y; } 
-	void operator += (const Scalar & y){a+=y;}
-	void operator -= (const Scalar & y){a-=y;}
-	void operator *= (const Scalar & y){a*=y; V::mul(y,v); M::mul(y,m);}
-	void operator /= (const Scalar & y){*this*=(1/y);}
-
-	static void Identity(Dense2 id[ndim]){
-		for(int i=0; i<ndim; ++i){
-			id[i].a=0;V::zero(id[i].v);M::zero(id[i].m);
-			id[i].v[i]=1;
-		}
-	}
-
-	void showself() const {
-		printf("{"); 
-		show(a);      printf(",");
-		V::show_v(v); printf(","); 
-		V::show_m(m); printf("}");
-	}
-	void _math_helper(Scalar y[3]){
-		for(int i=0,k=0; i<ndim; ++i){for(int j=0;j<=i; ++j,++k){
-			m[k]=y[1]*m[k]+y[2]*v[i]*v[j];}}
-		a=y[0]; V::mul(y[1],v);}
-};
-
-template<typename Scalar,int ndim> void show(const Dense2<Scalar,ndim> & x){x.showself();}
-template<typename Scalar,int ndim> Dense2<Scalar,ndim> log(Dense2<Scalar,ndim> x){Scalar y[3]; _Taylor2<Scalar>::_log(x.a,y); x._math_helper(y); return x;}
-template<typename Scalar,int ndim> Dense2<Scalar,ndim> exp(Dense2<Scalar,ndim> x){Scalar y[3]; _Taylor2<Scalar>::_exp(x.a,y); x._math_helper(y); return x;}
-template<typename Scalar,int ndim> Dense2<Scalar,ndim> abs(Dense2<Scalar,ndim> x){Scalar y[3]; _Taylor2<Scalar>::_abs(x.a,y); x._math_helper(y); return x;}
-template<typename Scalar,int ndim> Dense2<Scalar,ndim> sin(Dense2<Scalar,ndim> x){Scalar y[3]; _Taylor2<Scalar>::_sin(x.a,y); x._math_helper(y); return x;}
-template<typename Scalar,int ndim> Dense2<Scalar,ndim> cos(Dense2<Scalar,ndim> x){Scalar y[3]; _Taylor2<Scalar>::_cos(x.a,y); x._math_helper(y); return x;}
-template<typename Scalar,int ndim> Dense2<Scalar,ndim> arcsin(Dense2<Scalar,ndim> x){Scalar y[3]; _Taylor2<Scalar>::_arcsin(x.a,y); x._math_helper(y); return x;}
-template<typename Scalar,int ndim> Dense2<Scalar,ndim> arccos(Dense2<Scalar,ndim> x){Scalar y[3]; _Taylor2<Scalar>::_arccos(x.a,y); x._math_helper(y); return x;}
-template<typename Scalar,int ndim> Dense2<Scalar,ndim> arctan(Dense2<Scalar,ndim> x){Scalar y[3]; _Taylor2<Scalar>::_arctan(x.a,y); x._math_helper(y); return x;}
-template<typename Scalar,int ndim> Dense2<Scalar,ndim> sinh(Dense2<Scalar,ndim> x){Scalar y[3]; _Taylor2<Scalar>::_sinh(x.a,y); x._math_helper(y); return x;}
-template<typename Scalar,int ndim> Dense2<Scalar,ndim> cosh(Dense2<Scalar,ndim> x){Scalar y[3]; _Taylor2<Scalar>::_cosh(x.a,y); x._math_helper(y); return x;}
-template<typename Scalar,int ndim> Dense2<Scalar,ndim> tanh(Dense2<Scalar,ndim> x){Scalar y[3]; _Taylor2<Scalar>::_tanh(x.a,y); x._math_helper(y); return x;}
-template<typename Scalar,int ndim> Dense2<Scalar,ndim> arcsinh(Dense2<Scalar,ndim> x){Scalar y[3]; _Taylor2<Scalar>::_arcsinh(x.a,y); x._math_helper(y); return x;}
-template<typename Scalar,int ndim> Dense2<Scalar,ndim> arccosh(Dense2<Scalar,ndim> x){Scalar y[3]; _Taylor2<Scalar>::_arccosh(x.a,y); x._math_helper(y); return x;}
-template<typename Scalar,int ndim> Dense2<Scalar,ndim> arctanh(Dense2<Scalar,ndim> x){Scalar y[3]; _Taylor2<Scalar>::_arctanh(x.a,y); x._math_helper(y); return x;}
-
-/**
-A class for second order dense automatic differentiation.
+A class for first order dense automatic differentiation.
 
 A element x = (a,v) of this class represents 
 x = a + <v,h> + o(|h|), 
@@ -200,6 +116,9 @@ struct Dense1 : DifferentiationTypeOperators<Dense1<Scalar,ndim>,Scalar> {
 	void operator -= (const Scalar & y){a-=y;}
 	void operator *= (const Scalar & y){a*=y; V::mul(y,v);}
 	void operator /= (const Scalar & y){*this*=(1/y);}
+    
+    bool operator < (const Dense1 & y) const {return a < y.a;}
+    bool operator < (const Scalar & y) const {return a < y;}
 
 	static void Identity(Dense1 id[ndim]){
 		for(int i=0; i<ndim; ++i){id[i].a=0; V::zero(id[i].v); id[i].v[i]=1;}
@@ -239,3 +158,103 @@ template<typename Scalar,int ndim> Dense1<Scalar,ndim> tanh(Dense1<Scalar,ndim> 
 template<typename Scalar,int ndim> Dense1<Scalar,ndim> arcsinh(Dense1<Scalar,ndim> x){Scalar y[2]; _Taylor1<Scalar>::_arcsinh(x.a,y); x._math_helper(y); return x;}
 template<typename Scalar,int ndim> Dense1<Scalar,ndim> arccosh(Dense1<Scalar,ndim> x){Scalar y[2]; _Taylor1<Scalar>::_arccosh(x.a,y); x._math_helper(y); return x;}
 template<typename Scalar,int ndim> Dense1<Scalar,ndim> arctanh(Dense1<Scalar,ndim> x){Scalar y[2]; _Taylor1<Scalar>::_arctanh(x.a,y); x._math_helper(y); return x;}
+
+
+/**
+A class for second order dense automatic differentiation.
+
+A element x = (a,v,m) of this class represents
+x = a + <v,h> + <h,m h>/2 + o(|h|^2),
+where h is an infinitesimal perturbation in dimension ndim.
+
+Note that a is a scalar, v is a vector of dimension ndim, and m is a symmetric matrix of shape
+(ndim,ndim) which is stored in compact format with ndim*(ndim+1)/2 entries.
+*/
+template<typename Scalar, int ndim>
+struct Dense2 : DifferentiationTypeOperators<Dense2<Scalar,ndim>,Scalar> {
+    typedef GeometryT<ndim> V;
+    static const int symdim = V::symdim;
+    typedef GeometryT<symdim> M;
+    typedef Dense1<Scalar,ndim> Dense1;
+
+    Scalar a;
+    Scalar v[ndim];
+    Scalar m[symdim];
+
+    Dense2(){};
+    Dense2(Scalar a_){a=a_;V::zero(v);M::zero(m);}
+    Dense2(const Dense1 & x){a=x.a; V::cast(x.v,v); M::zero(m);}
+
+    void operator += (const Dense2 & y){a+=y.a; V::add(y.v,v); M::add(y.m,m);}
+    void operator -= (const Dense2 & y){a-=y.a; V::sub(y.v,v); M::sub(y.m,m);}
+    void operator *= (const Dense2 & y){
+        for(int i=0,k=0; i<ndim; ++i){for(int j=0;j<=i; ++j,++k){
+            m[k]=y.a*m[k]+a*y.m[k]+y.v[i]*v[j]+y.v[j]*v[i];}}
+        for(int i=0; i<ndim;++i){v[i]=y.a*v[i]+a*y.v[i];}
+        a = a*y.a;
+    }
+    void operator /= (const Dense2 & y){*this*=y.Inverse();}
+    Dense2 Inverse() const {
+        const Scalar ai = 1./a, ai2=ai*ai;
+        Dense2 r;
+        r.a = ai;
+        V::mul(-ai2,v,r.v);
+        V::self_outer(v,r.m);
+        M::mul(2*ai,r.m);
+        M::sub(m,r.m);
+        M::mul(ai2,r.m);
+        return r;
+    }
+    Dense2 operator - () const {Dense2 y; y.a=-a; V::neg(v,y.v); M::neg(m,y.m); return y; }
+    void operator += (const Scalar & y){a+=y;}
+    void operator -= (const Scalar & y){a-=y;}
+    void operator *= (const Scalar & y){a*=y; V::mul(y,v); M::mul(y,m);}
+    void operator /= (const Scalar & y){*this*=(1/y);}
+
+    bool operator < (const Dense2 & y) const {return a < y.a;}
+    bool operator < (const Scalar & y) const {return a < y;}
+
+    static void Identity(Dense2 id[ndim]){
+        for(int i=0; i<ndim; ++i){
+            id[i].a=0;V::zero(id[i].v);M::zero(id[i].m);
+            id[i].v[i]=1;
+        }
+    }
+    /** Regard as a quadratic form, and find the stationnary point -dir (note the minus sign).
+     The vector dir is the descent direction in the Newton method*/
+    void solve_stationnary(Scalar dir[ndim]) const {
+    // TODO : if positive definite, we could use cholesky factorization (simpler, cheaper)
+        Scalar a[ndim][ndim], ai[ndim][ndim];
+        V::copy_mA(m,a);
+        V::inv_a(a,ai);
+        V::dot_av(ai,v,dir);
+    }
+    
+    
+    void showself() const {
+        printf("{");
+        show(a);      printf(",");
+        V::show_v(v); printf(",");
+        V::show_m(m); printf("}");
+    }
+    void _math_helper(Scalar y[3]){
+        for(int i=0,k=0; i<ndim; ++i){for(int j=0;j<=i; ++j,++k){
+            m[k]=y[1]*m[k]+y[2]*v[i]*v[j];}}
+        a=y[0]; V::mul(y[1],v);}
+};
+
+template<typename Scalar,int ndim> void show(const Dense2<Scalar,ndim> & x){x.showself();}
+template<typename Scalar,int ndim> Dense2<Scalar,ndim> log(Dense2<Scalar,ndim> x){Scalar y[3]; _Taylor2<Scalar>::_log(x.a,y); x._math_helper(y); return x;}
+template<typename Scalar,int ndim> Dense2<Scalar,ndim> exp(Dense2<Scalar,ndim> x){Scalar y[3]; _Taylor2<Scalar>::_exp(x.a,y); x._math_helper(y); return x;}
+template<typename Scalar,int ndim> Dense2<Scalar,ndim> abs(Dense2<Scalar,ndim> x){Scalar y[3]; _Taylor2<Scalar>::_abs(x.a,y); x._math_helper(y); return x;}
+template<typename Scalar,int ndim> Dense2<Scalar,ndim> sin(Dense2<Scalar,ndim> x){Scalar y[3]; _Taylor2<Scalar>::_sin(x.a,y); x._math_helper(y); return x;}
+template<typename Scalar,int ndim> Dense2<Scalar,ndim> cos(Dense2<Scalar,ndim> x){Scalar y[3]; _Taylor2<Scalar>::_cos(x.a,y); x._math_helper(y); return x;}
+template<typename Scalar,int ndim> Dense2<Scalar,ndim> arcsin(Dense2<Scalar,ndim> x){Scalar y[3]; _Taylor2<Scalar>::_arcsin(x.a,y); x._math_helper(y); return x;}
+template<typename Scalar,int ndim> Dense2<Scalar,ndim> arccos(Dense2<Scalar,ndim> x){Scalar y[3]; _Taylor2<Scalar>::_arccos(x.a,y); x._math_helper(y); return x;}
+template<typename Scalar,int ndim> Dense2<Scalar,ndim> arctan(Dense2<Scalar,ndim> x){Scalar y[3]; _Taylor2<Scalar>::_arctan(x.a,y); x._math_helper(y); return x;}
+template<typename Scalar,int ndim> Dense2<Scalar,ndim> sinh(Dense2<Scalar,ndim> x){Scalar y[3]; _Taylor2<Scalar>::_sinh(x.a,y); x._math_helper(y); return x;}
+template<typename Scalar,int ndim> Dense2<Scalar,ndim> cosh(Dense2<Scalar,ndim> x){Scalar y[3]; _Taylor2<Scalar>::_cosh(x.a,y); x._math_helper(y); return x;}
+template<typename Scalar,int ndim> Dense2<Scalar,ndim> tanh(Dense2<Scalar,ndim> x){Scalar y[3]; _Taylor2<Scalar>::_tanh(x.a,y); x._math_helper(y); return x;}
+template<typename Scalar,int ndim> Dense2<Scalar,ndim> arcsinh(Dense2<Scalar,ndim> x){Scalar y[3]; _Taylor2<Scalar>::_arcsinh(x.a,y); x._math_helper(y); return x;}
+template<typename Scalar,int ndim> Dense2<Scalar,ndim> arccosh(Dense2<Scalar,ndim> x){Scalar y[3]; _Taylor2<Scalar>::_arccosh(x.a,y); x._math_helper(y); return x;}
+template<typename Scalar,int ndim> Dense2<Scalar,ndim> arctanh(Dense2<Scalar,ndim> x){Scalar y[3]; _Taylor2<Scalar>::_arctanh(x.a,y); x._math_helper(y); return x;}
