@@ -9,7 +9,7 @@
 
 #include "NetworkSort.h"
 #include "Geometry2.h"
-const int smooth2_decomp_order = 2; // TUNING PARAMETER. Adjust smoothness.
+const int smooth2_decomp_order = 3; // TUNING PARAMETER. Adjust smoothness.
 namespace smooth {
 const int decompdim = 4; // Less sparse than Selling
 
