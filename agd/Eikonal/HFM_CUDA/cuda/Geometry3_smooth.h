@@ -59,7 +59,7 @@ _energy_ext_objective(const Scalar energy_val[sb_nmin2], const T emin, const T e
         val[1] += heaviside((emax-energy_val[i])/ediff);
     }
 }
-const int energy_ext_nitermax = 7;
+const int energy_ext_nitermax = 10;
 /**Get approximately the 0th and 16th energy, in a smooth way**/
 void energy_ext(const Scalar energy_val[sb_nmin2], Scalar & emin, Scalar & emax){
     typedef Dense1<Scalar,2> T;
@@ -71,9 +71,9 @@ void energy_ext(const Scalar energy_val[sb_nmin2], Scalar & emin, Scalar & emax)
     for(int i=0; i<energy_ext_nitermax; ++i){
         _energy_ext_objective(energy_val,emix[0],emix[1],val);
         T::solve(val, direction);
-        std::cout ExportVarArrow(emix[0].a) ExportVarArrow(emix[1].a)
-        ExportVarArrow(val[0].a) ExportVarArrow(val[1].a)
-        ExportArrayArrow(direction) << std::endl;
+//        std::cout ExportVarArrow(emix[0].a) ExportVarArrow(emix[1].a)
+//        ExportVarArrow(val[0].a) ExportVarArrow(val[1].a)
+//        ExportArrayArrow(direction) << std::endl;
         for(int j=0; j<2; ++j){emix[j]+=direction[j];}
         // TODO : check that objective is decreased, if not reduce step
     }
@@ -115,7 +115,7 @@ _decomp_optim_objective(const T icoef[symdim], const T rcoef[rdim], const Scalar
     return obj;
 };
 
-const int _decomp_optim_nitermax = 9;
+const int _decomp_optim_nitermax = 20;
 const int _decomp_optim_nsplit = 5;
 /**Decompose D over the given offsets, with the given weights, see modified optimization problem*/
 void _decomp_optim(const Scalar m[symdim],
@@ -142,7 +142,7 @@ void _decomp_optim(const Scalar m[symdim],
     for(int i=0; i<rdim;   ++i) GeometryT<symdim>::madd(offset_weight[symdim+i],rA[i], m0);
     Scalar im1[symdim]; GeometryT<ndim>::inv_m(m1,im1);
     const Scalar r = 1/scal_mm(m0, im1);
-    std::cout ExportVarArrow(r) ExportArrayArrow(m0) ExportArrayArrow(im1) ExportArrayArrow(m1) << std::endl;
+//    std::cout ExportVarArrow(r) ExportArrayArrow(m0) ExportArrayArrow(im1) ExportArrayArrow(m1) << std::endl;
     Scalar rcoef[rdim], icoef[symdim];
     for(int i=0; i<rdim; ++i) rcoef[i] = offset_weight[symdim+i]*r;
     for(int i=0; i<10; ++i){
@@ -151,7 +151,8 @@ void _decomp_optim(const Scalar m[symdim],
         if(neg) GeometryT<rdim>::mul(0.5,rcoef);
         else break;
     }
-    std::cout ExportArrayArrow(rcoef) << std::endl;
+//    rcoef[0]=0.07723756348464; rcoef[1]=0.00771458922288; rcoef[2]=0.00197253024265; rcoef[3]=0.00011396434296;
+//    std::cout ExportArrayArrow(rcoef) << std::endl;
     
     // Run the damped Newton solver to compute the optimal decomposition
     typedef Dense1<Scalar,rdim> T1;
@@ -162,10 +163,9 @@ void _decomp_optim(const Scalar m[symdim],
     Scalar obj_prev = INFINITY;
     for(int i=0; i<_decomp_optim_nitermax; ++i){
         // Damped Newton method. TODO : introduce stopping criterion and early abort (?)
-        // (Not difficult since weights and m1 are normalized, hence objective should be O(1))
         _decom_optim_complement(m1,iA,rA,icoef1,rcoef1);
         T2 obj = _decomp_optim_objective<T1,T2>(icoef1,rcoef1,offset_weight);
-        std::cout ExportVarArrow(obj.a) << std::endl;
+//        std::cout ExportVarArrow(obj.a) << std::endl;
         // Adjust the gradient descent step, if objective was not decreased
         Scalar step=1;
         for(int j=0; !(obj<obj_prev) && j<_decomp_optim_nsplit; ++j){
@@ -173,10 +173,12 @@ void _decomp_optim(const Scalar m[symdim],
             GeometryT<rdim>::madd(step,dir,rcoef1);
             _decom_optim_complement(m1,iA,rA,icoef1,rcoef1);
             obj = _decomp_optim_objective<T1,T2>(icoef1,rcoef1,offset_weight);
-            std::cout ExportVarArrow(step) ExportVarArrow(obj.a) << std::endl;
+//            std::cout ExportVarArrow(step) ExportVarArrow(obj.a) << std::endl;
         }
         obj.solve_stationnary(dir);
-        //        obj.showself();
+        // Optimization opportunity : abort if the magnitude of dir approaches machine precision.
+        // (Not difficult since weights and m1 are normalized, hence objective and solution are O(1))
+        //obj.showself();
 //        std::cout ExportArrayArrow(dir) << std::endl;
 //        for(int j=0; j<rdim; ++j) std::cout << rcoef1[j].a << ","; std::cout << std::endl;
         GeometryT<rdim>::sub(dir,rcoef1);
@@ -188,13 +190,12 @@ void _decomp_optim(const Scalar m[symdim],
 
 void decomp_m(const Scalar m[symdim],
               Scalar weights[__restrict__ decompdim],OffsetT offsets[__restrict__ decompdim][ndim]){
-    OffsetT sb[ndim+1][ndim];
-    obtusesuperbase_m(m, sb);
-//    OffsetT sb[ndim+1][ndim] = {{ 0, -1,  0},{-1,  0,  1},{ 0,  1, -1},{ 1,  0,  0}};
+    OffsetT sb[ndim+1][ndim]; obtusesuperbase_m(m, sb);
+//    OffsetT sb[ndim+1][ndim] = {{ 1, 1,-1},{ 0,-1, 0},{-1, 0, 0},{ 0, 0, 1}};
     Scalar m_ref[symdim]; // Unimodular transformation puts m into fundamental domain for GL3Z.
     tgram_am(sb, m, m_ref);
     
-    std::cout ExportArrayArrow(m_ref) << std::endl;
+//    std::cout ExportArrayArrow(m_ref) << std::endl;
     // Find and sort the energy_n neighbor superbases with minimal energies
     Scalar energy_val[sb_nmin2];
     int energy_index[sb_nmin2];
@@ -216,17 +217,17 @@ void decomp_m(const Scalar m[symdim],
     for(int i=0; i<sb_nmin1; ++i) {rho[i] = cutoff(energy_val[i],emin,emax); rho_sum += rho[i];}
     const Scalar rho_isum = 1./rho_sum; Int rho_n = 0;
     for(int i=0; i<sb_nmin1; ++i) {rho[i] *= rho_isum; rho_n += rho[i]>0; }
-    std::cout ExportVarArrow(emin) ExportVarArrow(emax) << std::endl;
+//    std::cout ExportVarArrow(emin) ExportVarArrow(emax) << std::endl;
     
-    std::cout 
+/*    std::cout
     ExportArrayArrow(rho)
 //    ExportArrayArrow(energy_index)
     //ExportVarArrow(rho_sum)
     //ExportArrayArrow(energy_val)
-    << std::endl;
+    << std::endl;*/
     
-    GeometryT<decompdim>::show_v(energy_val); std::cout << "Energies\n";
-    GeometryT<decompdim>::show_v(energy_index); std::cout << "Indices\n";
+//    GeometryT<decompdim>::show_v(energy_val); std::cout << "Energies\n";
+//    GeometryT<decompdim>::show_v(energy_index); std::cout << "Indices\n";
     
     
     
@@ -239,7 +240,7 @@ void decomp_m(const Scalar m[symdim],
         if(i>=rho_n) break; // Discard superbases with null weights
         for(int j=0; j<6; ++j){ // Consider all offsets of this superbase
             const int ioffset = _smooth3_ioffset[energy_index[i]][j];
-            if(i==0){std::cout ExportVarArrow(ioffset);}
+//            if(i==0){std::cout ExportVarArrow(ioffset);}
             for(int k=0; k<decompdim; ++k){ // See if this offset was already registered
                 // Note that if there are more than decompdim offsets, then the others will be
                 // ignored. In that case, we expect (hope) their weights to be negligible.
@@ -249,8 +250,8 @@ void decomp_m(const Scalar m[symdim],
         }
     }
     
-    std::cout ExportArrayArrow(offset_weight) 
-    ExportArrayArrow(offset_index) << std::endl;
+//    std::cout ExportArrayArrow(offset_weight)
+//    ExportArrayArrow(offset_index) << std::endl;
     
 //    GeometryT<ndim>::show_a<decompdim>(offsets);
     
