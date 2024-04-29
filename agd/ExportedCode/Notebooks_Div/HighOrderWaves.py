@@ -14,21 +14,24 @@ import copy
 import numpy as np; xp=np; allclose=np.allclose; π = np.pi
 import matplotlib.pyplot as plt
 
-def MakeRandomTensor(dim, shape=tuple(), relax=0.05):
+def KineticEnergy_a(p,ρ):
     """
-    Some random symmetric positive definite matrices. 
-    (relax>0 ensures definiteness)
+    Kinetic energy (x2), for the acoustic wave equation.
+    p : momentum. ρ : density.
     """
-    A = np.random.standard_normal( (dim,dim) + shape )
-    D = lp.dot_AA(lp.transpose(A),A)
-    identity = np.eye(dim).reshape((dim,dim)+(1,)*len(shape))
-    return D+lp.trace(D)*relax*identity
+    return 0.5 * p**2 / ρ # Return energy density, summation will be implicit
+
+def deriv(f,s):
+    """Evaluate the derivative f'(s) of a univariate function f"""
+    s_ad = ad.Dense.identity(constant=s,shape_free=tuple())
+    return f(s_ad).gradient(0) # Automatic differentiation
 
 # Helper functions for the dispersion relation
-def _γ(x,order): 
-    if order_x==2: return 4*np.sin(x/2)**2 / x**2
-    if order_x==4: return (np.cos(2*x)-16*np.cos(x)+15)/6 / x**2
-    if order_x==6: return (49/18-3*np.cos(x)+3/10*np.cos(2*x)-1/45*np.cos(3*x)) / x**2
+def _γ(x,order):
+    tol=[None,1e-6,3e-3,1e-2][order//2]; x=np.where(np.abs(x)<=tol,tol,x) # Avoid zero divide
+    if order==2: return 4*np.sin(x/2)**2 / x**2
+    if order==4: return (np.cos(2*x)-16*np.cos(x)+15)/6 / x**2
+    if order==6: return (49/18-3*np.cos(x)+3/10*np.cos(2*x)-1/45*np.cos(3*x)) / x**2
 
 _cs = (6+5*np.power(2,1/3)+4*np.power(2,2/3))/144
 _css = (4 + 4*np.power(2,1/3) + 3*np.power(2,2/3))/144
@@ -52,10 +55,67 @@ def dispersion1a(k,ρ,D,dx,dt,order_x=2,order_t=2):
     b = D/ρ * k**2 * _γ(k*dx,order_x)
     return _dispersion(b,ρ,dt,order_t)
 
+def PotentialEnergy_a(q,D,dx,order=2):
+    """Acoustic potential energy density (x2)"""
+    λ,e = D if isinstance(D,tuple) else Selling.Decomposition(D) # Coefficients and offsets of Selling's decomposition
+    λ = fd.as_field(λ,q.shape,depth=1) # Broadcasting coefficients if necessary
+    diff = fd.DiffEll(q,e,dx,order,padding=None) # padding=None means periodic
+    return 0.5 * λ*diff**2 # Summation is implicit
+
+def Hamiltonian_a(ρ,D,X,dx,order=2):
+    """Discretized Hamiltonian of the acoustic wave equation."""
+    Hq = lambda q: PotentialEnergy_a(q,D,dx,order=order) 
+    Hp = lambda p: KineticEnergy_a(p,ρ)
+    H = QuadraticHamiltonian(Hq,Hp)
+    H.set_spmat(xp.zeros_like(X[0])) # Replaces quadratic functions with sparse matrices
+    return H
+
 def make_domain(N,ndim):
     """Returns X, a regular sampling of [0,1]^d with N^d points, and dx the grid scale."""
     aX,dx = xp.linspace(0,1,N,endpoint=False,retstep=True)
     return xp.asarray(xp.meshgrid(*(aX+dx/2,)*ndim,indexing="ij")),dx
+
+def ExactSol_a(ρ,D,ks,fs):
+    """
+    Produce an exact solution for the acoustic wave equation, 
+    with constant density ρ and dual metric D.
+    - ks : list of wave numbers.
+    - fs : list of functions.
+    Choose ks with integer coordinates, and fs 1-periodic, to obtain a solution on (R/Z)^2
+    """
+    vdim = len(D); ks = xp.array(ks)
+    ωs = [np.sqrt(lp.dot_VAV(k,D,k)/ρ) for k in ks]
+    ks = ks.reshape((-1,vdim)+(1,)*vdim)
+    def q(t,x): return sum( f(lp.dot_VV(k,x)-ω*t) for (k,ω,f) in zip(ks,ωs,fs) )
+    def p(t,x): return sum( -ρ*ω*deriv(f,lp.dot_VV(k,x)-ω*t) for (k,ω,f) in zip(ks,ωs,fs) )
+    return q,p
+
+def tq_a(q,ϕ): return q(ϕ)
+def tp_a(p,ϕ,Jϕ): return p(ϕ)*Jϕ
+def tρ_a(ρ,ϕ,Jϕ): return ρ(ϕ)*Jϕ
+def tD_a(D,ϕ,inv_dϕ,Jϕ): 
+    D_ = fd.as_field(D(ϕ),Jϕ.shape,depth=2)
+    return lp.dot_AA(inv_dϕ,lp.dot_AA(D_,lp.transpose(inv_dϕ))) * Jϕ
+
+def differentiate(ϕ_fun,X):
+    """
+    Returns ϕ, dϕ, (dϕ)^-1, J=det(dϕ), and d^2ϕ.
+    """
+    X_ad = ad.Dense2.identity(constant=X,shape_free=(len(X),))
+    ϕ_ad = ϕ_fun(X_ad)
+    dϕ = np.moveaxis(ϕ_ad.gradient(),1,0) # Gradient is differential transposed
+    d2ϕ = np.moveaxis(ϕ_ad.hessian(),2,0)
+    return ϕ_ad.value, dϕ, lp.inverse(dϕ), lp.det(dϕ), d2ϕ
+
+def dispersion_a(k,ρ,D,dx,dt,order_x=2,order_t=2):
+    """
+    Returns the frequency corresponding to the given wavenumber and model coefficients, for the discrete 1D model.
+    Also returns the multiplier, to obtain $p$ from $q$ (in addition to shifting by a period).
+    """
+    λ,e = D if isinstance(D,tuple) else Selling.Decomposition(D)
+    ke = lp.dot_VV(k[:,None],e)
+    b = np.sum(λ * ke**2 * _γ(ke*dx,order_x),axis=0) / ρ
+    return _dispersion(b,ρ,dt,order_t)
 
 def eig(A,sort=False,moveaxis=True):
     """Wrapper around np.linalg.eig, which allows sorting, geometry first, import gpu arrays."""
@@ -79,6 +139,51 @@ def elastic_modes(M,C,k):
     ω = np.sqrt(λ)
     return ω,v
 
+def ExactSol_e(M,C,ks,fs,imodes):
+    """
+    Produce an exact solution of the elastic wave equation, 
+    with constant metric M and Hooke tensor C (and S=0).
+    - ks : list of wave numbers.
+    - fs : list of functions.
+    - imodes : list of integers in [0,...,d-1], the propagation mode number.
+    Choose ks with integer coordinates, and fs 1-periodic, to obtain a solution on (R/Z)^2
+    """
+    vdim = len(M); ks = xp.array(ks)
+    modes = [elastic_modes(M,C,k) for k in ks]
+    ωs = [ω[i] for (ω,_),i in zip(modes,imodes)]
+    vs = [v[:,i] for (_,v),i in zip(modes,imodes)]
+    ivs = [lp.solve_AV(M,v) for v in vs]    
+
+    def q(t,x): 
+        x_,vs_,ks_ = fd.common_field((x,vs,ks),depths=(1,2,2))
+        return sum( v*f(lp.dot_VV(k,x_)-ω*t) for (v,k,ω,f) in zip(vs_,ks_,ωs,fs) )
+    
+    def p(t,x): 
+        x_,ivs_,ks_ = fd.common_field((x,ivs,ks),depths=(1,2,2))
+        return sum( -iv*ω*deriv(f,lp.dot_VV(k,x_)-ω*t) for (iv,k,ω,f) in zip(ivs_,ks_,ωs,fs) )
+
+    return q,p
+
+def tq_e(q,ϕ,dϕ): return lp.dot_AV(lp.transpose(dϕ),q(ϕ))
+def tp_e(p,ϕ,inv_dϕ,Jϕ): return lp.dot_AV(inv_dϕ,p(ϕ))*Jϕ
+
+def tM_e(M,ϕ,dϕ,Jϕ): 
+    M_ = fd.as_field(M(ϕ),Jϕ.shape,depth=2)
+    return lp.dot_AA(lp.transpose(dϕ),lp.dot_AA(M_,dϕ))/Jϕ
+
+def tC_e(C,ϕ,inv_dϕ,Jϕ): 
+    C_ = fd.as_field(C(ϕ),Jϕ.shape,depth=2)
+    return Hooke(C_).rotate(inv_dϕ).hooke*Jϕ
+
+def tS_e(S,ϕ,dϕ,inv_dϕ,d2ϕ): 
+    S_ = fd.as_field(S(ϕ),ϕ[0].shape,depth=3)
+    vdim = len(dϕ)
+    
+    S1 = sum(dϕ[ip,:,None,None]*dϕ[jp,None,:,None]*S_[ip,jp,kp]*inv_dϕ[:,kp]
+          for ip in range(vdim) for jp in range(vdim) for kp in range(vdim))
+    S2 = sum(d2ϕ[kp,:,:,None]*inv_dϕ[:,kp] for kp in range(vdim))
+    return S1 + S2
+
 def sin_eet(e,dx,order_x=2):
     """Approximates of e e^T as dx->0, arises from FFT of scheme."""
     def ondiag(s): # Fourier transform of finite difference approximation of second derivative, see _γ
@@ -94,7 +199,7 @@ def sin_eet(e,dx,order_x=2):
     
 def sin_contract(C,k,dx,order_x):
     """Approximates Hooke(C).contract(k) as dx->0, arises from FFT of scheme."""
-    λ,σ = Hooke(C).Selling()
+    λ,σ = C if isinstance(C,tuple) else Hooke(C).Selling()
     σk = lp.dot_AV(σ,k[:,None])
     return np.sum(λ*sin_eet(σk,dx,order_x),axis=2)
     
@@ -114,4 +219,14 @@ def mk_planewave_e(k,ω,vq,vp):
     def q_exact(t,x): return  expi(t,x).real * brdcst(vq,x)
     def p_exact(t,x): return -expi(t,x).imag * brdcst(vp,x)
     return q_exact,p_exact
+
+def MakeRandomTensor(dim, shape=tuple(), relax=0.05):
+    """
+    Some random symmetric positive definite matrices. 
+    (relax>0 ensures definiteness)
+    """
+    A = np.random.standard_normal( (dim,dim) + shape )
+    D = lp.dot_AA(lp.transpose(A),A)
+    identity = np.eye(dim).reshape((dim,dim)+(1,)*len(shape))
+    return D+lp.trace(D)*relax*identity
 
