@@ -64,12 +64,15 @@ def AcousticHamiltonian_Sparse(ρ,D,dx=1,order_x=2,shape_dom=None,bc='Periodic',
 	- save_weights : save the weights of the Selling decomposition of D, accessible as .weights field
 	"""
 	padding = bc_to_padding[bc]
-	if shape_dom is None: shape_dom = fd.common_shape((ρ,D),depths=(0,2))
-	assert len(shape_dom)==len(D)
+	if isinstance(D,tuple): λ,e = D # Precomputed decomposition, possibly custom
+	else: # Use the Selling/Voronoi decomposition
+		from .. import VoronoiDecomposition # CPU or GPU
+		try: λ,e = VoronoiDecomposition(D) # Calls C++ library
+		except FileNotFoundError: λ,e = Selling.Decomposition(D) # Fallback to python implem
+	D=None
+	if shape_dom is None: shape_dom = fd.common_shape((ρ,e),depths=(0,2))
+	assert len(shape_dom)==len(e)
 	iρ=1/ρ
-	from .. import VoronoiDecomposition # CPU or GPU
-	try: λ,e = VoronoiDecomposition(D)
-	except FileNotFoundError: λ,e = Selling.Decomposition(D) # Fallback to python implem
 	λ = fd.as_field(λ,shape_dom)
 	def Hq(q,ad_channel=lambda x:x):
 		dq = fd.DiffEll(q,e,dx,padding=padding,order=order_x) 
@@ -86,7 +89,7 @@ def AcousticHamiltonian_Sparse(ρ,D,dx=1,order_x=2,shape_dom=None,bc='Periodic',
 	else:
 		if save_weights: H.weights,H.M,H.iρ = λ,iρ,iρ 
 		rev_ad = (None,None)
-	H.set_spmat(np.zeros_like(rm_ad(D),shape=shape_dom),rev_ad=rev_ad) 
+	H.set_spmat(np.zeros_like(rm_ad(λ),shape=shape_dom),rev_ad=rev_ad) 
 	H.dt_max = _mk_dt_max(dx * np.sqrt(np.min(rm_ad(ρ)/rm_ad(λ).sum(axis=0))), order_x)
 	return H
 
@@ -116,9 +119,10 @@ def ElasticHamiltonian_Sparse(M,C,dx=1,order_x=2,S=None,shape_dom=None,bc='Perio
 	   field of the Hamiltonian.
 	"""
 	padding = bc_to_padding[bc]
-	if shape_dom is None: shape_dom = fd.common_shape((M,C),depths=(2,2))
+	if isinstance(C,tuple): λ,E = C # Precomputed decomposition, possibly custom
+	else: λ,E = Hooke(C).Selling() # Use the Selling/Voronoi decomposition
+	if shape_dom is None: shape_dom = fd.common_shape((M,E),depths=(2,3))
 	vdim = len(shape_dom); assert len(C)==(vdim*(vdim+1))//2
-	λ,E = Hooke(C).Selling()
 	λ,E,S,M = fd.common_field( (λ,E,S,M), depths=(1,3,3,2), shape=shape_dom) # broadcasting
 	if S is None: ES = (0,)*vdim
 	else: ES = np.sum(E[:,:,None,:]*S[:,:,:,None],axis=(0,1))
