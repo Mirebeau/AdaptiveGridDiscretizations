@@ -224,7 +224,6 @@ def inverse(a,avoid_np_linalg_inv=False):
 	"""
 	a=ad.asarray(a)
 	if not (ad.is_ad(a) or a.dtype==np.dtype('object') or avoid_np_linalg_inv):
-		print("Hello")
 		try: return np.moveaxis(np.linalg.inv(np.moveaxis(a,(0,1),(-2,-1))),(-2,-1),(0,1))
 		except np.linalg.LinAlgError: pass 
 
