@@ -21,7 +21,7 @@ def MakeRandomTensor(dim,shape = tuple(),relax=0.01):
 def Reconstruct(coefs,offsets):
      return (coefs*lp.outer_self(offsets)).sum(2)
 
-def sabs(x,order=1):
+def sabs(x,order):
     """
     Regularized absolute value. Guarantee : 0 <= result-|x| <= 1/2.
     - order (0, 1, 2 or 3) : order of the last continuous derivative. 
@@ -39,7 +39,7 @@ def smed(ρ0,ρ1,ρ2):
     s,q = ρ0*ρ1+ρ1*ρ2+ρ2*ρ0, (ρ2-ρ1)**2 # Invariant quantities under Selling superbase flip 
     return 0.5*s/np.sqrt(q+2*s) 
 
-def smooth_decomp(D,order=1):
+def smooth_decomp(D,order=3):
     """Smooth variant of Selling's two dimensional decomposition"""
     v = np.moveaxis(Selling.ObtuseSuperbase(D),1,0)
     ρ = np.array([-lp.dot_VAV(v[1],D,v[2]),-lp.dot_VAV(v[0],D,v[2]),-lp.dot_VAV(v[0],D,v[1])])
@@ -69,21 +69,57 @@ def linear_decomp_coefs(D):
 
 def linear_decomp(D): return linear_decomp_coefs(D),linear_decomp_offsets(len(D))
 
-def conv_circulant(circ,val):
-    from numpy.fft import fft,ifft
-    """Product of a circulant matrix with an array of values, computed using the FFT."""
-    return np.moveaxis(ifft(fft(np.moveaxis(val,0,-1)) * fft(circ)).real,-1,0)
-
-def conv_decomp(D,order=5,periodic=True,rtol=1e-10):
-    """Deconvolve the matrix field D, apply Selling's decomposition, then convolve the coefficients.
-    - D : positive definite matrix field, of shape (d,d,n1,...,nk). Convolution is applied to axes n1,...,nk.
-    - order (either 3, 5 or 7): spline interpolation order
+def deconv(arr,σ=5.,ϵ=0.05,periodic=True,depth=0,real=True):
+    """
+    Input : 
+    - σ : standard deviation of Gaussian kernel in pixels. Alternatively, provide an exact kernel. (Same for all axes.)
+    - ϵ : stability parameter for the deconvolution
     - periodic : choose between periodic and reflected boundary conditions
+    - depth : initial dimensions, not touched by the convolution
+    - real : extract the real part after convolutions, deconvolutions
+
+    Returns : 
+    - deconvolved array
+    - function to convolve back
+    """
+    from numpy.fft import fft,ifft
+    fkernels = []
+    def reflect(arr,axis): return np.concatenate((arr,arr[(slice(None),)*axis+(slice(None,None,-1),)]),axis)
+    def half(arr,axis): return arr[(slice(None),)*axis+(slice(0,arr.shape[axis]//2),)]
+    for i,s in enumerate(arr.shape[depth:]):
+        s2 = s if periodic else 2*s # Size of kernel
+        if np.ndim(σ)==0: # Use Gaussian convolution kernel
+            x = np.arange(s2)
+            x[x>=x.size/2]-=x.size # Periodic boundary conditions
+            kernel = np.exp(-x**2/(2*σ**2)) / (np.sqrt(2*π)*σ)
+        elif np.ndim(σ)==1: # Use provided kernel
+            kernel = np.roll(np.pad(σ,(0,s2-len(σ))),-(len(σ)//2))
+        fkernel = fft(kernel)
+        fkernels.append(fkernel)
+        ikernel = np.conj(fkernel)/(ϵ**2+np.abs(fkernel)**2) # Deconvolution kernel
+        if not periodic: arr = reflect(arr,depth+i)
+        arr = ifft(fft(arr,axis=depth+i)*np.expand_dims(ikernel,tuple(range(depth+1+i-arr.ndim,0))),axis=depth+i)
+        if not periodic: arr = half(arr,depth+i)
+        if real: arr = arr.real
+
+    def conv(arr,depth=depth):
+        for i,fkernel in enumerate(fkernels):
+            if not periodic: arr = reflect(arr,depth+i)
+            arr = ifft(fft(arr,axis=depth+i)*np.expand_dims(fkernel,tuple(range(depth+1+i-arr.ndim,0))),axis=depth+i)
+            if not periodic: arr = half(arr,depth+i)
+            if real: arr = arr.real
+        return arr
+    
+    return arr,conv
+
+def conv_decomp(deconvD,conv,rtol=1e-6):
+    """Apply Selling's decomposition, then convolve the coefficients, and finally prune the small ones.
+    - deconvD : deconvolved positive definite matrix field. 
+    - conv : convolution operator
     - rtol : relative tolerance for eliminating small coefficients.
     """
-    D = Interpolation.spline_coefs(D,depth=2,order=order,periodic=periodic) # Deconvolution
-    tol = rtol * lp.trace(D) # Compute absolute tolerance
-    λ,e = Selling.Decomposition(D) # Selling decomposition
+    tol = rtol * lp.trace(deconvD) # Compute absolute tolerance
+    λ,e = Selling.Decomposition(deconvD) # Selling decomposition
     vdim = len(e)
     shape = λ[0].shape
     pos = np.argmax(e!=0,axis=0) # position of the first non-zero coefficient
@@ -94,8 +130,7 @@ def conv_decomp(D,order=5,periodic=True,rtol=1e-10):
     Λ = ad.Sparse.spAD(np.zeros_like(λ[0]),np.moveaxis(λ,0,-1),np.moveaxis(ie,0,-1))
     Λ = Λ.tangent_operator().todense() # Possible improvement : optimization opportunities here
     Λ = np.moveaxis(np.asarray(Λ).reshape((*shape,-1)),-1,0)
-    Λ = Interpolation.spline_coefs(Λ,depth=1,solver=conv_circulant,order=order,periodic=periodic)
-    Λ = np.roll(Λ,order-1,axis=tuple(range(1,Λ.ndim)))
+    Λ = conv(Λ,depth=1)
     Λ[np.abs(Λ)<=tol]=0 # Remove almost zero coefficients
     index = fd.as_field(np.arange(len(Λ)),shape,depth=1)
     x = ad.Sparse.spAD(np.zeros_like(λ[0]),np.moveaxis(Λ,0,-1),np.moveaxis(index,0,-1))
@@ -103,7 +138,7 @@ def conv_decomp(D,order=5,periodic=True,rtol=1e-10):
     λ = np.moveaxis(x.coef,-1,0) # The new coefficients
     ie = np.moveaxis(x.index,-1,0) # The new offsets, for now as integers
     e = []
-    for i in range(vdim):
+    for i in range(vdim): # Expand the offsets, as vectors
         mod = ie%r
         pos = mod>emax
         ie = (ie//r)+pos
