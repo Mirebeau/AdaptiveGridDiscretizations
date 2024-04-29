@@ -213,7 +213,6 @@ def Main(update=False,check_raise=False,show=False,GPU_config=None,todo=False,re
 	UpdateConfig.GPU_config = GPU_config
 	CheckTodo.run = todo
 	RemoveImages.run = remove_images
-	print(notebooks)
 	TestTocss()
 	for dirname in ListNotebookDirs():
 		TestTocs(dirname)
