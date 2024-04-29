@@ -340,6 +340,16 @@ class Hooke(ImplicitBase):
 				(self._Voigt_m2v(m1,sym),self._Voigt_m2v(m2,sym),self.hooke),(1,1,2))
 		return lp.dot_VV(v1,lp.dot_AV(hooke,v2))
 
+	@staticmethod
+	def moffset(offset):
+		if   len(offset)==1: return offset[None]
+		elif len(offset)==3: return ad.array(((offset[0],offset[2]),(offset[2],offset[1])))
+		elif len(offset)==6: return ad.array(( #Voigt notation
+				(offset[0],offset[5],offset[4]),
+				(offset[5],offset[1],offset[3]),
+				(offset[4],offset[3],offset[2])))
+		else: raise ValueError("Unsupported dimension")
+
 	def Selling(self):
 		r"""
 		Returns a decomposition of the hooke tensor in the mathematical form
@@ -354,18 +364,7 @@ class Hooke(ImplicitBase):
 		else: 
 			from ... import Eikonal
 			coefs,offsets = Eikonal.VoronoiDecomposition(self.hooke)
-		if self.vdim==1: 
-			moffsets = np.expand_dims(offsets,axis=0)
-		elif self.vdim==2:
-			moffsets = ad.array(((offsets[0],offsets[2]),(offsets[2],offsets[1])))
-		elif self.vdim==3:
-			moffsets = ad.array(( #Voigt notation
-				(offsets[0],offsets[5],offsets[4]),
-				(offsets[5],offsets[1],offsets[3]),
-				(offsets[4],offsets[3],offsets[2])))
-		else :
-			raise ValueError("Unsupported dimension")
-		return coefs,moffsets
+		return coefs,self.moffset(offsets)
 
 	def apply_transform(self):
 		"""
