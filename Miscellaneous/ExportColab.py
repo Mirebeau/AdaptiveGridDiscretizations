@@ -117,6 +117,8 @@ google_drive_link = {
 	"Notebooks_Repro/Voronoi_Benchmark.ipynb":"https://drive.google.com/file/d/1-jfJAZ4M_oduQFedETOwAgC-_E1yxjFq/view?usp=sharing",
 	"Notebooks_Div/HighOrderWaves.ipynb":"https://drive.google.com/file/d/1-l7-EHLDPv3pYhMl2U82jt_qx28Nunfc/view?usp=sharing",
 	"Notebooks_Div/WaveExamples.ipynb":"https://drive.google.com/file/d/1-uy1ifEVrt6nRmxz-rOTxMJ-2rHpciUn/view?usp=sharing",
+	"Notebooks_Repro/WaveAccuracy.ipynb":"https://drive.google.com/file/d/1-zzLMxjo2zVIporob7DIRUQ7ySX3vgbQ/view?usp=sharing",
+	"Notebooks_Div/ElasticComparisons.ipynb":"https://drive.google.com/file/d/106mVutdxQ8pvvTnJTuiNnh21FKbdXIbE/view?usp=sharing",
 	}
 
 

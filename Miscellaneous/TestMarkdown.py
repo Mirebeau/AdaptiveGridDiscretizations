@@ -77,7 +77,7 @@ def TestMarkdownCell(where,cell,cache,dirname):
 		else:
 			eqn = eqn+line
 			l = line.lstrip()
-			if line[0]=='<' or (l[0] in ['+','-','*'] and l[1]==' '): # also '=' ? 
+			if line[0]=='<' or (len(l)>=2 and l[0] in ['+','-','*'] and l[1]==' '): # also '=' ? 
 				print(f"--- Markdown displaymath issue ", where, " : ---")
 				print(eqn)
 				showcell(cell)
