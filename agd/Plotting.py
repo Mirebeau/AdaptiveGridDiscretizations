@@ -61,7 +61,7 @@ savefig.dpi = 300
 
 def open_local_or_web(func,filepath,local_prefix="../",
 	# Using data stored on the gh-pages (github pages) branch
-	web_prefix='https://mirebeau.github.io/AdaptiveGridDiscretizations',
+	web_prefix='https://mirebeau.github.io/AdaptiveGridDiscretizations/',
 	web_suffix=''):
 	try: return func(local_prefix+filepath)
 	except FileNotFoundError:
