@@ -376,11 +376,16 @@ void KKT(const SimplexStateT & state, Scalar weights[symdim],
         Scalar weight_max=0;
         for(int i=0; i<symdim; ++i) weight_max = max(weight_max,abs(weights[i]));
         // Relax a bit the positivity constraint to ensure positivity
-        Scalar wfeas = 0.2*weight_max*SIMPLEX_TOL; // 0;
+        #ifdef DOUBLE
+        Scalar wfeas = 0.2*weight_max*SIMPLEX_TOL; 
+        #else
+        Scalar wfeas = 0.;
+        #endif
         /* With wfeas = 0, we do see simplex failures with doubles in some edge cases,
         typically Hooke TTI tensors rotated almost along some axis. For a matrix with approx unit
         entries, reconstruction error is approx 4e-13 with wfeas=0,
-        and 8e-12 with wfeas = 0.2*weight_max*SIMPLEX_TOL. Sounds reasonable.*/
+        and 8e-12 with wfeas = 0.2*weight_max*SIMPLEX_TOL. Sounds reasonable.
+        If the simplex fails in single precision, the decomposition is recomputed with DOUBLE.*/
         
 //		for(int i=0; i<symdim;++i) printf(" %f",weights[i]); printf("\n");
 
