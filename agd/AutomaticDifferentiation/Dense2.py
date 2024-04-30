@@ -124,6 +124,10 @@ class denseAD2(Base.baseAD):
 		hess = np.moveaxis(self.coef2,(-2,-1),(0,1))
 		return hess if i is None else hess[i,j]
 
+	def solve_stationnary(self):
+		"""Finds a stationnary point to a quadratic function provided as a denseAD2"""
+		return np.linalg.solve(self.coef2,-self.coef1)
+
 	def __getitem__(self,key):
 		ekey1,ekey2 = misc.key_expand(key,1),misc.key_expand(key,2)
 		return self.new(self.value[key], self.coef1[ekey1], self.coef2[ekey2])

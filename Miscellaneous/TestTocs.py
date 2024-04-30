@@ -5,7 +5,7 @@ import TocTools
 import sys
 from distutils.util import strtobool
 import shutil
-
+from ast import literal_eval
 
 
 help_str = """
@@ -19,6 +19,7 @@ Optional arguments :
 	--check_raise, raise an exception if toc is incorrect
 	--remove_images, remove images and videos from the notebook output cells
 	--help, show this message
+	--notebooks="['TensorSelling','WaveExamples']" : choose which notebooks to process
 """
 
 def ListNotebookDirs():
@@ -204,7 +205,7 @@ def TestTocss():
 	toc = TocTools.displayTOCss().splitlines(True)
 	if UpdateToc(filepath,data,toc): Dump(filepath,data,False)
 
-def Main(update=False,check_raise=False,show=False,GPU_config=None,todo=False,remove_images=False):
+def Main(update=False,check_raise=False,show=False,GPU_config=None,todo=False,remove_images=False,notebooks=None):
 	Dump.update = update
 	Dump.check_raise = check_raise
 	UpdateToc.show = show
@@ -216,7 +217,7 @@ def Main(update=False,check_raise=False,show=False,GPU_config=None,todo=False,re
 	for dirname in ListNotebookDirs():
 		TestTocs(dirname)
 		for filename in ListNotebookFiles(dirname):
-			TestToc(dirname,filename)
+			if notebooks is None or filename in notebooks: TestToc(dirname,filename)
 
 def SysArgs(argv,prefix='--',default=True,caster=None):
 	kwargs = {}
@@ -236,4 +237,4 @@ if __name__ == '__main__':
 		print(help_str)
 		exit(0)
 
-	Main(**SysArgs(sys.argv[1:],caster=strtobool))
+	Main(**SysArgs(sys.argv[1:],caster=literal_eval)) #strtobool

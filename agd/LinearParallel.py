@@ -207,12 +207,10 @@ def det(a):
 		return a[0,0]*a[1,1]*a[2,2]+a[0,1]*a[1,2]*a[2,0]+a[0,2]*a[1,0]*a[2,1] \
 		- a[0,2]*a[1,1]*a[2,0] - a[1,2]*a[2,1]*a[0,0]- a[2,2]*a[0,1]*a[1,0]
 	else:
-		raise ValueError("det error : unsupported dimension") 
-
-# Suppressed due to extreme slowness, at least in cupy 6
-#	if not (ad.is_ad(a) or a.dtype==np.dtype('object')): 
-#		return np.linalg.det(np.moveaxis(a,(0,1),(-2,-1)))
-
+		# Using the numpy routine for larger matrices. Caveats : 
+		# - Not compatible with agd AD routines
+		# - Extremely slow when applied to cupy arrays
+		return np.linalg.det(np.moveaxis(a,(0,1),(-2,-1)))
 
 def inverse(a,avoid_np_linalg_inv=False):
 	"""
@@ -227,7 +225,7 @@ def inverse(a,avoid_np_linalg_inv=False):
 	a=ad.asarray(a)
 	if not (ad.is_ad(a) or a.dtype==np.dtype('object') or avoid_np_linalg_inv):
 		try: return np.moveaxis(np.linalg.inv(np.moveaxis(a,(0,1),(-2,-1))),(-2,-1),(0,1))
-		except np.linalg.LinAlgError: pass # Old cupy versions do not support arrays of dimension>2
+		except np.linalg.LinAlgError: pass 
 
 	if isinstance(a,ad.Dense.denseAD):
 		b = inverse(a.value)

@@ -37,7 +37,9 @@ def norm(arr,ord=2,axis=None,keepdims=False,averaged=False):
 	sum_pow = np.sum(arr**ord,axis=axis,keepdims=keepdims)
 	
 	if averaged:
-		size = arr.size if axis is None else arr.shape[axis]
+		if axis is None: size = arr.size
+		elif isinstance(axis,tuple): size = np.prod([arr.shape[ax] for ax in axis])
+		else: size = arr.shape[axis]
 		sum_pow/=size
 
 	return sum_pow**(1./ord)

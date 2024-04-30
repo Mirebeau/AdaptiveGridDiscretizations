@@ -42,8 +42,9 @@ def ExportCode(inFName,outFName,update=False,show=False):
 			output_previous = output_file.readlines()
 	except FileNotFoundError:
 		output_previous=[""]
+#	if inFName=="Notebooks_Div/HighOrderWaves.ipynb": print("".join(output))
 
-	changes_found=False
+	changes_found = len(output_previous)!=len(output) # Code cells possibly added/removed at the end.
 	for prev,new in zip(output_previous,output):
 		if prev.rstrip()!=new.rstrip(): 
 			changes_found=True

@@ -370,15 +370,29 @@ void KKT(const SimplexStateT & state, Scalar weights[symdim],
 		SimplexData sdata;
 		sdata.n = d; // number of variables (all positive)
 		sdata.m = symdim; // Number of constraints (all positivity constraits)
+        sdata.v = 0; // Arbitrary value, added to the objective
 		Scalar opt[nsupport_max]; // optimal solution
-		Scalar wfeas = 0.; //SIMPLEX_TOL; // Added to ensure feasibility
-
+        
+        Scalar weight_max=0;
+        for(int i=0; i<symdim; ++i) weight_max = max(weight_max,abs(weights[i]));
+        // Relax a bit the positivity constraint to ensure positivity
+        #ifdef DOUBLE
+        Scalar wfeas = 0.2*weight_max*SIMPLEX_TOL; 
+        #else
+        Scalar wfeas = 0.;
+        #endif
+        /* With wfeas = 0, we do see simplex failures with doubles in some edge cases,
+        typically Hooke TTI tensors rotated almost along some axis. For a matrix with approx unit
+        entries, reconstruction error is approx 4e-13 with wfeas=0,
+        and 8e-12 with wfeas = 0.2*weight_max*SIMPLEX_TOL. Sounds reasonable.
+        If the simplex fails in single precision, the decomposition is recomputed with DOUBLE.*/
+        
 //		for(int i=0; i<symdim;++i) printf(" %f",weights[i]); printf("\n");
 
 		for(int i=0; i<symdim; ++i){ // Specify the constraints
 			for(int j=0; j<d; ++j){
 				sdata.A[i][j] = data.kkt_constraints[j][i];}
-			sdata.b[i] = weights[i] + wfeas; // No normalization here
+			sdata.b[i] = weights[i] + wfeas;
 		}
 
 		for(int i=0; i<sdata.n; ++i){
@@ -389,20 +403,37 @@ void KKT(const SimplexStateT & state, Scalar weights[symdim],
 			1; // Arbitrary
 			#endif
 		}
-
-		const Scalar value = simplex(sdata,opt);   
+        
+        
+		Scalar value = simplex(sdata,opt);
+#ifdef DOUBLE
+        /* +/-Infinity values mean failure (unbounded or infeasible problem).
+         With doubles, we relax a bit the positivity constraints, and hope for the best.
+         With floats we detect the invalid decompositions a posteriori, and recompute using doubles.
+         */
+        if(isinf(value)){
+            wfeas*=5;
+            for(int i=0; i<symdim; ++i){sdata.b[i] = weights[i] + wfeas;}
+            value = simplex(sdata,opt);
+        }
+#endif
 //		assert(!isinf(value));
-		/* +/-Infinity values mean failure (unbounded or infeasible problem).
-		 However, we choose not to crash the program, but to detect the
-		 invalid decompositions a posteriori, and recompute them differently.
-		 (Typical : failure using floats, success using double.) */
 
 /*		std::cout << "Value of the linear program " << value << std::endl;
 		if(isinf(value)) {std::cout << opt[0] << std::endl;}
-		std::cout << "state.vertex" << state.vertex << std::endl;*/
+		std::cout << "state.vertex : " << state.vertex << std::endl;*/
+        
 		Scalar sol[nsupport_max]; // solution
 		for(int i=0; i<d; ++i){sol[symdim+i] = opt[i];}
 		for(int i=0; i<symdim; ++i){sol[i] = opt[d+i];}
+        /*
+        std::cout ExportArrayArrow(sol) << std::endl;
+        std::cout << "max min sol : "
+        << *std::max_element(std::begin(sol),std::end(sol)) << " "
+        << *std::min_element(std::begin(sol),std::end(sol)) << " "
+        ExportVarArrow(sdata.v)
+        ExportArrayArrow(objective)
+        <<" Bye" << std::endl;*/
 
 #else // Siedel Homeyer linprog
 

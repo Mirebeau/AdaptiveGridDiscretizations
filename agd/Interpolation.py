@@ -138,13 +138,14 @@ def spline_weighted(c,x,order=3,overwrite_x=False,periodic=False):
 	refl = x_i>=dom_shape_arr
 	x_i[refl] = (2*dom_shape_arr-1-x_i)[refl]
 	x_i = tuple(z.reshape( (1,)*k + (order+1,) + (1,)*(x_dim-k-1)+(-1,)) for k,z in enumerate(x_i))
-	c = c[:,*x_i] # Get the interpolation coefficients
+	#c = c[:,*x_i] # Get the interpolation coefficients 
+	c = c.__getitem__((slice(None),*x_i)) # Python 3.10 syntax for previous line.
 	for k in reversed(range(x_dim)):
 		spline_val = ad.array(spline_base(x[k],order)[::-1])
 		c = np.sum(c*spline_val,axis=-2)
 	return c.reshape(c_shape+x_shape)
 
-def spline_coefs(c,order=3,depth=0,periodic=False):
+def spline_coefs(c,order=3,depth=0,periodic=False,solver=None):
 	"""
 	Produces coefficients such that spline weighted better approximates the values of c. For odd 
 	order, the values at the grid nodes (integer coordinates) are exactly reproduced.
@@ -152,13 +153,14 @@ def spline_coefs(c,order=3,depth=0,periodic=False):
 	Input : 
 	- c : values of the function to be interpolated
 	- order (int, default=3) : spline interpolation order.
+	- periodic (bool, or tuple of bools) : choose between periodic and reflected boundary conditions
 
 	Output : 
 	- spline weights, assuming reflect boundary conditions, for use in spline_weighted
 	"""
 	if order<=1: return c # Bypass for (zero-th and) first order splines (hat function)
 	xp = ad.cupy_generic.get_array_module(c)
-	solver = scipy.linalg.solve_circulant
+	if solver is None: solver = scipy.linalg.solve_circulant
 	dom_shape = c.shape[depth:]
 	ord2 = order//2 # Different treatment of even and odd orders in this line and the next one
 	spline_vals = xp.asarray(spline_base(((1+order)%2)/2,order))

@@ -29,54 +29,129 @@ import operator
 
 # --- Domain shape related methods --------
 
-def as_field(u,shape,conditional=True,depth=None):
+def broadcastable(shape1,shape):
 	"""
-	Checks if the last dimensions of u match the given shape. 
+	Wether shape1 is broadcastable to shape.
+	- shape1 : a shape with possibly singleton dimensions
+	- shape : target shape
+	"""
+	return len(shape1)==len(shape) and all([s==1 or s==t for s,t in zip(shape1,shape)])
+
+def as_field(u,shape,conditional=True,depth=None,singleton_in=False,singleton_out=False):
+	"""
+	Checks if the last dimensions of u matches or broadcasts to the given shape. 
 	If not, u is extended with these additional dimensions.
-	conditional : if False, reshaping is always done
-	depth (optional) : the depth of the geometrical tensor field (1: vectors, 2: matrices)
+	conditional (optional) : if False, reshaping is always done
+	depth (optional) : the depth of the geometrical tensor field (1: vectors, 2: matrices, ...)
+	singleton_in : allow singleton dimensions in the input
+	singleton_out : allow singleton dimensions in the output
 	"""
 	u=ad.asarray(u)
 	ndim = len(shape)
-	def as_is():
-		if not conditional: return False
-		elif depth is None: return u.ndim>=ndim and u.shape[-ndim:]==shape
-		else: assert u.shape[depth:] in (tuple(),shape); return u.shape[depth:]==shape
-	if as_is(): return u
-	else: return np.broadcast_to(u.reshape(u.shape+(1,)*ndim), u.shape+shape)
+	if depth is not None: assert u.ndim in (depth,depth+ndim)
+	if ndim==0: return u
+	extend = (not conditional or u.ndim<ndim or not broadcastable(u.shape[-ndim:],shape)) \
+		if depth is None else u.ndim==depth
+	if extend:
+		new_axes = tuple(range(-ndim,0))
+		u = np.expand_dims(u,new_axes)
+		return u if singleton_out else np.broadcast_to(u,u.shape[:-ndim]+shape)
+	depth_ = u.ndim-ndim
+	assert depth_>=0 and (depth is None or depth==depth_)
+	if singleton_out or u.shape[depth_:]==shape: return u
+	return np.broadcast_to(u,u.shape[:depth_]+shape)
 
-def common_shape(arrays,depths):
-	"""Finds a common shape to the arrays for broadcasting"""
-	arrays = tuple(None if arr is None else ad.asarray(arr) for arr in arrays)
-	assert len(arrays)==len(depths)
-	for arr,depth in zip(arrays,depths):
-		if arr is None: continue
-		shape = arr.shape[depth:]
-		if shape!=tuple(): break
-	for arr,depth in zip(arrays,depths): 
-		assert arr is None or arr.shape[depth:] in (tuple(),shape)
-	return shape
-
-def common_field(arrays,depths,shape=None):
+def common_shape(arrays,depths,singleton_in=False):
 	"""
-	Adds trailing dimensions, and broadcasts the given arrays, for suitable interoperation.
-	
-	Inputs: 
-	- arrays : a list [a_1,...,a_n], or iterable, of numeric arrays such that
-	 a_i.shape = shape_i + shape, or a_i.shape = shape_i, for each 1<=i<=n.
-	- depths : defined as [len(shape_i) for 1<=i<=n]
-	- shape (optional) : the trailing shape.
-	
-	Output:
-	- the arrays, with added trailing and dimensions broadcasting so that
-	 a_i.shape = shape_i + shape for each 1<=i<=n.
-
+	Finds a common shape to a collection of arrays, see common_field.
 	"""
-	arrays = tuple(None if arr is None else ad.asarray(arr) for arr in arrays)
-	assert len(arrays)==len(depths)
-	if shape is None: shape = common_shape(arrays,depths)
-	return tuple(None if arr is None else as_field(arr,shape,depth=depth) 
-		for (arr,depth) in zip(arrays,depths))
+	for array,depth in zip(arrays,depths): assert array is None or array.ndim>=depth
+	shapes = [array.shape[depth:] for array,depth in zip(arrays,depths) 
+		if array is not None and array.ndim>depth]
+	if len(shapes)==0: return tuple()
+	if not singleton_in: 
+		for shape in shapes[1:]: assert shape==shapes[0]
+	return np.broadcast_shapes(*shapes)
+
+
+def common_field(arrays,depths,shape=None,singleton_in=False,singleton_out=False):
+	"""
+	Adds trailing dimensions, and broadcasts the given arrays, for suitable interoperation
+	Input : 
+	- arrays,depths : lists [a_1,...,a_n] and [l1,...,ln], of numeric arrays and integers such that
+	 a_i.shape[l_i:] = shape_i, for each 1<=i<=n. shape_i broadcasts to a common shape, or is empty
+	- shape (optional) : the common shape, inferred if not provided
+	- singleton_in : wether singleton dimensions are allowed in the input
+	- singleton_out : wether singleton dimensions are allowed in the output
+
+	Output : 
+	- the arrays, with added trailing dimensions, and broadcasted if singleton_out=False
+	"""
+	arrays = [None if arr is None else ad.asarray(arr) for arr in arrays]
+	if shape is None: shape = common_shape(arrays,depths,singleton_in)
+	new_arrays = []
+	new_axes = tuple(range(-len(shape),0))
+	for array,depth in zip(arrays,depths):
+		if array is not None: 
+			if array.ndim==depth: array = np.expand_dims(array,new_axes)
+			assert array.ndim==depth+len(shape)
+			if not singleton_out and array.shape[depth:]!=shape: 
+				array = np.broadcast_to(array,array.shape[:depth]+shape)
+			else: assert broadcastable(array.shape[depth:],shape)
+		new_arrays.append(array)
+	return tuple(new_arrays)
+
+# def as_field(u,shape,conditional=True,depth=None):
+# 	"""
+# 	Checks if the last dimensions of u match the given shape. 
+# 	If not, u is extended with these additional dimensions.
+# 	conditional : if False, reshaping is always done
+# 	depth (optional) : the depth of the geometrical tensor field (1: vectors, 2: matrices)
+# 	"""
+# 	u=ad.asarray(u)
+# 	ndim = len(shape)
+# 	def as_is():
+# 		if not conditional: return False
+# 		elif depth is None: return u.ndim>=ndim and u.shape[-ndim:]==shape
+# 		else: assert u.shape[depth:] in (tuple(),shape); return u.shape[depth:]==shape
+# 	if as_is(): return u
+# 	else: return np.broadcast_to(u.reshape(u.shape+(1,)*ndim), u.shape+shape)
+
+# def common_shape(arrays,depths):
+# 	"""Finds a common shape to the arrays for broadcasting"""
+# 	arrays = tuple(None if arr is None else ad.asarray(arr) for arr in arrays)
+# 	assert len(arrays)==len(depths)
+# 	for arr,depth in zip(arrays,depths):
+# 		if arr is None: continue
+# 		shape = arr.shape[depth:]
+# 		if shape!=tuple(): break
+# 	for arr,depth in zip(arrays,depths): 
+# 		assert arr is None or arr.shape[depth:] in (tuple(),shape)
+# 	return shape
+
+# def common_field(arrays,depths,shape=None):
+# 	"""
+# 	Adds trailing dimensions, and broadcasts the given arrays, for suitable interoperation.
+	
+# 	Inputs: 
+# 	- arrays : a list [a_1,...,a_n], or iterable, of numeric arrays such that
+# 	 a_i.shape = shape_i + shape, or a_i.shape = shape_i, for each 1<=i<=n.
+# 	- depths : defined as [len(shape_i) for 1<=i<=n]
+# 	- shape (optional) : the trailing shape.
+	
+# 	Output:
+# 	- the arrays, with added trailing and dimensions and broadcasting so that
+# 	 a_i.shape = shape_i + shape for each 1<=i<=n.
+
+# 	"""
+# 	arrays = tuple(None if arr is None else ad.asarray(arr) for arr in arrays)
+# 	assert len(arrays)==len(depths)
+# 	if shape is None: shape = common_shape(arrays,depths)
+# 	return tuple(None if arr is None else as_field(arr,shape,depth=depth) 
+# 		for (arr,depth) in zip(arrays,depths))
+
+
+
 
 def round_up_ratio(num,den):
 	"""
@@ -283,6 +358,7 @@ def DiffUpwind(u,offset,gridScale=1.,order=1,**kwargs):
 	if   order==1: multiples,weights = (1,0),	( 1.,-1.)
 	elif order==2: multiples,weights = (2,1,0),  (-0.5,2.,-1.5)
 	elif order==3: multiples,weights = (3,2,1,0),(1./3.,-1.5,3.,-11./6.)
+	elif order=='3b': multiples,weights = (2,1,0,-1),(-1/6.,1.,-1/2.,-1/3.) # Mostly upwind ...
 	else: raise ValueError("Unsupported order")
 	return AlignedSum(u,offset,multiples,np.array(weights)/gridScale,**kwargs)
 
@@ -304,8 +380,9 @@ def DiffCentered(u,offset,gridScale=1.,order=2,**kwargs):
 	 - order (optional) : approximation order of the finite differences
 	 - kwargs : passed to AlignedSum
 	"""
-	if   order<=2: multiples,weights = ( 1,-1),( 1.,-1.)
-	elif order<=4: multiples,weights = ( 2, 1,-1,-2),(-1/6., 4/3.,-4/3., 1/6.)
+	if   order<=2: multiples,weights = ( 1,-1),( 1,-1)
+	elif order<=4: multiples,weights = ( 2, 1,-1,-2),(-1/6, 4/3,-4/3, 1/6)
+	elif order<=6: multiples,weights = ( 3, 2, 1,-1,-2,-3),( 1/30,-3/10, 3/2,-3/2, 3/10,-1/30)
 	else: raise ValueError("Unsupported order")
 	return AlignedSum(u,offset,multiples,np.array(weights)/(2*gridScale),**kwargs)
 
@@ -365,12 +442,19 @@ def DiffEll(u,offset,gridScale=1.0,order=2,α=0.,**kwargs):
 	$$
 	if order=2. Sum the squares to approximate (<grad u,e>-α)^2. Also accepts order=4.
 	"""
-	assert order in (2,4); s2 = np.sqrt(2); s6 = np.sqrt(6)
-	if order==2: return ad.array([(-DiffUpwind(u,-offset,gridScale,**kwargs)-α)/s2,
-	                              ( DiffUpwind(u, offset,gridScale,**kwargs)-α)/s2])
-	if order==4: return ad.array([(-DiffUpwind(u,-offset,gridScale,order=2,**kwargs)-α)/s6,
-	                              (DiffCentered(u,offset,gridScale,        **kwargs)-α)*(2/s6),
-                                  ( DiffUpwind(u, offset,gridScale,order=2,**kwargs)-α)/s6])
+	s2 = np.sqrt(2); s6 = np.sqrt(6); s20 = np.sqrt(20)
+	if order<=2: return ad.array([
+		(-DiffUpwind(u,-offset,gridScale,**kwargs)-α)/s2,
+		( DiffUpwind(u, offset,gridScale,**kwargs)-α)/s2])
+	if order<=4: return ad.array([
+		(-DiffUpwind(u,-offset,gridScale,order=2,**kwargs)-α)/s6,
+		(DiffCentered(u,offset,gridScale,        **kwargs)-α)*(2/s6),
+		( DiffUpwind(u, offset,gridScale,order=2,**kwargs)-α)/s6])
+	if order<=6: return ad.array([
+		(-DiffUpwind(u,-offset,gridScale,order=3,   **kwargs)-α)/s20,
+		(-DiffUpwind(u,-offset,gridScale,order='3b',**kwargs)-α)*(3/s20),
+		( DiffUpwind(u, offset,gridScale,order='3b',**kwargs)-α)*(3/s20),
+		( DiffUpwind(u, offset,gridScale,order=3,   **kwargs)-α)/s20])
 
 # ----------- Interpolation ---------
 

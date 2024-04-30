@@ -271,8 +271,9 @@ template<typename Ta,typename Tx,typename Tout>
 void dot_av(const Ta a[ndim][ndim], const Tx x[ndim], Tout out[__restrict__ ndim]){
 	for(Int i=0; i<ndim; ++i) out[i] = scal_vv<Ta,Tx,Tout>(a[i],x);}
 /// Transposed matrix vector product
-void tdot_av(const Scalar a[ndim][ndim], const Scalar x[ndim], Scalar out[__restrict__ ndim]){
-	fill_kV(Scalar(0),out);
+template<typename Ta,typename Tx,typename Tout>
+void tdot_av(const Ta a[ndim][ndim], const Tx x[ndim], Tout out[__restrict__ ndim]){
+	fill_kV(Tout(0),out);
 	for(Int i=0; i<ndim; ++i) {for(Int j=0; j<ndim; ++j) out[i] += a[j][i]*x[j];}}
 
 /// Matrix transposition

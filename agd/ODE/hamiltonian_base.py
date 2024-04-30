@@ -333,8 +333,10 @@ class HamiltonianBase:
 		H_fwd = copy(self)
 		H_fwd.read_q = H_fwd.read_p = read_None; H_fwd.incr_q = H_fwd.incr_p = incr_None
 		qh = []; ph = []
-		if qh_ind is not None: H_fwd.read_q = lambda _,q : qh.append(q[*qh_ind].copy())
-		if ph_ind is not None: H_fwd.read_p = lambda _,p : ph.append(p[*ph_ind].copy())
+		if qh_ind is not None: H_fwd.read_q = lambda _,q : qh.append(q.__getitem__(qh_ind).copy()) 
+			#			qh.append(q[*qh_ind].copy()) # Python 3.11+ new syntax for previous line
+		if ph_ind is not None: H_fwd.read_p = lambda _,p : ph.append(p.__getitem__(ph_ind).copy()) 
+			#			ph.append(p[*ph_ind].copy()) # Python 3.11+ new syntax for previous line
 		qf,pf = H_fwd.Sympl_p(*args,**kwargs)
 
 		return qf,pf,ad.asarray(qh),ad.asarray(ph)
