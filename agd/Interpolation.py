@@ -138,7 +138,8 @@ def spline_weighted(c,x,order=3,overwrite_x=False,periodic=False):
 	refl = x_i>=dom_shape_arr
 	x_i[refl] = (2*dom_shape_arr-1-x_i)[refl]
 	x_i = tuple(z.reshape( (1,)*k + (order+1,) + (1,)*(x_dim-k-1)+(-1,)) for k,z in enumerate(x_i))
-	c = c[:,*x_i] # Get the interpolation coefficients
+	#c = c[:,*x_i] # Get the interpolation coefficients 
+	c = c.__getitem__((slice(None),*x_i)) # Python 3.10 syntax for previous line.
 	for k in reversed(range(x_dim)):
 		spline_val = ad.array(spline_base(x[k],order)[::-1])
 		c = np.sum(c*spline_val,axis=-2)

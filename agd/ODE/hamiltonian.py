@@ -284,8 +284,12 @@ class QuadraticHamiltonianBase(SeparableHamiltonianBase):
 		def next(qp): # A single time step, including a preliminary damping
 			q,p = H_fwd.Damp_qp(*qp,δ)
 			q,p = H_fwd.Sympl_p(q,p,δ,order=order,**kwargs)
-			if initial and qh_ind is not None: qh.append(q[*qh_ind].copy())
-			if initial and ph_ind is not None: ph.append(p[*ph_ind].copy())
+			if initial and qh_ind is not None: 
+				#qh.append(q[*qh_ind].copy())
+				qh.append(q.__getitem__(qh_ind).copy()) # Python 3.10- old syntax for previous line
+			if initial and ph_ind is not None: 
+				#ph.append(p[*ph_ind].copy())
+				ph.append(p.__getitem__(ph_ind).copy()) # Python 3.10- old syntax for previous line
 			return q,p
 		# A single negative damping step should be fine...
 		qph_eval = RecurseRewind(next,self.Damp_qp(q,p,-δ))
@@ -326,12 +330,14 @@ class QuadraticHamiltonianBase(SeparableHamiltonianBase):
 
 			def incr_q(H,q):
 				rev_iter = niter-1-H.current_iter
-				q.coef[*ph_ind] += ph_grad[rev_iter-1] 
+#				q.coef[*ph_ind] += ph_grad[rev_iter-1] 
+				q.coef.__setitem__(ph_ind,q.coef.__getitem__(ph_ind)+ph_grad[rev_iter-1]) # Python 3.10- old syntax for previous line
 				assert not check_val or np.allclose(q.value * np.exp(-δ*(H._damp_p+H._damp_q)), qph_eval(rev_iter)[0])
 				q.value = qph_eval(rev_iter)[0]
 			def incr_p(H,p):
 				rev_iter = niter-1-H.current_iter
-				p.coef[*qh_ind] -= qh_grad[rev_iter-1] 
+#				p.coef[*qh_ind] -= qh_grad[rev_iter-1] 
+				p.coef.__setitem__(qh_ind,p.coef.__getitem__(qh_ind)-qh_grad[rev_iter-1]) # Python 3.10- old syntax for previous line
 				assert not check_val or np.allclose(p.value * np.exp(-δ*(H._damp_p+H._damp_q)), qph_eval(rev_iter)[1])
 				p.value = qph_eval(rev_iter)[1]
 

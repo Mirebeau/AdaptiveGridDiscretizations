@@ -465,7 +465,8 @@ def allclose(a,b,*args,**kwargs): return a.allclose(b,*args,**kwargs)
 def flip(m,axis=None):
 	if isinstance(axis,numbers.Integral): 
 		if axis<0: axis+=m.ndim
-		return m[*(slice(None),)*axis,::-1]
+		#return m[*(slice(None),)*axis,::-1]
+		return m.__getitem__((slice(None),)*axis + (slice(None,None,-1),))  # Python 3.10- old syntax for previous line
 	elif axis is None: 
 		return flip(m,range(m.ndim))
 	else: 
