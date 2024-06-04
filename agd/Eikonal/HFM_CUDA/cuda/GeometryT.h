@@ -284,6 +284,15 @@ static void solve_av(const T a[ndim][ndim],const T b[ndim],T out[__restrict__ nd
 	solve_av_overwrite(a_,b_,out);
 }
 
+template<typename T>
+static void solve_mv(const T m[symdim], const T b[ndim], T out[__restrict__ ndim]){
+	// TODO : take advantage of the symmetry, for a more efficient and/or stable solve
+	T a_[ndim][ndim]; copy_mA(m,a_);
+	T b_[ndim]; cast(b,b_);
+	solve_av_overwrite(a_,b_,out);
+}
+
+
 /// comatrix of a symmetric matrix
 template<typename T> static void
 comatrix_m(const T m[symdim], T co_m[symdim]){

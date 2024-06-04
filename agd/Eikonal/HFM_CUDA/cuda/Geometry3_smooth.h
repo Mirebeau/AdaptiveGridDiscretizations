@@ -16,7 +16,7 @@
 /// Smooth variant of Selling's decomposition
 const int smooth3_decomp_order = 6; // TUNING PARAMETER. Adjust smoothness
 namespace smooth {
-const int decompdim = 13; // Enough, in theory, to achieve a smooth decomposition.
+const int decompdim = 13; // Enough, we conjecture, to achieve a smooth decomposition.
 const int rdim = decompdim-symdim;
 // Number of superbases attaining the first two energy levels in Voronoi's reduction, worst case (Id)
 const int sb_nmin1 = 16; const int sb_nmin2 = 16 + 36; // First and second level
