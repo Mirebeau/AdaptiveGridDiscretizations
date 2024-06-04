@@ -47,7 +47,6 @@ void decomp_m(const Scalar m[symdim],
         -coef_m(m_ref,1,2),coef_m(m_ref,2,0)+coef_m(m_ref,2,1)+coef_m(m_ref,2,2)};
     for(int i=0; i<symdim; ++i) assert(lambda[i]>=0);
     
-//    std::cout ExportArrayArrow(lambda) << std::endl;
     /* Get the restricted superbase candidates. We conjecture that there are 16 at most, which is
     attained in the case of the identity matrix. (ntot_sb = 127 is an upper bound) */
     const int nmax_sb = 16;
@@ -67,7 +66,6 @@ void decomp_m(const Scalar m[symdim],
         scores[n_sb] = score;
         ++n_sb;
     }
-//    std::cout ExportArrayArrow(scores) << std::endl;
     
     // Compute a softmin for the superbases energies, using a Newton method
     const int nitermax_softmin = 10;
@@ -124,7 +122,6 @@ void decomp_m(const Scalar m[symdim],
     for(int n=0; n<n_offsets; ++n) w_offsets_sum += w_offsets[n];
     assert(abs(w_offsets_sum-symdim)<1e-5);
 #endif
-//    std::cout ExportArrayArrow(w_offsets) << n_offsets << std::endl;
     
     // Prepare for the Newton method
     const int tensordim = (symdim*(symdim+1))/2;
@@ -139,7 +136,6 @@ void decomp_m(const Scalar m[symdim],
         offsets_m[n][1]*=int8_t(2); offsets_m[n][3]*=int8_t(2); offsets_m[n][4]*=2;//Frobenius dual
         GeoSym::self_outer(offsets_m[n],offsets_mm[n]);
     }
-//    GeometryT<ndim>::show_a<decompdim>(offsets_); std::cout << std::endl;
     
     // Now, run a Newton method in dual space
     const int nitermax_dual = 12;
@@ -149,7 +145,6 @@ void decomp_m(const Scalar m[symdim],
         Scalar dobj[symdim]; copy_mM(m_ref,dobj);
         dobj[1] *= 2; dobj[3]*=2; dobj[4]*=2;
         Scalar ddobj[tensordim]; GeometryT<tensordim>::zero(ddobj);
-//        std::cout ExportVarArrow(obj) ExportArrayArrow(dobj) << std::endl;
         for(int n=0; n<n_offsets; ++n){
             const Scalar t = (1 - GeoSym::scal(m_opt,offsets_m[n])) / relax;
             // Compute the barrier function, and its first and second order derivatives
@@ -161,33 +156,19 @@ void decomp_m(const Scalar m[symdim],
             obj += relax*w_offsets[n]*B;
             GeoSym::madd(-w_offsets[n]*dB,offsets_m[n],dobj);
             GeometryT<tensordim>::madd(w_offsets[n]*ddB/relax,offsets_mm[n],ddobj);
-            
-/*            if(n==0 && niter==0){
-//                std::cout ExportVarArrow(obj) ExportArrayArrow(dobj) ExportArrayArrow(ddobj) << std::endl;
-                std::cout ExportVarArrow(relax*w_offsets[n]*B)
-                ExportVarArrow(-w_offsets[n]*dB)
-                ExportVarArrow(w_offsets[n]*ddB/relax)
-                ExportVarArrow(w_offsets[n])
-                
-                << std::endl;
-  //              std::cout ExportVarArrow(B) ExportVarArrow(dB)
-  //              ExportVarArrow(-w_offsets[n]*dB) << std::endl;
-            }*/
-        }
-//        std::cout ExportVarArrow(obj) << std::endl;
-//        std::cout ExportArrayArrow(dobj) << std::endl;
+        } // for n_offsets
         // Compute the descent direction
         Scalar descent[symdim];
         GeoSym::solve_mv(ddobj,dobj,descent);
         GeoSym::sub(descent,m_opt); // Using a time step of 1. Adaptive timesteps may be needed.
-    }
+    } // for nitermax_dual
     
     // Compute the decomposition weights using the optimality conditions
     for(int n=0; n<n_offsets; ++n){
         const Scalar t = (1 - GeoSym::scal(m_opt,offsets_m[n])) / relax;
         const Scalar t2 = t/2, sqt2 = sqrt(1+t2*t2), dB = t2 + sqt2;
         weights[n] = w_offsets[n] * dB;
-    }
+    } // for n_offsets
     
     // Compute the offsets using a change of coordinates
     OffsetT isb[ndim][ndim]; // Comatrix (+- transposed inverse) of the superbase transformation
