@@ -244,7 +244,7 @@ def newton_minimize(f,x0,fargs=tuple(),
 			if not is_ad(y): # Allow returning np.nan of np.inf in case of error
 				assert not np.isfinite(y)
 				return y,None,None
-			return y.value,y.to_first().to_dense().coef,y.solve_stationnary()
+			return y.value,y.to_first().to_dense(y.bound_ad()).coef,y.solve_stationnary()
 		y = split(y)
 		def vgd(x): return split(f_vgd(x,*fargs))
 	if verbosity>=0: print(f"Initialization, objective {y[0]}")

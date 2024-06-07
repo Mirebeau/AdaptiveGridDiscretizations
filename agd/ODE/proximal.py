@@ -43,7 +43,7 @@ def chambolle_pock(impl_f,impl_gs,τ_f,τ_gs,K,x,y=None,
 	Legendre-Fenchel dual f_star, and the proximal operator prox_f. (f and f_star 
 	are used to construct the primal and dual energies, which are involved in 
 	the stopping criterion).
-	  - an implementation of f, in which case E_rtol must provide E_primal_dual
+	  - an implementation of prox_f, in which case E_rtol must provide E_primal_dual
 
 	- impl_gs : similar to impl_f above, but for the function g^*.
 	- K : possibilities
