@@ -20,7 +20,7 @@ const int decompdim = 13; // Enough, we conjecture, to achieve a smooth decompos
 const int rdim = decompdim-symdim;
 // Number of superbases attaining the first two energy levels in Voronoi's reduction, worst case (Id)
 const int sb_nmin1 = 16; const int sb_nmin2 = 16 + 36; // First and second level
-const int BadIndex = -2e9;
+const int BadIndex = int(-2e9);
 
 /**Returns the primitive of (1-x^2)^order, vanishing at 0.*/
 template<typename T> T _heaviside_helper(T x){
