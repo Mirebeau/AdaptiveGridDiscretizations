@@ -92,7 +92,7 @@ VolumeFilenames = {
 #Part : Linear elasticity
 	"ElasticEnergy","ElasticWave","HighOrderWaves","WaveExamples","ElasticComparisons",
 #Part : Primal dual optimization
-	"Prox_MinCut",
+	"Prox_MinCut","PorousMinimization",
 #Part : Applications
 	"VaradhanGeodesics","AnisotropicDiffusion",
 ],
