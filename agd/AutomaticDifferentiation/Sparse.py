@@ -99,9 +99,10 @@ class spAD(Base.baseAD):
 
 	def __truediv__(self,other):
 		if self.is_ad(other):
-			return self.new(self.value/other.value,
-				_concatenate(self.coef*_add_dim(1/other.value),other.coef*_add_dim(-self.value/other.value**2)),
-				_concatenate(self.index,other.index))
+			value = self.value/other.value
+			coef1,coef2 = self.coef*_add_dim(1/other.value),other.coef*_add_dim(-self.value/other.value**2)
+			index1,index2 = np.broadcast_to(self.index,coef1.shape),np.broadcast_to(other.index,coef2.shape)
+			return self.new(value,_concatenate(coef1,coef2),_concatenate(index1,index2))
 		elif self.isndarray(other):
 			return self.new(self.value/other,self.coef*_add_dim(1./other),self.index)
 		else:

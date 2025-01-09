@@ -112,6 +112,43 @@ def deconv(arr,σ=5.,ϵ=0.05,periodic=True,depth=0,real=True):
     
     return arr,conv
 
+def int_from_offset(e):
+    """
+    Turns offset(s) (small vectors with integer coefficients) into integers.
+    Opposite offsets are regarded as identical and yield the same integer.
+    Returns : 
+    - ie : corresponding integer(s)
+    - r, vdim : automatically selected basis and offset dimension (needed for reconstruction)
+    """
+    e = np.asarray(e)
+    pos = np.argmax(e!=0,axis=0) # position of the first non-zero coefficient
+    e *= np.sign(np.take_along_axis(e,pos[None],0)) # Normalized offset, starts > 0
+    emax = np.max(np.abs(e))
+    r = 2*emax+1 # Base exponent for conversion to integer
+    vdim = len(e)
+    return sum(e[i] * r**(vdim-i-1) for i in range(vdim)),r,vdim
+
+def offset_from_int(ie,r,vdim):
+    """Inverse of int_from_offset"""
+    e = []; emax = r//2
+    for i in range(vdim): # Expand the offsets, as vectors
+        mod = ie%r
+        pos = mod>emax
+        ie = (ie//r)+pos
+        e.append(np.where(pos,mod-r,mod))
+    return np.array(e[::-1])
+
+def dense_decomp(λ,e):
+    """Turns an adaptive decomposition λ,e, where the offsets e may vary from point to point,
+    into a non-adaptive one, Λ,E, where E is a fixed collection of offsets"""
+    ie,r,vdim = int_from_offset(e)
+    Λ = ad.Sparse.spAD(np.zeros_like(λ[0]),np.moveaxis(λ,0,-1),np.moveaxis(ie,0,-1))
+    Λ = np.asarray(Λ.tangent_operator().todense()) # Possible improvement : optimization opportunities here
+    nz = np.any(Λ!=0,axis=0)
+    Λ = Λ.T.reshape((-1,*λ.shape[1:]))
+    E = offset_from_int(np.arange(len(Λ)),r,vdim)
+    return Λ[nz],E[:,nz]
+
 def conv_decomp(deconvD,conv,rtol=1e-6):
     """Apply Selling's decomposition, then convolve the coefficients, and finally prune the small ones.
     - deconvD : deconvolved positive definite matrix field. 
@@ -120,13 +157,8 @@ def conv_decomp(deconvD,conv,rtol=1e-6):
     """
     tol = rtol * lp.trace(deconvD) # Compute absolute tolerance
     λ,e = Selling.Decomposition(deconvD) # Selling decomposition
-    vdim = len(e)
     shape = λ[0].shape
-    pos = np.argmax(e!=0,axis=0) # position of the first non-zero coefficient
-    e *= np.sign(np.take_along_axis(e,pos[None],0)) # Normalized offset, starts > 0
-    emax = np.max(np.abs(e))
-    r = 2*emax+1 # Base exponent for conversion to integer
-    ie = sum(e[i] * r**(vdim-i-1) for i in range(vdim)) # Convert offsets to integers
+    ie,r,vdim = int_from_offset(e)
     Λ = ad.Sparse.spAD(np.zeros_like(λ[0]),np.moveaxis(λ,0,-1),np.moveaxis(ie,0,-1))
     Λ = Λ.tangent_operator().todense() # Possible improvement : optimization opportunities here
     Λ = np.moveaxis(np.asarray(Λ).reshape((*shape,-1)),-1,0)
@@ -137,11 +169,5 @@ def conv_decomp(deconvD,conv,rtol=1e-6):
     x.simplify_ad() # Remove null coefficients.
     λ = np.moveaxis(x.coef,-1,0) # The new coefficients
     ie = np.moveaxis(x.index,-1,0) # The new offsets, for now as integers
-    e = []
-    for i in range(vdim): # Expand the offsets, as vectors
-        mod = ie%r
-        pos = mod>emax
-        ie = (ie//r)+pos
-        e.append(np.where(pos,mod-r,mod))
-    return λ,np.array(e[::-1])
+    return λ,offset_from_int(ie,r,vdim)
 

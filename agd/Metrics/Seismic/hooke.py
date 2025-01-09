@@ -409,6 +409,14 @@ class Hooke(ImplicitBase):
 			sum(c(i,j,k,l)*w[j]*w[l] for j in range(d) for l in range(d))
 			for i in range(d)] for k in range(d)])
 
+	def dualNorm(self,w):
+		r"""Returns the dual norm, defined as sqrt(lambda_max(contract(w)))"""
+		m = self.contract(w) # Eigenvalues of two dimensional symmetric matrix
+		if len(m)==2: # Explicit formula in dimension 2 is faster to compute
+			a=m[0,0]; b=m[1,1]; c=m[0,1]
+			return np.sqrt( (a+b)/2 + np.sqrt( ((a-b)/2)**2 + c**2))
+		return np.sqrt(np.linalg.eigvalsh(np.moveaxis(m,(0,1),(-2,-1)))[...,-1])
+
 	def waves(self,k,ρ):
 		"""Returns the pulsation and direction of the waves with the given wave vector."""
 		m = self.contract(k)

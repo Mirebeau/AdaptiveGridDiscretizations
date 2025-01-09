@@ -88,15 +88,18 @@ def dot_AA(a,b):
 	"""
 	Dot product a.b of two matrices.
 	Inputs : 
-	- a: array of shape (vdim,wdim, n1,...,nk),
-	- a: array of shape (wdim,xdim, n1,...,nk),	
+	- a: array of shape (m,n,*shape_a),
+	- b: array of shape (n,k,*shape_b),	
+	where shape_a and shape_b broadcast to each other.
 	"""
-	m,n=a.shape[:2]
-	bounds = a.shape[2:]
-	k = b.shape[1]
-	if b.shape!=(n,k,)+bounds: raise ValueError("dot_AA error : Incompatible shapes")
+	assert a.ndim==b.ndim
+#	m,n=a.shape[:2]
+#	bounds = a.shape[2:]
+#	k = b.shape[1]
+#	if b.shape!=(n,k,)+bounds: raise ValueError("dot_AA error : Incompatible shapes")
 	if ad.is_ad(a) or ad.is_ad(b): # Note : not very memory efficient
-		return (a.reshape((m,n,1)+bounds)*b.reshape((1,n,k)+bounds)).sum(1)
+		return (a[:,:,None]*b[None,:,:]).sum(1)
+#		return (a.reshape((m,n,1)+bounds)*b.reshape((1,n,k)+bounds)).sum(1)
 	else: 
 		return np.moveaxis(
 			np.moveaxis(a,(0,1),(-2,-1)) @ np.moveaxis(b,(0,1),(-2,-1)),(-2,-1),(0,1))
