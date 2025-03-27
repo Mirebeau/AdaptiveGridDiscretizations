@@ -33,7 +33,7 @@ Scalar cutoff_dlog(Scalar t) {const Scalar s=1-t; return t>=Scalar(1) ? Scalar(0
 void decomp_m(const Scalar m[symdim],
               Scalar weights[__restrict__ decompdim],
               OffsetT offsets[__restrict__ decompdim][ndim],
-              Scalar relax=0.004, // Relaxation parameter for the modified Selling decomposition
+              Scalar relax=0.04, // Relaxation parameter for the modified Selling decomposition
               bool sb0 = false
 ){
     typedef GeometryT<symdim> GeoSym;
@@ -58,7 +58,7 @@ void decomp_m(const Scalar m[symdim],
     relax *= pow(det, Scalar(1./3));
     for(int i=0; i<ntot_sb; ++i){
         const Scalar energy = GeoSym::scal(lambda,tot_energies[i]);
-        const Scalar energy_3 = energy*energy*energy, score = (energy_3-energy0_3)/det;
+        const Scalar energy_3 = energy*energy*energy, score = (energy_3-energy0_3)/(6*det);
         assert(score>=0);
         if(score>=1) continue;
         assert(n_sb<nmax_sb);
