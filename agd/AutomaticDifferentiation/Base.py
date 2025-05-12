@@ -32,13 +32,13 @@ class Taylor1: # first order Taylor expansions
 	def cos(x): 	return (np.cos(x),-np.sin(x))
 	def tan(x):	t=np.tan(x); return (t,1.+t**2)
 	def arcsin(x): return (np.arcsin(x),(1.-x**2)**-0.5)
-	def arccos(c): return (np.arccos(x),-(1.-x**2)**-0.5)
+	def arccos(x): return (np.arccos(x),-(1.-x**2)**-0.5)
 	def arctan(x): return (np.arctan(x),1./(1+x**2))
 	def sinh(x):	return (np.sinh(x),np.cosh(x))
 	def cosh(x):	return (np.cosh(x),np.sinh(x))
 	def tanh(x):	t=np.tanh(x); return (t,1.-t**2)
 	def arcsinh(x): return (np.arcsinh(x),(1.+x**2)**-0.5)
-	def arccosh(c): return (np.arccosh(x),(x**2-1.)**-0.5)
+	def arccosh(x): return (np.arccosh(x),(x**2-1.)**-0.5)
 	def arctanh(x): return (np.arctanh(x),1./(1-x**2))
 
 class Taylor2: # second order Taylor expansions of classical functions
@@ -50,13 +50,13 @@ class Taylor2: # second order Taylor expansions of classical functions
 	def cos(x):	c=np.cos(x); return (c,-np.sin(x),-c)
 	def tan(x):	t=np.tan(x); u=1.+t**2; return (t,u,2.*u*t)
 	def arcsin(x): y=1.-x**2; return (np.arcsin(x),y**-0.5,x*y**-1.5)
-	def arccos(c): y=1.-x**2; return (np.arccos(x),-y**-0.5,-x*y**-1.5)
+	def arccos(x): y=1.-x**2; return (np.arccos(x),-y**-0.5,-x*y**-1.5)
 	def arctan(x): y=1./(1.+x**2); return (np.arctan(x),y,-2.*x*y**2)
 	def sinh(x):	s=np.sinh(x); return (s,np.cosh(x),s)
 	def cosh(x):	c=np.cosh(x); return (c,np.sinh(x),c)
 	def tanh(x):	t=np.tanh(x); u=1.-t**2; return (t,u,-2.*u*t)
 	def arcsinh(x): y=1.+x**2; return (np.arcsinh(x),y**-0.5,-x*y**-1.5)
-	def arccosh(c): y=x**2-1.; return (np.arccosh(x),y**-0.5,-x*y**-1.5)
+	def arccosh(x): y=x**2-1.; return (np.arccosh(x),y**-0.5,-x*y**-1.5)
 	def arctanh(x): y=1./(1-x**2); return (np.arctanh(x),y,2.*x*y**2)
 
 def _tuple_first(a): 	return a[0] if isinstance(a,tuple) else a

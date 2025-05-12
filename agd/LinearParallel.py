@@ -265,7 +265,7 @@ def solve_AV(a,v):
 	Solution to a linear system (preferably low dimensional).
 	Input : 
 	- a: array of shape (vdim,vdim, n1,...,nk),
-	- v: array of shape (vdim,vdim, n1,...,nk),
+	- v: array of shape (vdim,      n1,...,nk),
 	 where vdim is the ambient vector space dimension
 	"""
 	a,v=ad.asarray(a),ad.asarray(v)
