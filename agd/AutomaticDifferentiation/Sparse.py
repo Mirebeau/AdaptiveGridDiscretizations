@@ -198,6 +198,7 @@ class spAD(Base.baseAD):
 
 	# Conversion
 	def bound_ad(self):
+		"""Number of independent ad variables"""
 		return 1+int(cps.max(self.index,initial=-1))
 
 	def to_dense(self,dense_size_ad=None):

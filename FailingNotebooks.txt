@@ -1,5 +1,11 @@
 Failing notebooks 
 
+--------- CPU --------
+conda environment agd-hfm_dev311
+Notebooks_Repro/WaveAccuracy (bug : np.svd)
+Notebooks_Div/AnisotropicDiffusion (bug : scipy.datasets)
+Notebooks_NonDiv/BoatRoutingGeneric_Time (directory issue: 'TestData/ModelePerformanceNavire.npy' not found, and internet connection issue)
+
 --------- GPU --------
 
 conda environment ascolabjune2025 : 

@@ -32,7 +32,7 @@ class denseAD(Base.baseAD):
 	def copy(self,order='C'):
 		return self.new(self.value.copy(order=order),self.coef.copy(order=order))
 	def as_tuple(self): return self.value,self.coef
-	def to_dense(self): return self # For compatibility
+	def to_dense(self,dense_size_ad=None): return self # For compatibility
 	
 	# Representation 
 	def __iter__(self):
@@ -151,6 +151,7 @@ class denseAD(Base.baseAD):
 	#Indexing
 	@property
 	def size_ad(self):  return self.coef.shape[-1]
+	def bound_ad(self): return self.size_ad # For compatibility
 
 	def gradient(self,i=None): 
 		"""Returns the gradient, or the i-th component of the gradient if specified."""

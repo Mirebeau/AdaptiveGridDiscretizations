@@ -112,6 +112,8 @@ class denseAD2(Base.baseAD):
 	#Indexing
 	@property
 	def size_ad(self):  return self.coef1.shape[-1]
+	def bound_ad(self): return self.size_ad # For compatibility
+
 
 	def to_first(self): return Dense.denseAD(self.value,self.coef1)
 	def gradient(self,i=None): 
