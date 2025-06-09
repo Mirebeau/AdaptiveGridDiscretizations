@@ -274,6 +274,7 @@ def solve_AV(a,v):
 		# Inefficient, but compatible with ndarray subclasses
 		# Also cupy.linalg.solve has a performance issue (cupy version 7.8) 
 		return dot_AV(inverse(a),v) 
-	return np.moveaxis(np.linalg.solve(np.moveaxis(a,(0,1),(-2,-1)),np.moveaxis(v,0,-1)),-1,0)			
-
-
+	# Fix for cupy >= 2.0
+	return np.moveaxis(np.linalg.solve(np.moveaxis(a,(0,1),(-2,-1)),np.moveaxis(v,0,-1)[...,None])[...,0],-1,0)			
+	#return np.moveaxis(np.linalg.solve(np.moveaxis(a,(0,1),(-2,-1)),np.moveaxis(v,0,-1)),-1,0)			
+	

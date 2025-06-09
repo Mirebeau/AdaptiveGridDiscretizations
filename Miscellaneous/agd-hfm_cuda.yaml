@@ -1,21 +1,27 @@
 # conda env create -f environment.yml
-name: agd-hfm_cupy12
+name: agd-hfm_cuda313
 channels:
   - conda-forge
-  - plotly
+#  - plotly
 dependencies:
   - python
   - matplotlib
   - notebook
   - scipy
+  - pooch # access to scipy datasets
 #  - conda-build
 #  - conda-verify
 #  - anaconda-client
 #  - nbformat
 #  - nbdime
   - ffmpeg
-  - cudatoolkit
-  - cupy = 12
-  - plotly
+  - cupy 
+
+#  - cudatoolkit = 12
+
+#  - plotly
 #  - pip
 #  - ipywidgets
+
+# ascolabjune2025 : python 3.11
+#conda install -c conda-forge cupy=13.3 cuda-version=12.5

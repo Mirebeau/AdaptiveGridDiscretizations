@@ -10,13 +10,6 @@ hfm_debug_macro = False
 # Use possibly in combination -lineinfo or -G and 
 # <<< cuda-memcheck -- python MyCode.py
 
-def _cupy_has_RawModule():
-	"""
-	RawModule appears in cupy 8. 
-	"""
-	from packaging.version import Version
-	return Version(cp.__version__) >= Version("9") 
-
 def getmtime_max(directory):
 	"""
 	Lists all the files in the given directory, and returns the last time one of them
@@ -27,23 +20,15 @@ def getmtime_max(directory):
 
 def GetModule(source,cuoptions):
 	"""Returns a cupy raw module"""
-	if _cupy_has_RawModule(): return cp.RawModule(code=source,options=cuoptions)
-	else: return cp.core.core.compile_with_cache(source, 
-		options=cuoptions, prepend_cupy_headers=False)
-
+	if cp.__version__.startswith("13.3") and cuoptions[0]=='-default-device':
+		cuoptions=cuoptions[1:] # Fix for google Colab, june 2025
+	return cp.RawModule(code=source,options=cuoptions)
 
 def SetModuleConstant(module,key,value,dtype):
 	"""
 	Sets a global constant in a cupy cuda module.
 	"""
-	if _cupy_has_RawModule(): 
-		memptr = module.get_global(key)
-	else: 
-		#https://github.com/cupy/cupy/issues/1703
-		b = cp.core.core.memory_module.BaseMemory()
-		b.ptr = module.get_global_var(key)
-		memptr = cp.cuda.MemoryPointer(b,0)
-
+	memptr = module.get_global(key)
 	value=cp.ascontiguousarray(cp.asarray(value,dtype=dtype))
 	module_constant = cp.ndarray(value.shape, value.dtype, memptr)
 	module_constant[...] = value

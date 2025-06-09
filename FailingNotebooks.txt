@@ -1,0 +1,23 @@
+Failing notebooks 
+
+--------- GPU --------
+
+conda environment ascolabjune2025 : 
+(segfault)
+Notebooks_FMM\TTI 
+Notebooks_Repro\Riemann_GPU
+
+----------
+
+conda environment agd-hfm_cuda313 : 
+(missing plotly library)
+Notebooks_Algo\Meissner 
+
+(gaussian filter bug in cupy)
+Notebooks_Div\AnisotropicDiffusion 
+Notebooks_Div\WaveExamples  
+Notebooks_FMM\Interactive_ConvexRegionSegmentation 
+
+(segfault)
+Notebooks_FMM\TTI 
+Notebooks_Repro\Riemann_GPU

@@ -406,7 +406,7 @@ def expand_dims(a,axis):
 
 @implements(np.empty_like)
 def empty_like(a,*args,subok=True,**kwargs):
-	if from_cupy(a): subok=None
+	if from_cupy(a): subok=None; kwargs.pop('device',None)
 	return type(a)(np.empty_like(a.value,*args,subok=subok,**kwargs))
 
 @implements(np.copyto)

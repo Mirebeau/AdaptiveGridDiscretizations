@@ -129,7 +129,9 @@ def SetKernel(self):
 	self.cuda_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),"cuda")
 	date_modified = cupy_module_helper.getmtime_max(self.cuda_path)
 	self.cuda_date_modified = f"// Date cuda code last modified : {date_modified}\n"
-	self.cuoptions = ("-default-device", f"-I {self.cuda_path}",
+	self.cuoptions = (
+		"-default-device", 
+		f"-I {self.cuda_path}",
 		) + self.GetValue('cuoptions',default=tuple(),
 		help="Options passed via cupy.RawKernel to the cuda compiler")
 

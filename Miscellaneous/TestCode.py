@@ -9,12 +9,14 @@ help_str = """
 This script runs the code of the specified notebook, or of all the notebooks 
 in the current directory, and catches and reports any raised exceptions.
 
-Optional arguments
-  --CommandLine : needed on my windows machine, due to asyncio error
-
 Note: you may need to first run TestTocs.py with the following option first
 	--GPU_config=True/False, turn on or off gpu config (cell tagged GPU_config)
 """
+
+# The following seems useless now (june 2025, python 3.13, cupy 13.3, cuda 12.9)
+#Optional arguments
+#  --CommandLine : needed on my windows machine, due to asyncio error 
+
 
 # ------- Specific to this repository -----
 
