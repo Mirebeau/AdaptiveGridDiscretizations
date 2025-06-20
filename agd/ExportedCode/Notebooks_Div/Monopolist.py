@@ -9,6 +9,7 @@ from scipy.spatial import ConvexHull, convex_hull_plot_2d
 import scipy
 import scipy.optimize as sciopt
 from matplotlib import pyplot as plt
+from math import factorial
 
 from agd.ExportedCode.Notebooks_Algo.Meissner import LinearConstraint_AD,QuadraticObjective_AD
 
@@ -52,7 +53,7 @@ def meanFE(u,T):
 
 def cellmeasFE(X,T):
     """Area (or volume) of each simplex in the triangulation"""
-    return lp.det(X[:,T[1:]]-X[:,None,T[0]])/np.math.factorial(len(X))
+    return lp.det(X[:,T[1:]]-X[:,None,T[0]])/factorial(len(X))
 
 def monopolist_objective(u,X,T,ρ=1.,quadratic=True):
     g = gradientFE(u,X,T)

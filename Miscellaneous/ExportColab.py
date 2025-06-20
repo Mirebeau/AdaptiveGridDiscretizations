@@ -17,6 +17,7 @@ google_drive_dir = {
 	"w-148-166.wfer.ens-paris-saclay.fr":"/Users/jean-mariemirebeau/Mon Drive/AdaptiveGridDiscretizations_Colab", # M1 (2022)
 	'w-152-221.wfer.ens-paris-saclay.fr':"/Users/jean-mariemirebeau/Mon Drive/AdaptiveGridDiscretizations_Colab", # M1 (2022)
 	'w-149-193.wfer.ens-paris-saclay.fr':"/Users/jean-mariemirebeau/Mon Drive/AdaptiveGridDiscretizations_Colab", # M1 (2022)
+	'w-146-240.wfer.ens-paris-saclay.fr':"/Users/jean-mariemirebeau/Mon Drive/AdaptiveGridDiscretizations_Colab", # M1 (2025)
 	"MacBook-Pro-de-Jean-Marie-2.local":"/Users/mirebeau/Google Drive/AdaptiveGridDiscretizations_Colab", # retina (2012)
 }
 
