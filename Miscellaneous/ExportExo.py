@@ -7,9 +7,11 @@ Produce an exercise notebook, from a standard notebook with some special
 comments in the cell source, and optionally tags in the cell metadata.
 
 Usage : 
-	python ExportExo filename.ipynb
+	python ExportExo.py filename.ipynb
 
-
+or possibly
+    python ../Miscellaneous/ExportExo.py --language=en notebook1.ipynb notebook2.ipynb
+	
 Notebook formatting : 
 - In a markdown cell, introduce a comment of the following form.
 It will create a new markdown cell, containing the comment contents, preceded with 
@@ -125,8 +127,12 @@ def MakeExo(FileName,ExoName):
 		json.dump(data,f,ensure_ascii=False)
 
 if __name__ == '__main__':
+	#global language
 	for name in sys.argv[1:]:
+		if name.startswith('--language='): 
+			language = name[11:].upper()
+			continue
 		dir,FileName = os.path.split(name)
 		prefix,ext = os.path.splitext(FileName)
-		ExoName = os.path.join(dir,"Exo",prefix+'_Exo.ipynb')
+		ExoName = os.path.join(dir,"Exo",prefix+'_Exo'+language+'.ipynb')
 		MakeExo(FileName,ExoName)
