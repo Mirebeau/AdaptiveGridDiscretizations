@@ -14,9 +14,9 @@ The recommended way to install is
 pip install agd
 ```
 
-*Deprecated conda package* (this version does not include the GPU codes, and is not maintained)
+Note : the agd library includes a GPU (CUDA) eikonal solver. If you need a CPU eikonal solver, then please install the HamiltonFastMarching library
 ```console
-conda install agd -c agd-lbr
+pip install hfmpy
 ```
 
 ### Reboot of the git history (february 8th 2024)
@@ -36,8 +36,7 @@ The notebooks are intended as documentation and testing for the adg library. The
 * Divergence form anisotropic PDEs, often encountered in image processing.
 * Algorithmic tools, related with lattice basis reduction methods, and automatic differentiation.
 
-For offline consultation, please download and install [anaconda](https://www.anaconda.com) or [miniconda](https://conda.io/en/latest/miniconda.html).  
-*Optionally*, you may create a dedicated conda environnement by typing the following in a terminal:
+For offline consultation, we recommend installing [anaconda](https://www.anaconda.com) or [miniconda](https://conda.io/en/latest/miniconda.html), and creating a dedicated conda environnement :
 ```console
 conda env create --file agd-hfm.yaml
 conda activate agd-hfm
@@ -46,7 +45,7 @@ In order to open the book summary, type in a terminal:
 ```console
 jupyter notebook Summary.ipynb
 ```
-Then use the hyperlinks to navigate within the notebooks.
+Then use the hyperlinks to navigate between the notebooks.
 
 ### Matlab users
 
